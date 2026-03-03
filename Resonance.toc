@@ -1,0 +1,15 @@
+## Interface: 120001
+## Title: Resonance
+## Notes: Mute modern spell sounds and play custom (e.g., Vanilla/TBC/Wrath) sounds on your casts. Works with any class.
+## Author: Renato
+## Version: 1.0.0
+## SavedVariables: ResonanceDB
+
+embeds.xml
+
+data/SpellSounds.lua
+data/CharacterSounds.lua
+data/SpellMuteData.lua
+
+Core.lua
+Options.lua
