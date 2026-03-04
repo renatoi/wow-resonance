@@ -46,6 +46,7 @@ local defaults = {
     local_file_overrides_by_spell_name = {},
     spell_to_play_file_data_id = {},
     spell_config = {},
+    template_spells = {},  -- { [spellID] = true } tracks which spells came from templates
     muteVocalizations = false,
     muteWeaponImpacts = false,
     minimap = { hide = false },
@@ -117,14 +118,20 @@ local function playResolvedSound(spellID, spellName)
   -- 0) spell_config: unified per-spell configuration
   local cfg = db.spell_config and db.spell_config[spellID]
   if cfg and cfg.sound then
-    if dbg then msg(("  spell_config sound: %s (type: %s)"):format(tostring(cfg.sound), type(cfg.sound))) end
     -- Temporarily unmute the replacement sound in case it's also in the mute list (manual or auto)
-    if type(cfg.sound) == "number" and (db.mute_file_data_ids[cfg.sound] or autoMutedFIDs[cfg.sound] or voxMutedFIDs[cfg.sound] or weaponMutedFIDs[cfg.sound]) then
-      UnmuteSoundFile(cfg.sound)
-      previewSound(cfg.sound)
-      MuteSoundFile(cfg.sound)
+    local isMuted = type(cfg.sound) == "number" and (db.mute_file_data_ids[cfg.sound] or autoMutedFIDs[cfg.sound] or voxMutedFIDs[cfg.sound] or weaponMutedFIDs[cfg.sound])
+    if dbg then msg(("  spell_config sound: %s (type: %s, muted: %s, channel: %s)"):format(tostring(cfg.sound), type(cfg.sound), tostring(isMuted and true or false), getChannel())) end
+    if isMuted then
+      local fid = cfg.sound
+      -- WoW's MuteSoundFile is refcounted; unmute enough times to fully clear it
+      for _ = 1, 5 do UnmuteSoundFile(fid) end
+      local ok = previewSound(fid)
+      if dbg then msg(("  PlaySoundFile result: %s"):format(tostring(ok))) end
+      -- Re-mute once after a delay (applyMutes only uses count=1 per FID; reload normalizes)
+      C_Timer.After(0.2, function() MuteSoundFile(fid) end)
     else
-      previewSound(cfg.sound)
+      local ok = previewSound(cfg.sound)
+      if dbg then msg(("  PlaySoundFile result: %s"):format(tostring(ok))) end
     end
     -- User explicitly configured this sound; don't fall through
     -- (PlaySoundFile may return nil for valid FileDataIDs)
@@ -276,25 +283,55 @@ local function removeAutoMuteFIDs(fids)
   end
 end
 
+local function getExclusions(spellID)
+  local cfg = db.spell_config and db.spell_config[spellID]
+  return cfg and cfg.muteExclusions
+end
+
+local function filterExclusions(fids, exclusions)
+  if not exclusions then return fids end
+  local filtered = {}
+  for _, fid in ipairs(fids) do
+    if not exclusions[fid] then
+      filtered[#filtered + 1] = fid
+    end
+  end
+  return filtered
+end
+
 local function rebuildAutoMutes()
   wipe(autoMutedFIDs)
   for sid, _ in pairs(db.spell_config or {}) do
     local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
-    addAutoMuteFIDs(fids)
+    if fids then
+      addAutoMuteFIDs(filterExclusions(fids, getExclusions(sid)))
+    end
   end
 end
 
 local function applyAutoMutesForSpell(spellID)
   local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[spellID]
+  if not fids then return end
+  fids = filterExclusions(fids, getExclusions(spellID))
+  -- Only call MuteSoundFile for FIDs not already muted (avoid inflating WoW's internal refcount)
+  local newFIDs = {}
+  for _, fid in ipairs(fids) do
+    if not autoMutedFIDs[fid] or autoMutedFIDs[fid] <= 0 then
+      if not db.mute_file_data_ids[fid] then
+        newFIDs[#newFIDs + 1] = fid
+      end
+    end
+  end
   addAutoMuteFIDs(fids)
-  if db.enabled and fids then
-    for _, fid in ipairs(fids) do MuteSoundFile(fid) end
+  if db.enabled then
+    for _, fid in ipairs(newFIDs) do MuteSoundFile(fid) end
   end
 end
 
 local function removeAutoMutesForSpell(spellID)
   local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[spellID]
-  removeAutoMuteFIDs(fids)
+  if not fids then return end
+  removeAutoMuteFIDs(filterExclusions(fids, getExclusions(spellID)))
 end
 
 local function applyMutes()
@@ -336,6 +373,152 @@ local function clearMutes()
 end
 
 ---------------------------------------------------------------------------
+-- Base64 encode/decode
+---------------------------------------------------------------------------
+local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local b64lookup = {}
+for i = 1, 64 do b64lookup[b64chars:byte(i)] = i - 1 end
+
+local function b64encode(data)
+  local out = {}
+  for i = 1, #data, 3 do
+    local a, b, c = data:byte(i, i + 2)
+    b = b or 0; c = c or 0
+    local n = a * 65536 + b * 256 + c
+    local remaining = #data - i + 1
+    out[#out + 1] = b64chars:sub(bit.rshift(n, 18) + 1, bit.rshift(n, 18) + 1)
+    out[#out + 1] = b64chars:sub(bit.band(bit.rshift(n, 12), 63) + 1, bit.band(bit.rshift(n, 12), 63) + 1)
+    out[#out + 1] = remaining > 1 and b64chars:sub(bit.band(bit.rshift(n, 6), 63) + 1, bit.band(bit.rshift(n, 6), 63) + 1) or "="
+    out[#out + 1] = remaining > 2 and b64chars:sub(bit.band(n, 63) + 1, bit.band(n, 63) + 1) or "="
+  end
+  return table.concat(out)
+end
+
+local function b64decode(data)
+  data = data:gsub("[^A-Za-z0-9+/=]", "")
+  local out = {}
+  for i = 1, #data, 4 do
+    local a = b64lookup[data:byte(i)] or 0
+    local b = b64lookup[data:byte(i + 1)] or 0
+    local c = b64lookup[data:byte(i + 2)] or 0
+    local d = b64lookup[data:byte(i + 3)] or 0
+    local n = a * 262144 + b * 4096 + c * 64 + d
+    out[#out + 1] = string.char(bit.band(bit.rshift(n, 16), 255))
+    if data:sub(i + 2, i + 2) ~= "=" then out[#out + 1] = string.char(bit.band(bit.rshift(n, 8), 255)) end
+    if data:sub(i + 3, i + 3) ~= "=" then out[#out + 1] = string.char(bit.band(n, 255)) end
+  end
+  return table.concat(out)
+end
+
+---------------------------------------------------------------------------
+-- Export / Import config
+---------------------------------------------------------------------------
+function Resonance:ExportConfig()
+  local lines = { "V1" }
+  -- Spell config entries
+  for sid, cfg in pairs(db.spell_config or {}) do
+    if cfg.sound then
+      local val
+      if type(cfg.sound) == "number" then
+        val = tostring(cfg.sound)
+      else
+        val = '"' .. tostring(cfg.sound) .. '"'
+      end
+      lines[#lines + 1] = "S" .. sid .. "=" .. val
+    else
+      -- Mute-only entry (no replacement sound)
+      lines[#lines + 1] = "S" .. sid .. "="
+    end
+    -- Export mute exclusions if any
+    if cfg.muteExclusions then
+      local excl = {}
+      for fid in pairs(cfg.muteExclusions) do excl[#excl + 1] = tostring(fid) end
+      if #excl > 0 then
+        lines[#lines + 1] = "X" .. sid .. ":" .. table.concat(excl, ",")
+      end
+    end
+  end
+  -- Manual mute entries
+  for fid, enabled in pairs(db.mute_file_data_ids or {}) do
+    if enabled then
+      lines[#lines + 1] = "M" .. fid
+    end
+  end
+  local text = table.concat(lines, "\n")
+  return "!Resonance!" .. b64encode(text)
+end
+
+function Resonance:ImportConfig(str)
+  if not str or str == "" then return nil, "Empty import string." end
+  -- Strip whitespace
+  str = str:match("^%s*(.-)%s*$")
+  -- Validate prefix
+  if str:sub(1, 11) ~= "!Resonance!" then
+    return nil, "Invalid format: missing !Resonance! prefix."
+  end
+  local encoded = str:sub(12)
+  local ok, decoded = pcall(b64decode, encoded)
+  if not ok or not decoded or decoded == "" then
+    return nil, "Failed to decode import string."
+  end
+  -- Parse lines
+  local lines = {}
+  for line in decoded:gmatch("[^\n]+") do
+    lines[#lines + 1] = line
+  end
+  if #lines == 0 or lines[1] ~= "V1" then
+    return nil, "Unknown format version."
+  end
+  local added, skipped, addedMutes = 0, 0, 0
+  for i = 2, #lines do
+    local line = lines[i]
+    local tag = line:sub(1, 1)
+    if tag == "S" then
+      local sid, val = line:match("^S(%d+)=(.*)")
+      sid = tonumber(sid)
+      if sid then
+        if db.spell_config[sid] then
+          skipped = skipped + 1
+        else
+          local sound
+          if val and val ~= "" then
+            local quoted = val:match('^"(.*)"$')
+            if quoted then
+              sound = quoted
+            else
+              sound = tonumber(val)
+            end
+          end
+          db.spell_config[sid] = { sound = sound }
+          applyAutoMutesForSpell(sid)
+          added = added + 1
+        end
+      end
+    elseif tag == "X" then
+      local sid, fidList = line:match("^X(%d+):(.+)$")
+      sid = tonumber(sid)
+      if sid and fidList and db.spell_config[sid] then
+        local exclusions = db.spell_config[sid].muteExclusions or {}
+        for fidStr in fidList:gmatch("(%d+)") do
+          exclusions[tonumber(fidStr)] = true
+        end
+        db.spell_config[sid].muteExclusions = exclusions
+      end
+    elseif tag == "M" then
+      local fid = tonumber(line:sub(2))
+      if fid then
+        if not db.mute_file_data_ids[fid] then
+          db.mute_file_data_ids[fid] = true
+          MuteSoundFile(fid)
+          addedMutes = addedMutes + 1
+        end
+      end
+    end
+  end
+  return added, skipped, addedMutes
+end
+
+---------------------------------------------------------------------------
 -- Public API (for Options.lua)
 ---------------------------------------------------------------------------
 Resonance.ADDON_ROOT = ADDON_ROOT
@@ -347,9 +530,39 @@ Resonance.applyMutes = applyMutes
 Resonance.clearMutes = clearMutes
 Resonance.applyAutoMutesForSpell = applyAutoMutesForSpell
 Resonance.removeAutoMutesForSpell = removeAutoMutesForSpell
+Resonance.rebuildAutoMutes = rebuildAutoMutes
 Resonance.autoMutedFIDs = autoMutedFIDs
 Resonance.voxMutedFIDs = voxMutedFIDs
 Resonance.weaponMutedFIDs = weaponMutedFIDs
+
+function Resonance:ApplyClassTemplate(classKey)
+  local template = Resonance_ClassTemplates and Resonance_ClassTemplates[classKey]
+  if not template then return 0, 0 end
+  local added, skipped = 0, 0
+  for _, entry in ipairs(template) do
+    local sid = entry.spellID
+    if db.spell_config[sid] then
+      skipped = skipped + 1
+    else
+      db.spell_config[sid] = { sound = entry.sound }
+      db.template_spells[sid] = true
+      applyAutoMutesForSpell(sid)
+      added = added + 1
+    end
+  end
+  return added, skipped
+end
+
+function Resonance:RemoveTemplateSpells()
+  local removed = 0
+  for sid in pairs(db.template_spells) do
+    removeAutoMutesForSpell(sid)
+    db.spell_config[sid] = nil
+    removed = removed + 1
+  end
+  wipe(db.template_spells)
+  return removed
+end
 
 ---------------------------------------------------------------------------
 -- AceConfig options table (General tab)
@@ -368,7 +581,15 @@ local function getGeneralOptions()
         get = function() return db.enabled end,
         set = function(_, v)
           db.enabled = v
-          if v then applyMutes() else clearMutes() end
+          if v then
+            applyMutes()
+            if db.muteVocalizations then applyVoxMutes() end
+            if db.muteWeaponImpacts then applyWeaponMutes() end
+          else
+            clearVoxMutes()
+            clearWeaponMutes()
+            clearMutes()
+          end
         end,
       },
       debug = {
@@ -407,7 +628,7 @@ local function getGeneralOptions()
         get = function() return db.muteVocalizations end,
         set = function(_, v)
           db.muteVocalizations = v
-          if v then applyVoxMutes() else clearVoxMutes() end
+          if v then if db.enabled then applyVoxMutes() end else clearVoxMutes() end
         end,
       },
       muteWeaponImpacts = {
@@ -419,7 +640,7 @@ local function getGeneralOptions()
         get = function() return db.muteWeaponImpacts end,
         set = function(_, v)
           db.muteWeaponImpacts = v
-          if v then applyWeaponMutes() else clearWeaponMutes() end
+          if v then if db.enabled then applyWeaponMutes() end else clearWeaponMutes() end
         end,
       },
       soundChannel = {
@@ -454,7 +675,15 @@ local ldbObj = LDB:NewDataObject("Resonance", {
   OnClick = function(_, button)
     if button == "RightButton" then
       db.enabled = not db.enabled
-      if db.enabled then applyMutes() else clearMutes() end
+      if db.enabled then
+        applyMutes()
+        if db.muteVocalizations then applyVoxMutes() end
+        if db.muteWeaponImpacts then applyWeaponMutes() end
+      else
+        clearVoxMutes()
+        clearWeaponMutes()
+        clearMutes()
+      end
       msg(db.enabled and "Enabled." or "Disabled.")
     else
       if Resonance.openOptions then Resonance.openOptions() end
@@ -597,9 +826,13 @@ function Resonance:ChatCommand(input)
   elseif cmd == "on" then
     db.enabled = true
     applyMutes()
+    if db.muteVocalizations then applyVoxMutes() end
+    if db.muteWeaponImpacts then applyWeaponMutes() end
     msg("Enabled.")
   elseif cmd == "off" then
     db.enabled = false
+    clearVoxMutes()
+    clearWeaponMutes()
     clearMutes()
     msg("Disabled.")
   elseif cmd == "debug" then

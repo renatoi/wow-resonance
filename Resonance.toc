@@ -10,6 +10,7 @@ embeds.xml
 data/SpellSounds.lua
 data/CharacterSounds.lua
 data/SpellMuteData.lua
+data/ClassTemplates.lua
 
 Core.lua
 Options.lua

@@ -116,14 +116,14 @@ local function buildPlayerSpellCache()
   local seen = {}
   local getName = C_Spell and C_Spell.GetSpellName
 
-  -- Primary source: all spells with mute data that the player knows
+  -- Primary source: all spells with mute data (includes talent overrides, procs, etc.)
   if Resonance_SpellMuteData and getName then
     for sid in pairs(Resonance_SpellMuteData) do
-      if IsPlayerSpell(sid) and not seen[sid] then
-        local name = getName(sid)
-        if name and name ~= "" then
+      if not seen[sid] then
+        local ok, name = pcall(getName, sid)
+        if ok and name and name ~= "" then
           seen[sid] = true
-          playerSpellCache[#playerSpellCache + 1] = { spellID = sid, name = name }
+          playerSpellCache[#playerSpellCache + 1] = { spellID = sid, name = name, known = IsPlayerSpell(sid) }
         end
       end
     end
@@ -148,6 +148,25 @@ local function buildPlayerSpellCache()
       end
     end
   end
+
+  -- Tertiary source: talent-transformed spell overrides (e.g. Raging Blow → Crushing Blow)
+  local getOverride = C_Spell and C_Spell.GetOverrideSpell
+  if getOverride and getName then
+    local base = {}
+    for _, entry in ipairs(playerSpellCache) do
+      base[#base + 1] = entry.spellID
+    end
+    for _, sid in ipairs(base) do
+      local ok, overrideID = pcall(getOverride, sid)
+      if ok and overrideID and overrideID ~= sid and not seen[overrideID] then
+        local name = getName(overrideID)
+        if name and name ~= "" then
+          seen[overrideID] = true
+          playerSpellCache[#playerSpellCache + 1] = { spellID = overrideID, name = name }
+        end
+      end
+    end
+  end
 end
 
 local function invalidateSpellCache()
@@ -168,12 +187,15 @@ local function searchSpells(query)
       if not ln:find(t, 1, true) then match = false; break end
     end
     if match then
-      results[#results + 1] = { spellID = entry.spellID, name = entry.name,
+      results[#results + 1] = { spellID = entry.spellID, name = entry.name, known = entry.known,
         display = entry.name .. "  |cff808080(ID: " .. entry.spellID .. ")|r" }
     end
   end
 
-  table.sort(results, function(a, b) return a.name < b.name end)
+  table.sort(results, function(a, b)
+    if a.known ~= b.known then return a.known and true or false end
+    return a.name < b.name
+  end)
   return results
 end
 
@@ -261,6 +283,38 @@ local function makeEditBox(parent, width, anchorTo, offX, offY, placeholder)
     eb:SetScript("OnShow", upd)
   end
   return eb
+end
+
+local function makeIconButton(parent, icon, size, tooltip, onClick)
+  local btn = CreateFrame("Button", nil, parent)
+  btn:SetSize(size, size)
+  local tex = btn:CreateTexture(nil, "ARTWORK")
+  tex:SetAllPoints()
+  tex:SetTexture(icon)
+  btn.icon = tex
+  btn:SetHighlightTexture(icon)
+  btn:GetHighlightTexture():SetAlpha(0.3)
+  if tooltip then
+    btn:SetScript("OnEnter", function(self)
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      GameTooltip:AddLine(tooltip, 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  end
+  if onClick then btn:SetScript("OnClick", onClick) end
+  btn.SetEnabled = function(self, enabled)
+    if enabled then
+      self:Enable()
+      self.icon:SetDesaturated(false)
+      self.icon:SetAlpha(1)
+    else
+      self:Disable()
+      self.icon:SetDesaturated(true)
+      self.icon:SetAlpha(0.3)
+    end
+  end
+  return btn
 end
 
 local function makeButton(parent, text, width, onClick)
@@ -352,11 +406,9 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionLabel, drop
     row.text:SetJustifyH("LEFT")
     row.text:SetWordWrap(false)
 
-    row.playBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.playBtn:SetSize(40, 22)
+    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound",
+      function() if row.entry then onPlay(row.entry) end end)
     row.playBtn:SetPoint("RIGHT", row, "RIGHT", -58, 0)
-    row.playBtn:SetText("Play")
-    row.playBtn:SetScript("OnClick", function() if row.entry then onPlay(row.entry) end end)
 
     row.actionBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
     row.actionBtn:SetSize(52, 22)
@@ -459,40 +511,99 @@ local function buildLayout()
   -- Tab system
   -------------------------------------------------------------------
   local TAB_NAMES = { "General", "Spell Sounds", "Muted Sounds", "Profiles" }
-  local TAB_HEIGHT = 26
+  local TAB_HEIGHT = 28
+  local TAB_OVERLAP = 4
+  local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
   local tabFrames = {}
   local tabButtons = {}
 
+  local tabBackdrop = {
+    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 14,
+    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
+  }
+
+  -- Content container with border
+  local contentBox = CreateFrame("Frame", nil, panel, "BackdropTemplate")
+  contentBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(TAB_HEIGHT + 6 - TAB_OVERLAP))
+  contentBox:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
+  contentBox:SetBackdrop({
+    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 14,
+    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
+  })
+  contentBox:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], CONTENT_BG[4])
+  contentBox:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
+
   for i, name in ipairs(TAB_NAMES) do
-    local btn = CreateFrame("Button", "ResonanceTab" .. i, panel)
+    local btn = CreateFrame("Button", "ResonanceTab" .. i, panel, "BackdropTemplate")
     btn:SetHeight(TAB_HEIGHT)
+    btn:SetBackdrop(tabBackdrop)
+    btn:SetFrameLevel(contentBox:GetFrameLevel() + 1)
 
-    btn.bg = btn:CreateTexture(nil, "BACKGROUND")
-    btn.bg:SetAllPoints()
-
-    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    btn.text:SetPoint("CENTER", 0, 0)
+    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    btn.text:SetPoint("CENTER", 0, 1)
     btn.text:SetText(name)
-    btn:SetWidth(btn.text:GetStringWidth() + 24)
+    btn:SetWidth(btn.text:GetStringWidth() + 26)
 
-    btn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
-    btn:GetHighlightTexture():SetAlpha(0.15)
+    -- Mask that hides the bottom border when tab is active
+    btn.bottomMask = btn:CreateTexture(nil, "OVERLAY")
+    btn.bottomMask:SetColorTexture(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
+    btn.bottomMask:SetPoint("BOTTOMLEFT", 3, -TAB_OVERLAP)
+    btn.bottomMask:SetPoint("BOTTOMRIGHT", -3, -TAB_OVERLAP)
+    btn.bottomMask:SetHeight(TAB_OVERLAP + 8)
+    btn.bottomMask:Hide()
 
     if i == 1 then
       btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -6)
     else
-      btn:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 6, 0)
+      btn:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 4, 0)
     end
     tabButtons[i] = btn
 
-    local sf = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", 0, -(TAB_HEIGHT + 10))
-    sf:SetPoint("BOTTOMRIGHT", -26, 4)
+    local sf = CreateFrame("ScrollFrame", nil, contentBox, "UIPanelScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", contentBox, "TOPLEFT", 8, -8)
+    sf:SetPoint("BOTTOMRIGHT", contentBox, "BOTTOMRIGHT", -24, 8)
     sf:Hide()
+
+    -- Auto-hide scrollbar when content fits
+    local scrollbarParts = {}
+    for j = 1, sf:GetNumChildren() do
+      local child = select(j, sf:GetChildren())
+      if child:IsObjectType("Slider") then
+        scrollbarParts[#scrollbarParts + 1] = child
+        for k = 1, child:GetNumChildren() do
+          local sub = select(k, child:GetChildren())
+          scrollbarParts[#scrollbarParts + 1] = sub
+        end
+        break
+      end
+    end
+    sf.scrollbarParts = scrollbarParts
+    -- Hide scrollbar initially
+    for _, part in ipairs(scrollbarParts) do part:Hide() end
+
+    local function updateScrollbar(self)
+      local _, yRange = self:GetVerticalScrollRange()
+      local show = yRange and yRange > 0
+      for _, part in ipairs(self.scrollbarParts) do
+        part:SetShown(show)
+      end
+      if not show then self:SetVerticalScroll(0) end
+    end
+    sf:HookScript("OnScrollRangeChanged", updateScrollbar)
+    sf:HookScript("OnShow", updateScrollbar)
+
     local c = CreateFrame("Frame")
     sf:SetScrollChild(c)
     c:SetWidth(CONTENT_WIDTH + 40)
     c:SetHeight(1)
+    -- Dynamically match scroll child width to scroll frame
+    sf:HookScript("OnSizeChanged", function(self, w)
+      if w and w > 0 then c:SetWidth(w) end
+    end)
     tabFrames[i] = { scroll = sf, content = c }
   end
 
@@ -522,11 +633,17 @@ local function buildLayout()
     end
     for i, btn in ipairs(tabButtons) do
       if i == id then
-        btn.bg:SetColorTexture(0.18, 0.18, 0.22, 1)
-        btn.text:SetFontObject("GameFontNormal")
+        btn:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], CONTENT_BG[4])
+        btn:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
+        btn:SetFrameLevel(contentBox:GetFrameLevel() + 2)
+        btn.text:SetFontObject("GameFontHighlight")
+        btn.bottomMask:Show()
       else
-        btn.bg:SetColorTexture(0.08, 0.08, 0.10, 0.8)
-        btn.text:SetFontObject("GameFontDisable")
+        btn:SetBackdropColor(0.08, 0.08, 0.08, 0.5)
+        btn:SetBackdropBorderColor(0.4, 0.4, 0.4, 0.7)
+        btn:SetFrameLevel(contentBox:GetFrameLevel() + 1)
+        btn.text:SetFontObject("GameFontNormal")
+        btn.bottomMask:Hide()
       end
     end
     for _, dd in ipairs(allDropdowns) do dd:Hide() end
@@ -576,17 +693,191 @@ local function buildLayout()
   -------------------------------------------------------------------
   local spellTab = tabFrames[2].content
 
+  -- Template section (only shown when ClassTemplates data is available)
+  local templateSection = CreateFrame("Frame", nil, spellTab)
+  templateSection:SetPoint("TOPLEFT", 16, -16)
+  templateSection:SetPoint("RIGHT", spellTab, "RIGHT", -16, 0)
+  templateSection:SetHeight(1) -- resized dynamically
+
+  local templateAnchorBottom = templateSection -- used for anchoring spell list below
+
+  if Resonance_ClassTemplates then
+    local tplHeader = templateSection:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    tplHeader:SetPoint("TOPLEFT", 0, 0)
+    tplHeader:SetText("Class Templates")
+
+    -- Class dropdown
+    local _, playerClass = UnitClass("player")
+    local selectedClass = playerClass
+
+    local tplClassLabel = templateSection:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    tplClassLabel:SetPoint("TOPLEFT", tplHeader, "BOTTOMLEFT", 0, -8)
+    tplClassLabel:SetText("Class:")
+
+    local tplClassBtn = CreateFrame("Button", nil, templateSection, "UIPanelButtonTemplate")
+    tplClassBtn:SetSize(120, 22)
+    tplClassBtn:SetPoint("LEFT", tplClassLabel, "RIGHT", 6, 0)
+
+    local CLASS_DISPLAY = {
+      WARRIOR = "Warrior", MAGE = "Mage", ROGUE = "Rogue", PALADIN = "Paladin",
+      DRUID = "Druid", WARLOCK = "Warlock", PRIEST = "Priest", SHAMAN = "Shaman",
+      HUNTER = "Hunter", DEATHKNIGHT = "Death Knight", MONK = "Monk",
+      DEMONHUNTER = "Demon Hunter", EVOKER = "Evoker",
+    }
+
+    local function getClassDisplay(key)
+      return CLASS_DISPLAY[key] or key
+    end
+
+    tplClassBtn:SetText(getClassDisplay(selectedClass))
+
+    local tplInfoText = templateSection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    tplInfoText:SetPoint("TOPLEFT", tplClassLabel, "BOTTOMLEFT", 0, -6)
+
+    local tplStatusText = templateSection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    tplStatusText:SetPoint("TOPLEFT", tplInfoText, "BOTTOMLEFT", 0, -4)
+
+    local tplApplyBtn = makeButton(templateSection, "Apply Template", 110, nil)
+    tplApplyBtn:SetPoint("TOPLEFT", tplStatusText, "BOTTOMLEFT", 0, -6)
+
+    local tplRemoveBtn = makeButton(templateSection, "Remove Template Spells", 160, nil)
+    tplRemoveBtn:SetPoint("LEFT", tplApplyBtn, "RIGHT", 8, 0)
+
+    local function updateTemplateInfo()
+      local template = Resonance_ClassTemplates[selectedClass]
+      if template then
+        tplInfoText:SetText(#template .. " spells with classic sound replacements")
+      else
+        tplInfoText:SetText("|cff888888No template available for this class.|r")
+      end
+
+      -- Count active template spells
+      local p = Resonance.db.profile
+      local active, total = 0, 0
+      if template then
+        total = #template
+        for _, entry in ipairs(template) do
+          if p.template_spells[entry.spellID] then active = active + 1 end
+        end
+      end
+      if active > 0 then
+        tplStatusText:SetText("|cff66aaff" .. active .. " of " .. total .. " template spells active|r")
+      else
+        tplStatusText:SetText("")
+      end
+
+      tplApplyBtn:SetEnabled(template ~= nil)
+      tplRemoveBtn:SetEnabled(active > 0)
+    end
+
+    -- Class dropdown menu (custom popup, no EasyMenu dependency)
+    local tplClassPopup = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    tplClassPopup:SetFrameStrata("TOOLTIP")
+    tplClassPopup:SetClampedToScreen(true)
+    tplClassPopup:Hide()
+    tplClassPopup:SetBackdrop({
+      bgFile = "Interface\\BUTTONS\\WHITE8X8",
+      edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+      edgeSize = 14, insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    tplClassPopup:SetBackdropColor(0.05, 0.05, 0.07, 0.97)
+    tplClassPopup:SetBackdropBorderColor(0.25, 0.25, 0.30, 0.7)
+
+    local classList = {}
+    for classKey in pairs(Resonance_ClassTemplates) do
+      classList[#classList + 1] = classKey
+    end
+    table.sort(classList, function(a, b) return getClassDisplay(a) < getClassDisplay(b) end)
+
+    local CLASS_ROW_H = 20
+    tplClassPopup:SetSize(130, #classList * CLASS_ROW_H + 8)
+    for i, classKey in ipairs(classList) do
+      local row = CreateFrame("Button", nil, tplClassPopup)
+      row:SetSize(124, CLASS_ROW_H)
+      row:SetPoint("TOPLEFT", 3, -(i - 1) * CLASS_ROW_H - 4)
+      row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      row.text:SetPoint("LEFT", 6, 0)
+      row.text:SetText(getClassDisplay(classKey))
+      row:SetHighlightTexture("Interface\\BUTTONS\\WHITE8X8")
+      row:GetHighlightTexture():SetAlpha(0.15)
+      row:SetScript("OnClick", function()
+        selectedClass = classKey
+        tplClassBtn:SetText(getClassDisplay(classKey))
+        updateTemplateInfo()
+        tplClassPopup:Hide()
+      end)
+    end
+
+    tplClassBtn:SetScript("OnClick", function(self)
+      if tplClassPopup:IsShown() then
+        tplClassPopup:Hide()
+      else
+        tplClassPopup:ClearAllPoints()
+        tplClassPopup:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
+        tplClassPopup:Show()
+      end
+    end)
+    -- Hide popup when clicking elsewhere
+    tplClassPopup:SetScript("OnShow", function(self)
+      self:SetScript("OnUpdate", function(s)
+        if not s:IsMouseOver() and not tplClassBtn:IsMouseOver() and IsMouseButtonDown("LeftButton") then
+          s:Hide()
+        end
+      end)
+    end)
+    tplClassPopup:SetScript("OnHide", function(self)
+      self:SetScript("OnUpdate", nil)
+    end)
+
+    tplApplyBtn:SetScript("OnClick", function()
+      local added, skipped = Resonance:ApplyClassTemplate(selectedClass)
+      Resonance.msg(("Template applied: %d spells added, %d skipped (already configured)."):format(added, skipped))
+      updateTemplateInfo()
+      if refreshList then refreshList() end
+    end)
+
+    tplRemoveBtn:SetScript("OnClick", function()
+      local removed = Resonance:RemoveTemplateSpells()
+      Resonance.msg(("Removed %d template spells."):format(removed))
+      updateTemplateInfo()
+      if refreshList then refreshList() end
+    end)
+
+    -- Separator line
+    local tplSep = templateSection:CreateTexture(nil, "ARTWORK")
+    tplSep:SetHeight(1)
+    tplSep:SetPoint("TOPLEFT", tplApplyBtn, "BOTTOMLEFT", 0, -10)
+    tplSep:SetPoint("RIGHT", templateSection, "RIGHT", 0, 0)
+    tplSep:SetColorTexture(0.3, 0.3, 0.35, 0.5)
+
+    templateSection:SetHeight(100) -- approximate; content height managed by recalc
+    templateAnchorBottom = tplSep
+
+    -- Update on show
+    templateSection:SetScript("OnShow", function()
+      updateTemplateInfo()
+    end)
+    updateTemplateInfo()
+  end
+
   local secHeader = spellTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  secHeader:SetPoint("TOPLEFT", 16, -16)
+  secHeader:SetPoint("TOPLEFT", templateAnchorBottom, "BOTTOMLEFT", 0, -12)
   secHeader:SetText("Spell Sounds")
 
   local addBtn = makeButton(spellTab, "+ Add Spell", 80, nil)
   addBtn:SetPoint("LEFT", secHeader, "RIGHT", 12, 0)
 
+  local exportBtn = makeButton(spellTab, "Export", 54, nil)
+  exportBtn:SetPoint("LEFT", addBtn, "RIGHT", 6, 0)
+
+  local importBtn = makeButton(spellTab, "Import", 54, nil)
+  importBtn:SetPoint("LEFT", exportBtn, "RIGHT", 4, 0)
+
   -- Table header
   local tableHeader = CreateFrame("Frame", nil, spellTab)
-  tableHeader:SetSize(CONTENT_WIDTH, ROW_HEIGHT)
+  tableHeader:SetHeight(ROW_HEIGHT)
   tableHeader:SetPoint("TOPLEFT", secHeader, "BOTTOMLEFT", 0, -6)
+  tableHeader:SetPoint("RIGHT", spellTab, "RIGHT", -4, 0)
 
   local headerBg = tableHeader:CreateTexture(nil, "BACKGROUND")
   headerBg:SetAllPoints()
@@ -600,7 +891,7 @@ local function buildLayout()
 
   local hdrSound = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   hdrSound:SetPoint("LEFT", hdrSpell, "RIGHT", 8, 0)
-  hdrSound:SetWidth(200)
+  hdrSound:SetPoint("RIGHT", tableHeader, "RIGHT", -58, 0)
   hdrSound:SetJustifyH("LEFT")
   hdrSound:SetText("Sound")
 
@@ -611,7 +902,8 @@ local function buildLayout()
 
   local listContainer = CreateFrame("Frame", nil, spellTab)
   listContainer:SetPoint("TOPLEFT", tableHeader, "BOTTOMLEFT", 0, -2)
-  listContainer:SetSize(CONTENT_WIDTH, ROW_HEIGHT)
+  listContainer:SetPoint("RIGHT", spellTab, "RIGHT", -4, 0)
+  listContainer:SetHeight(ROW_HEIGHT)
 
   local listEmpty = listContainer:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   listEmpty:SetPoint("TOPLEFT", 4, 0)
@@ -623,7 +915,7 @@ local function buildLayout()
   -- Editor frame (floating dialog)
   -------------------------------------------------------------------
   local editorFrame = CreateFrame("Frame", "ResonanceEditor", UIParent, "BackdropTemplate")
-  editorFrame:SetSize(CONTENT_WIDTH + 20, 310)
+  editorFrame:SetSize(CONTENT_WIDTH + 20, 460)
   editorFrame:SetPoint("CENTER")
   editorFrame:SetFrameStrata("DIALOG")
   editorFrame:SetMovable(true)
@@ -672,6 +964,7 @@ local function buildLayout()
   edSpellPreview:SetPoint("LEFT", edSpellIDBox, "RIGHT", 8, 0)
 
   local editorSound = nil
+  local editorExclusions = {}  -- local copy of muteExclusions during editing
 
   local refreshAutoMuteSection  -- forward declaration
 
@@ -769,15 +1062,13 @@ local function buildLayout()
     end
   end
 
-  local edPlayCurBtn = makeButton(editorFrame, "Play", 36, function()
-    if editorSound then safePlaySound(editorSound) end
-  end)
+  local edPlayCurBtn = makeIconButton(editorFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play current sound",
+    function() if editorSound then safePlaySound(editorSound) end end)
   edPlayCurBtn:SetPoint("LEFT", edCurrentLabel, "RIGHT", 6, 0)
 
-  local edClearSndBtn = makeButton(editorFrame, "Clear", 40, function()
-    editorSound = nil; edUpdateCurrentSound()
-  end)
-  edClearSndBtn:SetPoint("LEFT", edPlayCurBtn, "RIGHT", 2, 0)
+  local edClearSndBtn = makeIconButton(editorFrame, "Interface\\Buttons\\UI-StopButton", 18, "Clear sound",
+    function() editorSound = nil; edUpdateCurrentSound() end)
+  edClearSndBtn:SetPoint("LEFT", edPlayCurBtn, "RIGHT", 4, 0)
 
   local edBrowseRadio = makeRadio(editorFrame)
   edBrowseRadio:SetPoint("TOPLEFT", edCurrentLabel, "BOTTOMLEFT", 0, -8)
@@ -839,9 +1130,8 @@ local function buildLayout()
   local edFileBox = makeEditBox(edFileFrame, CONTENT_WIDTH - 140, edFileFrame, 0, 0, "path or FID")
   edFileBox:SetPoint("TOPLEFT", edFileFrame, "TOPLEFT", 0, 0)
 
-  local edFilePlayBtn = makeButton(edFileFrame, "Play", 36, function()
-    local v = edFileBox:GetText(); Resonance.previewSound(tonumber(v) or v)
-  end)
+  local edFilePlayBtn = makeIconButton(edFileFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound",
+    function() local v = edFileBox:GetText(); Resonance.previewSound(tonumber(v) or v) end)
   edFilePlayBtn:SetPoint("LEFT", edFileBox, "RIGHT", 4, 0)
 
   local edFileUseBtn = makeButton(edFileFrame, "Use", 36, function()
@@ -881,7 +1171,8 @@ local function buildLayout()
 
   local autoMuteScroll = CreateFrame("ScrollFrame", "ResonanceAutoMuteScroll", editorFrame, "UIPanelScrollFrameTemplate")
   autoMuteScroll:SetPoint("TOPLEFT", autoMuteInfo, "BOTTOMLEFT", 0, -2)
-  autoMuteScroll:SetSize(CONTENT_WIDTH - 40, AUTO_MUTE_SCROLL_H)
+  autoMuteScroll:SetPoint("BOTTOMRIGHT", editorFrame, "BOTTOMRIGHT", -40, 46)
+  autoMuteScroll:SetWidth(CONTENT_WIDTH - 40)
 
   local autoMuteScrollBar = autoMuteScroll.ScrollBar or _G["ResonanceAutoMuteScrollScrollBar"]
 
@@ -917,7 +1208,7 @@ local function buildLayout()
       entries[#entries + 1] = { type = "sound", fid = fid }
     end
 
-    autoMuteInfo:SetText(#fids .. " spell sound(s) will be auto-muted:")
+    autoMuteInfo:SetText(#fids .. " spell sound(s) — uncheck to keep a sound unmuted:")
     autoMuteScroll:Show()
 
     for i, entry in ipairs(entries) do
@@ -933,13 +1224,26 @@ local function buildLayout()
         row.text:SetJustifyH("LEFT")
         row.text:SetWordWrap(false)
 
-        row.playBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-        row.playBtn:SetSize(40, 20)
+        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound")
         row.playBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
-        row.playBtn:SetText("Play")
+
+        row.muteBtn = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+        row.muteBtn:SetSize(22, 22)
+        row.muteBtn:SetPoint("RIGHT", row.playBtn, "LEFT", -2, 0)
+        row.muteBtn:SetHitRectInsets(0, 0, 0, 0)
+        row.muteBtn.text:SetText("")
+        row.muteBtn:SetScript("OnEnter", function(self)
+          GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+          GameTooltip:AddLine(self:GetChecked() and "Muted (click to unmute)" or "Not muted (click to mute)", 1, 1, 1)
+          GameTooltip:Show()
+        end)
+        row.muteBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
         autoMuteRows[i] = row
       end
+
+      -- Adjust text width to make room for checkbox
+      row.text:SetPoint("RIGHT", row, "RIGHT", -72, 0)
 
       -- Reset stripe
       if not row.stripe then
@@ -955,6 +1259,19 @@ local function buildLayout()
       end
       row.playBtn:SetScript("OnClick", function() safePlaySound(entry.fid) end)
       row.playBtn:Show()
+
+      -- Mute checkbox: checked = muted (not excluded)
+      local isExcluded = editorExclusions[entry.fid]
+      row.muteBtn:SetChecked(not isExcluded)
+      row.muteBtn:SetScript("OnClick", function(self)
+        if self:GetChecked() then
+          editorExclusions[entry.fid] = nil
+        else
+          editorExclusions[entry.fid] = true
+        end
+      end)
+      row.muteBtn:Show()
+
       if i % 2 == 0 then
         row.stripe:SetColorTexture(1, 1, 1, 0.04)
         row.stripe:Show()
@@ -966,14 +1283,15 @@ local function buildLayout()
     end
 
     autoMuteContent:SetHeight(#entries * ROW_HEIGHT)
-    autoMuteScroll:SetHeight(AUTO_MUTE_SCROLL_H)
 
     -- Only show scrollbar when content overflows
     if autoMuteScrollBar then
-      if #entries > AUTO_MUTE_VISIBLE_ROWS then
+      local visibleH = autoMuteScroll:GetHeight()
+      if visibleH and #entries * ROW_HEIGHT > visibleH then
         autoMuteScrollBar:Show()
       else
         autoMuteScrollBar:Hide()
+        autoMuteScroll:SetVerticalScroll(0)
       end
     end
   end
@@ -995,6 +1313,7 @@ local function buildLayout()
   local function openEditor(spellID)
     profile = Resonance.db.profile
     editorSound = nil
+    wipe(editorExclusions)
     edBrowseBox:SetText("")
     edBrowseDD:Hide()
     edSpellSearchBox:SetText("")
@@ -1006,7 +1325,12 @@ local function buildLayout()
       edSpellIDBox:SetText(tostring(spellID))
       edSpellIDBox:Disable()
       local cfg = profile.spell_config[spellID]
-      if cfg then editorSound = cfg.sound end
+      if cfg then
+        editorSound = cfg.sound
+        if cfg.muteExclusions then
+          for fid in pairs(cfg.muteExclusions) do editorExclusions[fid] = true end
+        end
+      end
       local name = Resonance.getSpellName(spellID)
       edTitle:SetText("Configure: " .. (name or "Spell " .. spellID))
     else
@@ -1049,13 +1373,134 @@ local function buildLayout()
     local sid = tonumber(edSpellIDBox:GetText())
     if not sid or sid <= 0 then Resonance.msg("Enter a valid spell ID."); return end
     local isNew = not profile.spell_config[sid]
-    profile.spell_config[sid] = { sound = editorSound }
-    if isNew then Resonance.applyAutoMutesForSpell(sid) end
+    -- Build exclusions table (only save if non-empty)
+    local exclusions = nil
+    for fid in pairs(editorExclusions) do
+      if not exclusions then exclusions = {} end
+      exclusions[fid] = true
+    end
+    if isNew then
+      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions }
+      Resonance.applyAutoMutesForSpell(sid)
+    else
+      -- Remove old mutes (using old exclusions), update config, re-apply with new exclusions
+      Resonance.removeAutoMutesForSpell(sid)
+      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions }
+      Resonance.applyAutoMutesForSpell(sid)
+    end
     closeEditor()
     refreshList()
   end)
 
   addBtn:SetScript("OnClick", function() openEditor(nil) end)
+
+  -------------------------------------------------------------------
+  -- Export/Import dialog
+  -------------------------------------------------------------------
+  local eiFrame = CreateFrame("Frame", "ResonanceExportImport", UIParent, "BackdropTemplate")
+  eiFrame:SetSize(480, 260)
+  eiFrame:SetPoint("CENTER")
+  eiFrame:SetFrameStrata("DIALOG")
+  eiFrame:SetMovable(true)
+  eiFrame:EnableMouse(true)
+  eiFrame:SetClampedToScreen(true)
+  eiFrame:Hide()
+
+  eiFrame:SetBackdrop({
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    tile = true, tileSize = 32, edgeSize = 24,
+    insets = { left = 5, right = 5, top = 5, bottom = 5 },
+  })
+  eiFrame:SetBackdropColor(0.06, 0.06, 0.08, 1)
+
+  local eiTitleBar = CreateFrame("Frame", nil, eiFrame)
+  eiTitleBar:SetHeight(28)
+  eiTitleBar:SetPoint("TOPLEFT", 6, -6)
+  eiTitleBar:SetPoint("TOPRIGHT", -6, -6)
+  eiTitleBar:EnableMouse(true)
+  eiTitleBar:RegisterForDrag("LeftButton")
+  eiTitleBar:SetScript("OnDragStart", function() eiFrame:StartMoving() end)
+  eiTitleBar:SetScript("OnDragStop", function() eiFrame:StopMovingOrSizing() end)
+
+  local eiTitleBg = eiTitleBar:CreateTexture(nil, "BACKGROUND")
+  eiTitleBg:SetAllPoints()
+  eiTitleBg:SetColorTexture(0.12, 0.12, 0.16, 0.8)
+
+  local eiTitle = eiTitleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  eiTitle:SetPoint("LEFT", 6, 0)
+
+  local eiCloseBtn = CreateFrame("Button", nil, eiTitleBar, "UIPanelCloseButton")
+  eiCloseBtn:SetPoint("TOPRIGHT", eiFrame, "TOPRIGHT", -2, -2)
+
+  tinsert(UISpecialFrames, "ResonanceExportImport")
+
+  -- Scrollable text box
+  local eiScrollFrame = CreateFrame("ScrollFrame", "ResonanceEIScroll", eiFrame, "UIPanelScrollFrameTemplate")
+  eiScrollFrame:SetPoint("TOPLEFT", eiTitleBar, "BOTTOMLEFT", 10, -8)
+  eiScrollFrame:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -34, 50)
+
+  local eiEditBox = CreateFrame("EditBox", nil, eiScrollFrame)
+  eiEditBox:SetMultiLine(true)
+  eiEditBox:SetAutoFocus(false)
+  eiEditBox:SetFontObject(ChatFontNormal)
+  eiEditBox:SetWidth(eiScrollFrame:GetWidth() or 420)
+  eiEditBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  eiScrollFrame:SetScrollChild(eiEditBox)
+
+  -- Status text
+  local eiStatus = eiFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  eiStatus:SetPoint("BOTTOMLEFT", eiFrame, "BOTTOMLEFT", 16, 18)
+  eiStatus:SetWidth(300)
+  eiStatus:SetJustifyH("LEFT")
+
+  -- Action button
+  local eiActionBtn = makeButton(eiFrame, "Close", 80, nil)
+  eiActionBtn:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -16, 14)
+
+  local eiMode = "export"
+
+  exportBtn:SetScript("OnClick", function()
+    eiMode = "export"
+    eiTitle:SetText("Export Configuration")
+    local exportStr = Resonance:ExportConfig()
+    eiEditBox:SetText(exportStr)
+    eiActionBtn:SetText("Close")
+    -- Count entries for status
+    local spellCount, muteCount = 0, 0
+    for _ in pairs(Resonance.db.profile.spell_config or {}) do spellCount = spellCount + 1 end
+    for _, v in pairs(Resonance.db.profile.mute_file_data_ids or {}) do if v then muteCount = muteCount + 1 end end
+    eiStatus:SetText(spellCount .. " spells, " .. muteCount .. " mutes exported.")
+    eiFrame:Show()
+    eiEditBox:SetFocus()
+    eiEditBox:HighlightText()
+  end)
+
+  importBtn:SetScript("OnClick", function()
+    eiMode = "import"
+    eiTitle:SetText("Import Configuration")
+    eiEditBox:SetText("")
+    eiActionBtn:SetText("Import")
+    eiStatus:SetText("")
+    eiFrame:Show()
+    eiEditBox:SetFocus()
+  end)
+
+  eiActionBtn:SetScript("OnClick", function()
+    if eiMode == "export" then
+      eiFrame:Hide()
+    else
+      local text = eiEditBox:GetText()
+      local added, skippedOrErr, addedMutes = Resonance:ImportConfig(text)
+      if not added then
+        -- skippedOrErr is the error message
+        eiStatus:SetText("|cffff4444" .. (skippedOrErr or "Import failed.") .. "|r")
+      else
+        eiStatus:SetText(("Added %d spells, %d mutes (%d skipped)."):format(added, addedMutes, skippedOrErr))
+        refreshList()
+      end
+    end
+  end)
 
   -- Spell list rendering
   refreshList = function()
@@ -1072,7 +1517,7 @@ local function buildLayout()
       local row = listRows[idx]
       if not row then
         row = CreateFrame("Frame", nil, listContainer)
-        row:SetSize(CONTENT_WIDTH, ROW_HEIGHT)
+        row:SetHeight(ROW_HEIGHT)
         listRows[idx] = row
 
         row.nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -1083,18 +1528,22 @@ local function buildLayout()
 
         row.soundText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         row.soundText:SetPoint("LEFT", row.nameText, "RIGHT", 8, 0)
-        row.soundText:SetWidth(200)
+        row.soundText:SetPoint("RIGHT", row, "RIGHT", -58, 0)
         row.soundText:SetJustifyH("LEFT")
         row.soundText:SetWordWrap(false)
 
-        row.editBtn = makeButton(row, "Edit", 36, nil)
-        row.editBtn:SetPoint("RIGHT", row, "RIGHT", -58, 0)
+        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound")
+        row.playBtn:SetPoint("RIGHT", row, "RIGHT", -36, 0)
 
-        row.delBtn = makeButton(row, "Delete", 48, nil)
+        row.editBtn = makeIconButton(row, "Interface\\WorldMap\\GEAR_64GREY", 20, "Edit")
+        row.editBtn:SetPoint("RIGHT", row, "RIGHT", -18, 0)
+
+        row.delBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Delete")
         row.delBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
       end
 
       row:SetPoint("TOPLEFT", listContainer, "TOPLEFT", 0, -(idx - 1) * ROW_HEIGHT)
+      row:SetPoint("RIGHT", listContainer, "RIGHT", 0, 0)
 
       if idx % 2 == 0 then
         if not row.stripe then
@@ -1106,17 +1555,29 @@ local function buildLayout()
       elseif row.stripe then row.stripe:Hide() end
 
       local spellName = Resonance.getSpellName(entry.spellID) or "?"
-      row.nameText:SetText(spellName .. " (" .. entry.spellID .. ")")
+      local isTemplate = profile.template_spells and profile.template_spells[entry.spellID]
+      row.nameText:SetText(spellName .. " (" .. entry.spellID .. ")" .. (isTemplate and " |cff66aaff[T]|r" or ""))
 
       local cfg = entry.cfg
       if cfg.sound then
-        local d = type(cfg.sound) == "number" and ("FID:" .. cfg.sound) or
-          (tostring(cfg.sound):match("[^/\\]+$") or tostring(cfg.sound))
-        row.soundText:SetText("|cff00ff00" .. d .. "|r")
+        local sound = cfg.sound
+        if type(sound) == "number" then
+          local path = lookupFIDPath(sound)
+          if path then
+            row.soundText:SetText(formatSoundDisplay(path, sound))
+          else
+            row.soundText:SetText("|cff00ff00FID:" .. sound .. "|r")
+          end
+        else
+          local filename = tostring(sound):match("[^/\\]+$") or tostring(sound)
+          row.soundText:SetText("|cff00ff00" .. filename .. "|r")
+        end
       else
         row.soundText:SetText("|cff888888no sound|r")
       end
 
+      row.playBtn:SetEnabled(cfg.sound ~= nil)
+      row.playBtn:SetScript("OnClick", function() if cfg.sound then safePlaySound(cfg.sound) end end)
       row.editBtn:SetScript("OnClick", function() openEditor(entry.spellID) end)
       row.delBtn:SetScript("OnClick", function()
         Resonance.removeAutoMutesForSpell(entry.spellID)
@@ -1180,10 +1641,8 @@ local function buildLayout()
   muteFidBox:SetPoint("TOPLEFT", muteFidFrame, "TOPLEFT", 0, 0)
   muteFidBox:SetNumeric(true)
 
-  local muteFidPlayBtn = makeButton(muteFidFrame, "Play", 36, function()
-    local fid = tonumber(muteFidBox:GetText())
-    if fid then safePlaySound(fid) end
-  end)
+  local muteFidPlayBtn = makeIconButton(muteFidFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound",
+    function() local fid = tonumber(muteFidBox:GetText()); if fid then safePlaySound(fid) end end)
   muteFidPlayBtn:SetPoint("LEFT", muteFidBox, "RIGHT", 4, 0)
 
   local muteFidAddBtn = makeButton(muteFidFrame, "+ Mute", 52, function()
@@ -1275,7 +1734,7 @@ local function buildLayout()
   muteListHeader:SetPoint("TOPLEFT", muteSearchFrame, "BOTTOMLEFT", 0, -10)
   muteListHeader:SetText("Muted IDs:")
 
-  local clearAllBtn = makeButton(muteTab, "Clear All Manual", 86, function()
+  local clearAllBtn = makeButton(muteTab, "Clear All Manual", 120, function()
     local p = Resonance.db.profile
     for fid, enabled in pairs(p.mute_file_data_ids) do
       if enabled and not (Resonance.autoMutedFIDs[fid] and Resonance.autoMutedFIDs[fid] > 0) then
@@ -1289,7 +1748,8 @@ local function buildLayout()
 
   local muteListContainer = CreateFrame("Frame", nil, muteTab)
   muteListContainer:SetPoint("TOPLEFT", muteListHeader, "BOTTOMLEFT", 0, -4)
-  muteListContainer:SetSize(CONTENT_WIDTH, ROW_HEIGHT)
+  muteListContainer:SetPoint("RIGHT", muteTab, "RIGHT", -4, 0)
+  muteListContainer:SetHeight(ROW_HEIGHT)
 
   local muteListEmpty = muteListContainer:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   muteListEmpty:SetPoint("TOPLEFT", 4, 0)
@@ -1304,21 +1764,39 @@ local function buildLayout()
     -- Collect all muted FIDs, tracking source
     local fidSet = {}
     for fid, enabled in pairs(profile.mute_file_data_ids or {}) do
-      if enabled then fidSet[fid] = "manual" end
+      if enabled then fidSet[fid] = { source = "manual" } end
     end
-    for fid, refcount in pairs(Resonance.autoMutedFIDs or {}) do
-      if refcount > 0 then
-        if fidSet[fid] then
-          fidSet[fid] = "both"
-        else
-          fidSet[fid] = "auto"
+    -- Build reverse lookup: FID -> { spells, excluded }
+    -- Include ALL auto-mute FIDs (even excluded ones) so they stay visible in the list
+    local autoFidInfo = {}  -- [fid] = { spells = {}, excluded = bool }
+    for sid in pairs(profile.spell_config or {}) do
+      local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+      if fids then
+        local excl = profile.spell_config[sid].muteExclusions
+        for _, fid in ipairs(fids) do
+          if not autoFidInfo[fid] then autoFidInfo[fid] = { spells = {}, excluded = true } end
+          local name = Resonance.getSpellName(sid) or tostring(sid)
+          autoFidInfo[fid].spells[#autoFidInfo[fid].spells + 1] = name
+          -- If ANY spell does NOT exclude this FID, it's actively muted
+          if not (excl and excl[fid]) then
+            autoFidInfo[fid].excluded = false
+          end
         end
       end
     end
+    for fid, info in pairs(autoFidInfo) do
+      if fidSet[fid] then
+        fidSet[fid].source = info.excluded and fidSet[fid].source or "both"
+      else
+        fidSet[fid] = { source = info.excluded and "auto_excluded" or "auto" }
+      end
+      fidSet[fid].spells = info.spells
+      fidSet[fid].excluded = info.excluded
+    end
 
     local sorted = {}
-    for fid, source in pairs(fidSet) do
-      sorted[#sorted + 1] = { fid = fid, source = source }
+    for fid, info in pairs(fidSet) do
+      sorted[#sorted + 1] = { fid = fid, source = info.source, spells = info.spells }
     end
     table.sort(sorted, function(a, b) return a.fid < b.fid end)
 
@@ -1327,27 +1805,24 @@ local function buildLayout()
       local row = muteListRows[idx]
       if not row then
         row = CreateFrame("Frame", nil, muteListContainer)
-        row:SetSize(CONTENT_WIDTH, ROW_HEIGHT)
+        row:SetHeight(ROW_HEIGHT)
         muteListRows[idx] = row
 
         row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         row.text:SetPoint("LEFT", 4, 0)
-        row.text:SetPoint("RIGHT", row, "RIGHT", -78, 0)
+        row.text:SetPoint("RIGHT", row, "RIGHT", -44, 0)
         row.text:SetJustifyH("LEFT")
         row.text:SetWordWrap(false)
 
-        row.playBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-        row.playBtn:SetSize(40, 22)
-        row.playBtn:SetPoint("RIGHT", row, "RIGHT", -32, 0)
-        row.playBtn:SetText("Play")
+        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound")
+        row.playBtn:SetPoint("RIGHT", row, "RIGHT", -20, 0)
 
-        row.removeBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-        row.removeBtn:SetSize(26, 22)
+        row.removeBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Remove")
         row.removeBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
-        row.removeBtn:SetText("x")
       end
 
       row:SetPoint("TOPLEFT", muteListContainer, "TOPLEFT", 0, -(idx - 1) * ROW_HEIGHT)
+      row:SetPoint("RIGHT", muteListContainer, "RIGHT", 0, 0)
 
       local display
       local path = lookupFIDPath(fid)
@@ -1356,33 +1831,79 @@ local function buildLayout()
       else
         display = "|cffff8800" .. fid .. "|r"
       end
-      if entry.source == "auto" or entry.source == "both" then
-        display = "|cff66aaff[auto]|r " .. display
+      local isAuto = entry.source == "auto" or entry.source == "auto_excluded" or entry.source == "both"
+      local spellTag = ""
+      if isAuto and entry.spells and #entry.spells > 0 then
+        spellTag = table.concat(entry.spells, ", ")
+      end
+      if isAuto then
+        if entry.excluded then
+          display = "|cff888888[unmuted]|r |cff66aaff[" .. (spellTag ~= "" and spellTag or "auto") .. "]|r " .. display
+        else
+          display = "|cff66aaff[" .. (spellTag ~= "" and spellTag or "auto") .. "]|r " .. display
+        end
       end
       row.text:SetText(display)
 
       row.playBtn:SetScript("OnClick", function() safePlaySound(fid) end)
 
-      if entry.source == "auto" then
-        -- Auto-only mutes can't be manually removed
-        row.removeBtn:Disable()
+      -- Create muteToggle button if needed (separate from removeBtn)
+      if not row.muteToggle then
+        row.muteToggle = makeButton(row, "Unmute", 52, nil)
+        row.muteToggle:SetPoint("RIGHT", row.playBtn, "LEFT", -2, 0)
+      end
+
+      row.removeBtn:SetEnabled(true)
+      row.removeBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+      if isAuto then
+        -- Auto-muted: show mute/unmute toggle, hide remove button
+        row.removeBtn:Hide()
+        row.muteToggle:Show()
+        row.muteToggle:SetText(entry.excluded and "Mute" or "Unmute")
+        row.text:SetPoint("RIGHT", row, "RIGHT", -100, 0)
+        row.muteToggle:SetScript("OnClick", function()
+          if entry.excluded then
+            -- Re-mute: remove exclusions for this FID from all spells
+            for sid in pairs(profile.spell_config or {}) do
+              local excl = profile.spell_config[sid].muteExclusions
+              if excl then excl[fid] = nil end
+            end
+          else
+            -- Unmute: add exclusion to all spells that auto-mute this FID
+            for sid in pairs(profile.spell_config or {}) do
+              local spellFids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+              if spellFids then
+                for _, sfid in ipairs(spellFids) do
+                  if sfid == fid then
+                    if not profile.spell_config[sid].muteExclusions then
+                      profile.spell_config[sid].muteExclusions = {}
+                    end
+                    profile.spell_config[sid].muteExclusions[fid] = true
+                    break
+                  end
+                end
+              end
+            end
+          end
+          Resonance.rebuildAutoMutes()
+          Resonance.clearMutes()
+          if profile.enabled then Resonance.applyMutes() end
+          refreshMuteList()
+        end)
+      else
+        -- Manual-only: show remove button, hide toggle
+        row.muteToggle:Hide()
+        row.removeBtn:Show()
+        row.text:SetPoint("RIGHT", row, "RIGHT", -44, 0)
         row.removeBtn:SetScript("OnEnter", function(self)
           GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-          GameTooltip:AddLine("Auto-muted by spell config", 1, 1, 1)
-          GameTooltip:AddLine("Remove the spell to unmute", nil, nil, nil, true)
+          GameTooltip:AddLine("Unmute", 1, 1, 1)
           GameTooltip:Show()
         end)
-        row.removeBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-      else
-        row.removeBtn:Enable()
-        row.removeBtn:SetScript("OnEnter", nil)
-        row.removeBtn:SetScript("OnLeave", nil)
         row.removeBtn:SetScript("OnClick", function()
-          Resonance.db.profile.mute_file_data_ids[fid] = nil
-          -- Only unmute if not also auto-muted
-          if not (Resonance.autoMutedFIDs[fid] and Resonance.autoMutedFIDs[fid] > 0) then
-            UnmuteSoundFile(fid)
-          end
+          profile.mute_file_data_ids[fid] = nil
+          UnmuteSoundFile(fid)
           refreshMuteList()
         end)
       end
