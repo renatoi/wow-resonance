@@ -505,12 +505,13 @@ local function buildLayout()
 
   local refreshList
   local refreshMuteList
+  local refreshPresetList
   local allDropdowns = {}
 
   -------------------------------------------------------------------
   -- Tab system
   -------------------------------------------------------------------
-  local TAB_NAMES = { "General", "Spell Sounds", "Muted Sounds", "Profiles" }
+  local TAB_NAMES = { "General", "Spell Sounds", "Muted Sounds", "Presets", "Profiles" }
   local TAB_HEIGHT = 28
   local TAB_OVERLAP = 4
   local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
@@ -648,6 +649,7 @@ local function buildLayout()
     if id == 1 then recalcContentHeight(1) end
     if id == 2 and refreshList then refreshList() end
     if id == 3 and refreshMuteList then refreshMuteList() end
+    if id == 4 and refreshPresetList then refreshPresetList() end
   end
 
   for i, btn in ipairs(tabButtons) do
@@ -691,185 +693,19 @@ local function buildLayout()
   -------------------------------------------------------------------
   local spellTab = tabFrames[2].content
 
-  -- Template section (only shown when ClassTemplates data is available)
-  local templateSection = CreateFrame("Frame", nil, spellTab)
-  templateSection:SetPoint("TOPLEFT", 16, -16)
-  templateSection:SetPoint("RIGHT", spellTab, "RIGHT", -16, 0)
-  templateSection:SetHeight(1) -- resized dynamically
-
-  local templateAnchorBottom = templateSection -- used for anchoring spell list below
-
-  if Resonance_ClassTemplates then
-    local tplHeader = templateSection:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    tplHeader:SetPoint("TOPLEFT", 0, 0)
-    tplHeader:SetText("Class Templates")
-
-    -- Class dropdown
-    local _, playerClass = UnitClass("player")
-    local selectedClass = playerClass
-
-    local tplClassLabel = templateSection:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    tplClassLabel:SetPoint("TOPLEFT", tplHeader, "BOTTOMLEFT", 0, -8)
-    tplClassLabel:SetText("Class:")
-
-    local tplClassBtn = CreateFrame("Button", nil, templateSection, "UIPanelButtonTemplate")
-    tplClassBtn:SetSize(120, 22)
-    tplClassBtn:SetPoint("LEFT", tplClassLabel, "RIGHT", 6, 0)
-
-    local CLASS_DISPLAY = {
-      WARRIOR = "Warrior", MAGE = "Mage", ROGUE = "Rogue", PALADIN = "Paladin",
-      DRUID = "Druid", WARLOCK = "Warlock", PRIEST = "Priest", SHAMAN = "Shaman",
-      HUNTER = "Hunter", DEATHKNIGHT = "Death Knight", MONK = "Monk",
-      DEMONHUNTER = "Demon Hunter", EVOKER = "Evoker",
-    }
-
-    local function getClassDisplay(key)
-      return CLASS_DISPLAY[key] or key
-    end
-
-    tplClassBtn:SetText(getClassDisplay(selectedClass))
-
-    local tplInfoText = templateSection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    tplInfoText:SetPoint("TOPLEFT", tplClassLabel, "BOTTOMLEFT", 0, -6)
-
-    local tplStatusText = templateSection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    tplStatusText:SetPoint("TOPLEFT", tplInfoText, "BOTTOMLEFT", 0, -4)
-
-    local tplApplyBtn = makeButton(templateSection, "Apply Template", 110, nil)
-    tplApplyBtn:SetPoint("TOPLEFT", tplStatusText, "BOTTOMLEFT", 0, -6)
-
-    local tplRemoveBtn = makeButton(templateSection, "Remove Template Spells", 160, nil)
-    tplRemoveBtn:SetPoint("LEFT", tplApplyBtn, "RIGHT", 8, 0)
-
-    local function updateTemplateInfo()
-      local template = Resonance_ClassTemplates[selectedClass]
-      if template then
-        tplInfoText:SetText(#template .. " spells with classic sound replacements")
-      else
-        tplInfoText:SetText("|cff888888No template available for this class.|r")
-      end
-
-      -- Count active template spells
-      local p = Resonance.db.profile
-      local active, total = 0, 0
-      if template then
-        total = #template
-        for _, entry in ipairs(template) do
-          if p.template_spells[entry.spellID] then active = active + 1 end
-        end
-      end
-      if active > 0 then
-        tplStatusText:SetText("|cff66aaff" .. active .. " of " .. total .. " template spells active|r")
-      else
-        tplStatusText:SetText("")
-      end
-
-      tplApplyBtn:SetEnabled(template ~= nil)
-      tplRemoveBtn:SetEnabled(active > 0)
-    end
-
-    -- Class dropdown menu (custom popup, no EasyMenu dependency)
-    local tplClassPopup = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-    tplClassPopup:SetFrameStrata("TOOLTIP")
-    tplClassPopup:SetClampedToScreen(true)
-    tplClassPopup:Hide()
-    tplClassPopup:SetBackdrop({
-      bgFile = "Interface\\BUTTONS\\WHITE8X8",
-      edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-      edgeSize = 14, insets = { left = 3, right = 3, top = 3, bottom = 3 },
-    })
-    tplClassPopup:SetBackdropColor(0.05, 0.05, 0.07, 0.97)
-    tplClassPopup:SetBackdropBorderColor(0.25, 0.25, 0.30, 0.7)
-
-    local classList = {}
-    for classKey in pairs(Resonance_ClassTemplates) do
-      classList[#classList + 1] = classKey
-    end
-    table.sort(classList, function(a, b) return getClassDisplay(a) < getClassDisplay(b) end)
-
-    local CLASS_ROW_H = 20
-    tplClassPopup:SetSize(130, #classList * CLASS_ROW_H + 8)
-    for i, classKey in ipairs(classList) do
-      local row = CreateFrame("Button", nil, tplClassPopup)
-      row:SetSize(124, CLASS_ROW_H)
-      row:SetPoint("TOPLEFT", 3, -(i - 1) * CLASS_ROW_H - 4)
-      row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-      row.text:SetPoint("LEFT", 6, 0)
-      row.text:SetText(getClassDisplay(classKey))
-      row:SetHighlightTexture("Interface\\BUTTONS\\WHITE8X8")
-      row:GetHighlightTexture():SetAlpha(0.15)
-      row:SetScript("OnClick", function()
-        selectedClass = classKey
-        tplClassBtn:SetText(getClassDisplay(classKey))
-        updateTemplateInfo()
-        tplClassPopup:Hide()
-      end)
-    end
-
-    tplClassBtn:SetScript("OnClick", function(self)
-      if tplClassPopup:IsShown() then
-        tplClassPopup:Hide()
-      else
-        tplClassPopup:ClearAllPoints()
-        tplClassPopup:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
-        tplClassPopup:Show()
-      end
-    end)
-    -- Hide popup when clicking elsewhere
-    tplClassPopup:SetScript("OnShow", function(self)
-      self:SetScript("OnUpdate", function(s)
-        if not s:IsMouseOver() and not tplClassBtn:IsMouseOver() and IsMouseButtonDown("LeftButton") then
-          s:Hide()
-        end
-      end)
-    end)
-    tplClassPopup:SetScript("OnHide", function(self)
-      self:SetScript("OnUpdate", nil)
-    end)
-
-    tplApplyBtn:SetScript("OnClick", function()
-      local added, skipped = Resonance:ApplyClassTemplate(selectedClass)
-      Resonance.msg(("Template applied: %d spells added, %d skipped (already configured)."):format(added, skipped))
-      updateTemplateInfo()
-      if refreshList then refreshList() end
-    end)
-
-    tplRemoveBtn:SetScript("OnClick", function()
-      local removed = Resonance:RemoveTemplateSpells()
-      Resonance.msg(("Removed %d template spells."):format(removed))
-      updateTemplateInfo()
-      if refreshList then refreshList() end
-    end)
-
-    -- Separator line
-    local tplSep = templateSection:CreateTexture(nil, "ARTWORK")
-    tplSep:SetHeight(1)
-    tplSep:SetPoint("TOPLEFT", tplApplyBtn, "BOTTOMLEFT", 0, -10)
-    tplSep:SetPoint("RIGHT", templateSection, "RIGHT", 0, 0)
-    tplSep:SetColorTexture(0.3, 0.3, 0.35, 0.5)
-
-    templateSection:SetHeight(100) -- approximate; content height managed by recalc
-    templateAnchorBottom = tplSep
-
-    -- Update on show
-    templateSection:SetScript("OnShow", function()
-      updateTemplateInfo()
-    end)
-    updateTemplateInfo()
-  end
-
   local secHeader = spellTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  secHeader:SetPoint("TOPLEFT", templateAnchorBottom, "BOTTOMLEFT", 0, -12)
+  secHeader:SetPoint("TOPLEFT", 16, -16)
   secHeader:SetText("Spell Sounds")
 
+  local clearAllSpellsBtn = makeButton(spellTab, "Clear All", 65, nil)
+  clearAllSpellsBtn:SetPoint("RIGHT", spellTab, "RIGHT", -16, 0)
+  clearAllSpellsBtn:SetPoint("TOP", secHeader, "TOP", 0, 4)
+
+  local clearPresetsBtn = makeButton(spellTab, "Clear Presets", 90, nil)
+  clearPresetsBtn:SetPoint("RIGHT", clearAllSpellsBtn, "LEFT", -4, 0)
+
   local addBtn = makeButton(spellTab, "+ Add Spell", 80, nil)
-  addBtn:SetPoint("LEFT", secHeader, "RIGHT", 12, 0)
-
-  local exportBtn = makeButton(spellTab, "Export", 54, nil)
-  exportBtn:SetPoint("LEFT", addBtn, "RIGHT", 6, 0)
-
-  local importBtn = makeButton(spellTab, "Import", 54, nil)
-  importBtn:SetPoint("LEFT", exportBtn, "RIGHT", 4, 0)
+  addBtn:SetPoint("RIGHT", clearPresetsBtn, "LEFT", -4, 0)
 
   -- Table header
   local tableHeader = CreateFrame("Frame", nil, spellTab)
@@ -1392,112 +1228,24 @@ local function buildLayout()
 
   addBtn:SetScript("OnClick", function() openEditor(nil) end)
 
-  -------------------------------------------------------------------
-  -- Export/Import dialog
-  -------------------------------------------------------------------
-  local eiFrame = CreateFrame("Frame", "ResonanceExportImport", UIParent, "BackdropTemplate")
-  eiFrame:SetSize(480, 260)
-  eiFrame:SetPoint("CENTER")
-  eiFrame:SetFrameStrata("DIALOG")
-  eiFrame:SetMovable(true)
-  eiFrame:EnableMouse(true)
-  eiFrame:SetClampedToScreen(true)
-  eiFrame:Hide()
-
-  eiFrame:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-    tile = true, tileSize = 32, edgeSize = 24,
-    insets = { left = 5, right = 5, top = 5, bottom = 5 },
-  })
-  eiFrame:SetBackdropColor(0.06, 0.06, 0.08, 1)
-
-  local eiTitleBar = CreateFrame("Frame", nil, eiFrame)
-  eiTitleBar:SetHeight(28)
-  eiTitleBar:SetPoint("TOPLEFT", 6, -6)
-  eiTitleBar:SetPoint("TOPRIGHT", -6, -6)
-  eiTitleBar:EnableMouse(true)
-  eiTitleBar:RegisterForDrag("LeftButton")
-  eiTitleBar:SetScript("OnDragStart", function() eiFrame:StartMoving() end)
-  eiTitleBar:SetScript("OnDragStop", function() eiFrame:StopMovingOrSizing() end)
-
-  local eiTitleBg = eiTitleBar:CreateTexture(nil, "BACKGROUND")
-  eiTitleBg:SetAllPoints()
-  eiTitleBg:SetColorTexture(0.12, 0.12, 0.16, 0.8)
-
-  local eiTitle = eiTitleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  eiTitle:SetPoint("LEFT", 6, 0)
-
-  local eiCloseBtn = CreateFrame("Button", nil, eiFrame, "UIPanelCloseButton")
-  eiCloseBtn:SetPoint("TOPRIGHT", eiFrame, "TOPRIGHT", -2, -2)
-
-  tinsert(UISpecialFrames, "ResonanceExportImport")
-
-  -- Scrollable text box
-  local eiScrollFrame = CreateFrame("ScrollFrame", "ResonanceEIScroll", eiFrame, "UIPanelScrollFrameTemplate")
-  eiScrollFrame:SetPoint("TOPLEFT", eiTitleBar, "BOTTOMLEFT", 10, -8)
-  eiScrollFrame:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -34, 50)
-
-  local eiEditBox = CreateFrame("EditBox", nil, eiScrollFrame)
-  eiEditBox:SetMultiLine(true)
-  eiEditBox:SetAutoFocus(false)
-  eiEditBox:SetFontObject(ChatFontNormal)
-  eiEditBox:SetWidth(eiScrollFrame:GetWidth() or 420)
-  eiEditBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-  eiScrollFrame:SetScrollChild(eiEditBox)
-
-  -- Status text
-  local eiStatus = eiFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  eiStatus:SetPoint("BOTTOMLEFT", eiFrame, "BOTTOMLEFT", 16, 18)
-  eiStatus:SetWidth(300)
-  eiStatus:SetJustifyH("LEFT")
-
-  -- Action button
-  local eiActionBtn = makeButton(eiFrame, "Close", 80, nil)
-  eiActionBtn:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -16, 14)
-
-  local eiMode = "export"
-
-  exportBtn:SetScript("OnClick", function()
-    eiMode = "export"
-    eiTitle:SetText("Export Configuration")
-    local exportStr = Resonance:ExportConfig()
-    eiEditBox:SetText(exportStr)
-    eiActionBtn:SetText("Close")
-    -- Count entries for status
-    local spellCount, muteCount = 0, 0
-    for _ in pairs(Resonance.db.profile.spell_config or {}) do spellCount = spellCount + 1 end
-    for _, v in pairs(Resonance.db.profile.mute_file_data_ids or {}) do if v then muteCount = muteCount + 1 end end
-    eiStatus:SetText(spellCount .. " spells, " .. muteCount .. " mutes exported.")
-    eiFrame:Show()
-    eiEditBox:SetFocus()
-    eiEditBox:HighlightText()
+  clearPresetsBtn:SetScript("OnClick", function()
+    profile = Resonance.db.profile
+    local removed = Resonance:RemovePresetSpells()
+    closeEditor()
+    refreshList()
+    Resonance.msg(("Cleared %d preset spells."):format(removed))
   end)
 
-  importBtn:SetScript("OnClick", function()
-    eiMode = "import"
-    eiTitle:SetText("Import Configuration")
-    eiEditBox:SetText("")
-    eiActionBtn:SetText("Import")
-    eiStatus:SetText("")
-    eiFrame:Show()
-    eiEditBox:SetFocus()
-  end)
-
-  eiActionBtn:SetScript("OnClick", function()
-    if eiMode == "export" then
-      eiFrame:Hide()
-    else
-      local text = eiEditBox:GetText()
-      local added, skippedOrErr, addedMutes = Resonance:ImportConfig(text)
-      if not added then
-        -- skippedOrErr is the error message
-        eiStatus:SetText("|cffff4444" .. (skippedOrErr or "Import failed.") .. "|r")
-      else
-        eiStatus:SetText(("Added %d spells, %d mutes (%d skipped)."):format(added, addedMutes, skippedOrErr))
-        refreshList()
-      end
+  clearAllSpellsBtn:SetScript("OnClick", function()
+    profile = Resonance.db.profile
+    for sid in pairs(profile.spell_config or {}) do
+      Resonance.removeAutoMutesForSpell(sid)
     end
+    wipe(profile.spell_config)
+    wipe(profile.preset_spells)
+    closeEditor()
+    refreshList()
+    Resonance.msg("Cleared all spell sound configurations.")
   end)
 
   -- Spell list rendering
@@ -1553,8 +1301,8 @@ local function buildLayout()
       elseif row.stripe then row.stripe:Hide() end
 
       local spellName = Resonance.getSpellName(entry.spellID) or "?"
-      local isTemplate = profile.template_spells and profile.template_spells[entry.spellID]
-      row.nameText:SetText(spellName .. " (" .. entry.spellID .. ")" .. (isTemplate and " |cff66aaff[T]|r" or ""))
+      local presetSource = profile.preset_spells and profile.preset_spells[entry.spellID]
+      row.nameText:SetText(spellName .. " (" .. entry.spellID .. ")" .. (presetSource and " |cff66aaff[P]|r" or ""))
 
       local cfg = entry.cfg
       if cfg.sound then
@@ -1580,6 +1328,7 @@ local function buildLayout()
       row.delBtn:SetScript("OnClick", function()
         Resonance.removeAutoMutesForSpell(entry.spellID)
         Resonance.db.profile.spell_config[entry.spellID] = nil
+        Resonance.db.profile.preset_spells[entry.spellID] = nil
         closeEditor()
         refreshList()
       end)
@@ -2019,9 +1768,528 @@ local function buildLayout()
   setMuteMode("spells")
 
   -------------------------------------------------------------------
-  -- Tab 4: Profiles (AceDBOptions)
+  -- Tab 4: Presets
   -------------------------------------------------------------------
-  local profTab = tabFrames[4].content
+  local presetTab = tabFrames[4].content
+
+  local CLASS_DISPLAY = {
+    WARRIOR = "Warrior", MAGE = "Mage", ROGUE = "Rogue", PALADIN = "Paladin",
+    DRUID = "Druid", WARLOCK = "Warlock", PRIEST = "Priest", SHAMAN = "Shaman",
+    HUNTER = "Hunter", DEATHKNIGHT = "Death Knight", MONK = "Monk",
+    DEMONHUNTER = "Demon Hunter", EVOKER = "Evoker",
+  }
+
+  -- Export/Import dialog (shared by Presets tab)
+  local eiFrame = CreateFrame("Frame", "ResonanceExportImport", UIParent, "BackdropTemplate")
+  eiFrame:SetSize(480, 260)
+  eiFrame:SetPoint("CENTER")
+  eiFrame:SetFrameStrata("DIALOG")
+  eiFrame:SetMovable(true)
+  eiFrame:EnableMouse(true)
+  eiFrame:SetClampedToScreen(true)
+  eiFrame:Hide()
+
+  eiFrame:SetBackdrop({
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    tile = true, tileSize = 32, edgeSize = 24,
+    insets = { left = 5, right = 5, top = 5, bottom = 5 },
+  })
+  eiFrame:SetBackdropColor(0.06, 0.06, 0.08, 1)
+
+  local eiTitleBar = CreateFrame("Frame", nil, eiFrame)
+  eiTitleBar:SetHeight(28)
+  eiTitleBar:SetPoint("TOPLEFT", 6, -6)
+  eiTitleBar:SetPoint("TOPRIGHT", -6, -6)
+  eiTitleBar:EnableMouse(true)
+  eiTitleBar:RegisterForDrag("LeftButton")
+  eiTitleBar:SetScript("OnDragStart", function() eiFrame:StartMoving() end)
+  eiTitleBar:SetScript("OnDragStop", function() eiFrame:StopMovingOrSizing() end)
+
+  local eiTitleBg = eiTitleBar:CreateTexture(nil, "BACKGROUND")
+  eiTitleBg:SetAllPoints()
+  eiTitleBg:SetColorTexture(0.12, 0.12, 0.16, 0.8)
+
+  local eiTitle = eiTitleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  eiTitle:SetPoint("LEFT", 6, 0)
+
+  local eiCloseBtn = CreateFrame("Button", nil, eiFrame, "UIPanelCloseButton")
+  eiCloseBtn:SetPoint("TOPRIGHT", eiFrame, "TOPRIGHT", -2, -2)
+
+  tinsert(UISpecialFrames, "ResonanceExportImport")
+
+  local eiScrollFrame = CreateFrame("ScrollFrame", "ResonanceEIScroll", eiFrame, "UIPanelScrollFrameTemplate")
+  eiScrollFrame:SetPoint("TOPLEFT", eiTitleBar, "BOTTOMLEFT", 10, -8)
+  eiScrollFrame:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -34, 50)
+
+  local eiEditBox = CreateFrame("EditBox", nil, eiScrollFrame)
+  eiEditBox:SetMultiLine(true)
+  eiEditBox:SetAutoFocus(false)
+  eiEditBox:SetFontObject(ChatFontNormal)
+  eiEditBox:SetWidth(eiScrollFrame:GetWidth() or 420)
+  eiEditBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  eiScrollFrame:SetScrollChild(eiEditBox)
+
+  local eiStatus = eiFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  eiStatus:SetPoint("BOTTOMLEFT", eiFrame, "BOTTOMLEFT", 16, 18)
+  eiStatus:SetWidth(300)
+  eiStatus:SetJustifyH("LEFT")
+
+  local eiActionBtn = makeButton(eiFrame, "Close", 80, nil)
+  eiActionBtn:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -16, 14)
+
+  local eiMode = "export"
+
+  eiActionBtn:SetScript("OnClick", function()
+    if eiMode == "export" then
+      eiFrame:Hide()
+    else
+      -- Import as preset
+      local text = eiEditBox:GetText()
+      local name, result = Resonance:ImportToPreset(text)
+      if not name then
+        eiStatus:SetText("|cffff4444" .. (result or "Import failed.") .. "|r")
+      else
+        -- Handle name conflicts
+        local baseName = name
+        local idx = 2
+        while Resonance.db.profile.saved_presets[name] do
+          name = baseName .. " " .. idx
+          idx = idx + 1
+        end
+        Resonance.db.profile.saved_presets[name] = result
+        local sc = 0
+        for _ in pairs(result.spells or {}) do sc = sc + 1 end
+        local mc = 0
+        for _ in pairs(result.mutes or {}) do mc = mc + 1 end
+        eiStatus:SetText("|cff00ff00Imported preset '" .. name .. "': " .. sc .. " spells, " .. mc .. " mutes.|r")
+        if refreshPresetList then refreshPresetList() end
+      end
+    end
+  end)
+
+  -- Presets tab layout
+  local presetHeader = presetTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  presetHeader:SetPoint("TOPLEFT", 16, -16)
+  presetHeader:SetText("Presets")
+
+  local presetDesc = presetTab:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  presetDesc:SetPoint("TOPLEFT", presetHeader, "BOTTOMLEFT", 0, -4)
+  presetDesc:SetWidth(CONTENT_WIDTH)
+  presetDesc:SetJustifyH("LEFT")
+  presetDesc:SetText("Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes.")
+
+  local presetSaveBtn = makeButton(presetTab, "Save Current Config", 130, nil)
+  presetSaveBtn:SetPoint("TOPLEFT", presetDesc, "BOTTOMLEFT", 0, -8)
+
+  local presetImportBtn = makeButton(presetTab, "Import", 54, nil)
+  presetImportBtn:SetPoint("LEFT", presetSaveBtn, "RIGHT", 6, 0)
+
+  -- Inline save name input (hidden by default)
+  local presetSaveFrame = CreateFrame("Frame", nil, presetTab)
+  presetSaveFrame:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -6)
+  presetSaveFrame:SetPoint("RIGHT", presetTab, "RIGHT", -16, 0)
+  presetSaveFrame:SetHeight(26)
+  presetSaveFrame:Hide()
+
+  local presetSaveNameLabel = presetSaveFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  presetSaveNameLabel:SetPoint("LEFT", 0, 0)
+  presetSaveNameLabel:SetText("Name:")
+
+  local presetSaveNameBox = makeEditBox(presetSaveFrame, 200, presetSaveNameLabel, 0, 0, "Preset name...")
+  presetSaveNameBox:ClearAllPoints()
+  presetSaveNameBox:SetPoint("LEFT", presetSaveNameLabel, "RIGHT", 6, 0)
+
+  local presetSaveConfirmBtn = makeButton(presetSaveFrame, "Save", 50, nil)
+  presetSaveConfirmBtn:SetPoint("LEFT", presetSaveNameBox, "RIGHT", 4, 0)
+
+  local presetSaveCancelBtn = makeButton(presetSaveFrame, "Cancel", 50, nil)
+  presetSaveCancelBtn:SetPoint("LEFT", presetSaveConfirmBtn, "RIGHT", 4, 0)
+
+  -- List anchor (adjusts when save frame is shown)
+  local presetListAnchor = CreateFrame("Frame", nil, presetTab)
+  presetListAnchor:SetSize(1, 1)
+  presetListAnchor:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -10)
+
+  -- Table header
+  local presetTableHeader = CreateFrame("Frame", nil, presetTab)
+  presetTableHeader:SetHeight(ROW_HEIGHT)
+  presetTableHeader:SetPoint("TOPLEFT", presetListAnchor, "BOTTOMLEFT", 0, 0)
+  presetTableHeader:SetPoint("RIGHT", presetTab, "RIGHT", -16, 0)
+
+  local presetHeaderBg = presetTableHeader:CreateTexture(nil, "BACKGROUND")
+  presetHeaderBg:SetAllPoints()
+  presetHeaderBg:SetColorTexture(0.15, 0.15, 0.18, 0.6)
+
+  local presetHdrName = presetTableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  presetHdrName:SetPoint("LEFT", 4, 0)
+  presetHdrName:SetWidth(180)
+  presetHdrName:SetJustifyH("LEFT")
+  presetHdrName:SetText("Preset")
+
+  local presetHdrInfo = presetTableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  presetHdrInfo:SetPoint("LEFT", presetHdrName, "RIGHT", 8, 0)
+  presetHdrInfo:SetWidth(140)
+  presetHdrInfo:SetJustifyH("LEFT")
+  presetHdrInfo:SetText("Contents")
+
+  local presetHdrActions = presetTableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  presetHdrActions:SetPoint("RIGHT", presetTableHeader, "RIGHT", -2, 0)
+  presetHdrActions:SetJustifyH("RIGHT")
+  presetHdrActions:SetText("Actions")
+
+  -- Preset list container
+  local presetListContainer = CreateFrame("Frame", nil, presetTab)
+  presetListContainer:SetPoint("TOPLEFT", presetTableHeader, "BOTTOMLEFT", 0, -2)
+  presetListContainer:SetPoint("RIGHT", presetTab, "RIGHT", -16, 0)
+  presetListContainer:SetHeight(ROW_HEIGHT)
+
+  local presetListEmpty = presetListContainer:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  presetListEmpty:SetPoint("TOPLEFT", 4, 0)
+  presetListEmpty:SetText("No presets available.")
+
+  local presetListRows = {}
+
+  -- Remove All Preset Spells button
+  local presetRemoveAllBtn = makeButton(presetTab, "Remove All Preset Spells", 170, nil)
+  presetRemoveAllBtn:SetPoint("TOPLEFT", presetListContainer, "BOTTOMLEFT", 0, -8)
+  presetRemoveAllBtn:Hide()
+
+  -- Preset list rendering
+  refreshPresetList = function()
+    profile = Resonance.db.profile
+    for _, row in ipairs(presetListRows) do row:Hide() end
+
+    local presets = {}
+
+    -- Built-in class presets
+    if Resonance_ClassTemplates then
+      local classList = {}
+      for classKey in pairs(Resonance_ClassTemplates) do
+        classList[#classList + 1] = classKey
+      end
+      table.sort(classList, function(a, b)
+        return (CLASS_DISPLAY[a] or a) < (CLASS_DISPLAY[b] or b)
+      end)
+      for _, classKey in ipairs(classList) do
+        local tpl = Resonance_ClassTemplates[classKey]
+        local spellCount = #tpl
+        local activeCount = 0
+        for _, entry in ipairs(tpl) do
+          if profile.preset_spells[entry.spellID] == classKey then
+            activeCount = activeCount + 1
+          end
+        end
+        presets[#presets + 1] = {
+          name = CLASS_DISPLAY[classKey] or classKey,
+          key = classKey,
+          source = "class",
+          spellCount = spellCount,
+          muteCount = 0,
+          activeCount = activeCount,
+        }
+      end
+    end
+
+    -- Saved presets
+    local savedNames = {}
+    for name in pairs(profile.saved_presets or {}) do
+      savedNames[#savedNames + 1] = name
+    end
+    table.sort(savedNames)
+    for _, name in ipairs(savedNames) do
+      local preset = profile.saved_presets[name]
+      local spellCount = 0
+      for _ in pairs(preset.spells or {}) do spellCount = spellCount + 1 end
+      local muteCount = 0
+      for _ in pairs(preset.mutes or {}) do muteCount = muteCount + 1 end
+      local activeCount = 0
+      for _, source in pairs(profile.preset_spells) do
+        if source == name then activeCount = activeCount + 1 end
+      end
+      presets[#presets + 1] = {
+        name = name,
+        key = name,
+        source = "saved",
+        spellCount = spellCount,
+        muteCount = muteCount,
+        activeCount = activeCount,
+      }
+    end
+
+    -- Check if any preset spells are active (for Remove All button)
+    local hasActivePresetSpells = false
+    for _ in pairs(profile.preset_spells) do
+      hasActivePresetSpells = true
+      break
+    end
+
+    for idx, preset in ipairs(presets) do
+      local row = presetListRows[idx]
+      if not row then
+        row = CreateFrame("Frame", nil, presetListContainer)
+        row:SetHeight(ROW_HEIGHT)
+        presetListRows[idx] = row
+
+        row.nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.nameText:SetPoint("LEFT", 4, 0)
+        row.nameText:SetWidth(180)
+        row.nameText:SetJustifyH("LEFT")
+        row.nameText:SetWordWrap(false)
+
+        row.infoBtn = CreateFrame("Button", nil, row)
+        row.infoBtn:SetPoint("LEFT", row.nameText, "RIGHT", 8, 0)
+        row.infoBtn:SetSize(140, ROW_HEIGHT)
+        row.infoBtn:SetHighlightTexture("Interface\\BUTTONS\\WHITE8X8")
+        row.infoBtn:GetHighlightTexture():SetAlpha(0.1)
+        row.infoBtn:SetScript("OnEnter", function(self)
+          if self.spellList and #self.spellList > 0 then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(self.presetName or "Preset", 1, 0.82, 0)
+            GameTooltip:AddLine(" ")
+            for _, spellInfo in ipairs(self.spellList) do
+              GameTooltip:AddLine(spellInfo, 1, 1, 1)
+            end
+            GameTooltip:Show()
+          end
+        end)
+        row.infoBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        row.infoText = row.infoBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.infoText:SetPoint("LEFT", 0, 0)
+        row.infoText:SetWidth(140)
+        row.infoText:SetJustifyH("LEFT")
+        row.infoText:SetWordWrap(false)
+
+        row.applyBtn = makeButton(row, "Apply", 50, nil)
+        row.removeBtn = makeButton(row, "Remove", 56, nil)
+        row.exportBtn = makeButton(row, "Export", 50, nil)
+        row.deleteBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Delete preset")
+      end
+
+      row:SetPoint("TOPLEFT", presetListContainer, "TOPLEFT", 0, -(idx - 1) * ROW_HEIGHT)
+      row:SetPoint("RIGHT", presetListContainer, "RIGHT", 0, 0)
+
+      -- Stripe
+      if idx % 2 == 0 then
+        if not row.stripe then
+          row.stripe = row:CreateTexture(nil, "BACKGROUND")
+          row.stripe:SetAllPoints()
+          row.stripe:SetColorTexture(1, 1, 1, 0.04)
+        end
+        row.stripe:Show()
+      elseif row.stripe then row.stripe:Hide() end
+
+      -- Name
+      local nameDisplay = preset.name
+      if preset.source == "class" then
+        nameDisplay = nameDisplay .. "  |cff888888(Class)|r"
+      end
+      row.nameText:SetText(nameDisplay)
+
+      -- Info
+      local info = preset.spellCount .. " spells"
+      if preset.muteCount > 0 then
+        info = info .. ", " .. preset.muteCount .. " mutes"
+      end
+      if preset.activeCount > 0 then
+        info = info .. "  |cff00ff00(" .. preset.activeCount .. " active)|r"
+      end
+      row.infoText:SetText(info)
+
+      -- Build spell list for tooltip preview
+      local spellList = {}
+      if preset.source == "class" then
+        local tpl = Resonance_ClassTemplates[preset.key]
+        if tpl then
+          for _, tplEntry in ipairs(tpl) do
+            local sname = Resonance.getSpellName(tplEntry.spellID) or tplEntry.name
+            local active = profile.preset_spells[tplEntry.spellID] == preset.key
+            local prefix = active and "|cff00ff00" or "|cffcccccc"
+            spellList[#spellList + 1] = prefix .. sname .. "|r  |cff888888(" .. tplEntry.spellID .. ")|r"
+          end
+        end
+      else
+        local presetData = profile.saved_presets[preset.key]
+        if presetData and presetData.spells then
+          local sortedSids = {}
+          for sid in pairs(presetData.spells) do
+            sortedSids[#sortedSids + 1] = sid
+          end
+          table.sort(sortedSids)
+          for _, sid in ipairs(sortedSids) do
+            local sname = Resonance.getSpellName(sid) or tostring(sid)
+            local active = profile.preset_spells[sid] == preset.key
+            local prefix = active and "|cff00ff00" or "|cffcccccc"
+            spellList[#spellList + 1] = prefix .. sname .. "|r  |cff888888(" .. sid .. ")|r"
+          end
+        end
+      end
+      row.infoBtn.spellList = spellList
+      row.infoBtn.presetName = preset.name
+
+      -- Position buttons from right to left
+      local rightEdge = -2
+
+      -- Delete button (only for saved presets)
+      if preset.source == "saved" then
+        row.deleteBtn:ClearAllPoints()
+        row.deleteBtn:SetPoint("RIGHT", row, "RIGHT", rightEdge, 0)
+        row.deleteBtn:Show()
+        row.deleteBtn:SetScript("OnClick", function()
+          Resonance:DeleteSavedPreset(preset.key)
+          Resonance:RemovePresetSpells(preset.key)
+          Resonance.msg(("Deleted preset '%s'."):format(preset.name))
+          refreshPresetList()
+          if refreshList then refreshList() end
+        end)
+        rightEdge = rightEdge - 22
+      else
+        row.deleteBtn:Hide()
+      end
+
+      -- Export button
+      row.exportBtn:ClearAllPoints()
+      row.exportBtn:SetPoint("RIGHT", row, "RIGHT", rightEdge, 0)
+      row.exportBtn:Show()
+      row.exportBtn:SetScript("OnClick", function()
+        local data
+        if preset.source == "class" then
+          data = Resonance:ClassPresetToData(preset.key)
+        else
+          data = profile.saved_presets[preset.key]
+        end
+        if data then
+          eiMode = "export"
+          eiTitle:SetText("Export Preset: " .. preset.name)
+          local exportStr = Resonance:ExportPresetData(preset.name, data)
+          eiEditBox:SetText(exportStr)
+          eiActionBtn:SetText("Close")
+          local sc = 0
+          for _ in pairs(data.spells or {}) do sc = sc + 1 end
+          local mc = 0
+          for _ in pairs(data.mutes or {}) do mc = mc + 1 end
+          eiStatus:SetText(sc .. " spells, " .. mc .. " mutes.")
+          eiFrame:Show()
+          eiEditBox:SetFocus()
+          eiEditBox:HighlightText()
+        end
+      end)
+      rightEdge = rightEdge - 54
+
+      -- Remove button (only if preset has active spells)
+      if preset.activeCount > 0 then
+        row.removeBtn:ClearAllPoints()
+        row.removeBtn:SetPoint("RIGHT", row, "RIGHT", rightEdge, 0)
+        row.removeBtn:SetText("Remove " .. preset.activeCount)
+        row.removeBtn:Show()
+        row.removeBtn:SetScript("OnClick", function()
+          local removed = Resonance:RemovePresetSpells(preset.key)
+          Resonance.msg(("Removed %d preset spells from '%s'."):format(removed, preset.name))
+          refreshPresetList()
+          if refreshList then refreshList() end
+        end)
+        rightEdge = rightEdge - 72
+      else
+        row.removeBtn:Hide()
+      end
+
+      -- Apply button
+      row.applyBtn:ClearAllPoints()
+      row.applyBtn:SetPoint("RIGHT", row, "RIGHT", rightEdge, 0)
+      row.applyBtn:Show()
+      row.applyBtn:SetScript("OnClick", function()
+        if preset.source == "class" then
+          local added, skipped = Resonance:ApplyClassTemplate(preset.key)
+          Resonance.msg(("Preset '%s' applied: %d spells added, %d skipped."):format(preset.name, added, skipped))
+        else
+          local added, skipped, addedMutes = Resonance:ApplySavedPreset(preset.key)
+          Resonance.msg(("Preset '%s' applied: %d spells, %d mutes added (%d skipped)."):format(preset.name, added, addedMutes, skipped))
+        end
+        refreshPresetList()
+        if refreshList then refreshList() end
+      end)
+
+      row:Show()
+    end
+
+    -- Hide extra rows
+    for i = #presets + 1, #presetListRows do presetListRows[i]:Hide() end
+
+    local listH = math.max(#presets * ROW_HEIGHT, ROW_HEIGHT)
+    presetListContainer:SetHeight(listH)
+    presetListEmpty:SetShown(#presets == 0)
+
+    -- Remove All button
+    presetRemoveAllBtn:SetShown(hasActivePresetSpells)
+
+    recalcContentHeight(4)
+  end
+
+  -- Save Current Config button
+  presetSaveBtn:SetScript("OnClick", function()
+    if presetSaveFrame:IsShown() then
+      presetSaveFrame:Hide()
+      presetListAnchor:ClearAllPoints()
+      presetListAnchor:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -10)
+    else
+      presetSaveFrame:Show()
+      presetSaveNameBox:SetText("")
+      presetSaveNameBox:SetFocus()
+      presetListAnchor:ClearAllPoints()
+      presetListAnchor:SetPoint("TOPLEFT", presetSaveFrame, "BOTTOMLEFT", 0, -6)
+    end
+    recalcContentHeight(4)
+  end)
+
+  presetSaveConfirmBtn:SetScript("OnClick", function()
+    local name = presetSaveNameBox:GetText()
+    if name == "" then Resonance.msg("Enter a preset name."); return end
+    if Resonance.db.profile.saved_presets[name] then
+      Resonance.msg(("Preset '%s' already exists. Choose a different name."):format(name))
+      return
+    end
+    Resonance:SaveCurrentAsPreset(name)
+    Resonance.msg(("Saved current config as preset '%s'."):format(name))
+    presetSaveFrame:Hide()
+    presetListAnchor:ClearAllPoints()
+    presetListAnchor:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -10)
+    refreshPresetList()
+  end)
+
+  presetSaveCancelBtn:SetScript("OnClick", function()
+    presetSaveFrame:Hide()
+    presetListAnchor:ClearAllPoints()
+    presetListAnchor:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -10)
+    recalcContentHeight(4)
+  end)
+
+  presetSaveNameBox:SetScript("OnEnterPressed", function() presetSaveConfirmBtn:Click() end)
+  presetSaveNameBox:SetScript("OnEscapePressed", function() presetSaveCancelBtn:Click() end)
+
+  -- Import button
+  presetImportBtn:SetScript("OnClick", function()
+    eiMode = "import"
+    eiTitle:SetText("Import Preset")
+    eiEditBox:SetText("")
+    eiActionBtn:SetText("Import")
+    eiStatus:SetText("Paste a preset string below.")
+    eiFrame:Show()
+    eiEditBox:SetFocus()
+  end)
+
+  -- Remove All Preset Spells button
+  presetRemoveAllBtn:SetScript("OnClick", function()
+    local removed = Resonance:RemovePresetSpells()
+    Resonance.msg(("Removed %d preset spells."):format(removed))
+    refreshPresetList()
+    if refreshList then refreshList() end
+  end)
+
+  -------------------------------------------------------------------
+  -- Tab 5: Profiles (AceDBOptions)
+  -------------------------------------------------------------------
+  local profTab = tabFrames[5].content
 
   local profContainer = CreateFrame("Frame", nil, profTab)
   profContainer:SetPoint("TOPLEFT", 16, -16)

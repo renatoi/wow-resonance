@@ -46,7 +46,8 @@ local defaults = {
     local_file_overrides_by_spell_name = {},
     spell_to_play_file_data_id = {},
     spell_config = {},
-    template_spells = {},  -- { [spellID] = true } tracks which spells came from templates
+    preset_spells = {},   -- { [spellID] = presetName } tracks which spells came from presets
+    saved_presets = {},   -- { [name] = { spells = {[sid]={sound,muteExclusions}}, mutes = {[fid]=true} } }
     muteVocalizations = false,
     muteWeaponImpacts = false,
     minimap = { hide = false },
@@ -411,12 +412,14 @@ local function b64decode(data)
 end
 
 ---------------------------------------------------------------------------
--- Export / Import config
+-- Export / Import (V2 format with preset name support, backward compat V1)
 ---------------------------------------------------------------------------
-function Resonance:ExportConfig()
-  local lines = { "V1" }
-  -- Spell config entries
-  for sid, cfg in pairs(db.spell_config or {}) do
+local function encodePresetData(name, spells, mutes)
+  local lines = { "V2" }
+  if name and name ~= "" then
+    lines[#lines + 1] = "N" .. name
+  end
+  for sid, cfg in pairs(spells or {}) do
     if cfg.sound then
       local val
       if type(cfg.sound) == "number" then
@@ -426,10 +429,8 @@ function Resonance:ExportConfig()
       end
       lines[#lines + 1] = "S" .. sid .. "=" .. val
     else
-      -- Mute-only entry (no replacement sound)
       lines[#lines + 1] = "S" .. sid .. "="
     end
-    -- Export mute exclusions if any
     if cfg.muteExclusions then
       local excl = {}
       for fid in pairs(cfg.muteExclusions) do excl[#excl + 1] = tostring(fid) end
@@ -438,21 +439,16 @@ function Resonance:ExportConfig()
       end
     end
   end
-  -- Manual mute entries
-  for fid, enabled in pairs(db.mute_file_data_ids or {}) do
-    if enabled then
-      lines[#lines + 1] = "M" .. fid
-    end
+  for fid in pairs(mutes or {}) do
+    lines[#lines + 1] = "M" .. fid
   end
   local text = table.concat(lines, "\n")
   return "!Resonance!" .. b64encode(text)
 end
 
-function Resonance:ImportConfig(str)
+local function decodePresetString(str)
   if not str or str == "" then return nil, "Empty import string." end
-  -- Strip whitespace
   str = str:match("^%s*(.-)%s*$")
-  -- Validate prefix
   if str:sub(1, 11) ~= "!Resonance!" then
     return nil, "Invalid format: missing !Resonance! prefix."
   end
@@ -461,61 +457,187 @@ function Resonance:ImportConfig(str)
   if not ok or not decoded or decoded == "" then
     return nil, "Failed to decode import string."
   end
-  -- Parse lines
   local lines = {}
   for line in decoded:gmatch("[^\n]+") do
     lines[#lines + 1] = line
   end
-  if #lines == 0 or lines[1] ~= "V1" then
+  if #lines == 0 or (lines[1] ~= "V1" and lines[1] ~= "V2") then
     return nil, "Unknown format version."
   end
-  local added, skipped, addedMutes = 0, 0, 0
+  local name = nil
+  local spells = {}
+  local mutes = {}
   for i = 2, #lines do
     local line = lines[i]
     local tag = line:sub(1, 1)
-    if tag == "S" then
+    if tag == "N" then
+      name = line:sub(2)
+    elseif tag == "S" then
       local sid, val = line:match("^S(%d+)=(.*)")
       sid = tonumber(sid)
       if sid then
-        if db.spell_config[sid] then
-          skipped = skipped + 1
-        else
-          local sound
-          if val and val ~= "" then
-            local quoted = val:match('^"(.*)"$')
-            if quoted then
-              sound = quoted
-            else
-              sound = tonumber(val)
-            end
-          end
-          db.spell_config[sid] = { sound = sound }
-          applyAutoMutesForSpell(sid)
-          added = added + 1
+        local sound
+        if val and val ~= "" then
+          local quoted = val:match('^"(.*)"$')
+          if quoted then sound = quoted
+          else sound = tonumber(val) end
         end
+        spells[sid] = { sound = sound }
       end
     elseif tag == "X" then
       local sid, fidList = line:match("^X(%d+):(.+)$")
       sid = tonumber(sid)
-      if sid and fidList and db.spell_config[sid] then
-        local exclusions = db.spell_config[sid].muteExclusions or {}
+      if sid and fidList and spells[sid] then
+        local exclusions = spells[sid].muteExclusions or {}
         for fidStr in fidList:gmatch("(%d+)") do
           exclusions[tonumber(fidStr)] = true
         end
-        db.spell_config[sid].muteExclusions = exclusions
+        spells[sid].muteExclusions = exclusions
       end
     elseif tag == "M" then
       local fid = tonumber(line:sub(2))
-      if fid then
-        if not db.mute_file_data_ids[fid] then
-          db.mute_file_data_ids[fid] = true
-          MuteSoundFile(fid)
-          addedMutes = addedMutes + 1
-        end
+      if fid then mutes[fid] = true end
+    end
+  end
+  return name, { spells = spells, mutes = mutes }
+end
+
+function Resonance:ExportConfig(name)
+  local spells = {}
+  for sid, cfg in pairs(db.spell_config or {}) do
+    local entry = { sound = cfg.sound }
+    if cfg.muteExclusions then
+      entry.muteExclusions = {}
+      for fid in pairs(cfg.muteExclusions) do
+        entry.muteExclusions[fid] = true
       end
+    end
+    spells[sid] = entry
+  end
+  local mutes = {}
+  for fid, enabled in pairs(db.mute_file_data_ids or {}) do
+    if enabled then mutes[fid] = true end
+  end
+  return encodePresetData(name, spells, mutes)
+end
+
+function Resonance:ImportConfig(str)
+  local name, result = decodePresetString(str)
+  if not name and type(result) == "string" then
+    return nil, result
+  end
+  if not result or type(result) ~= "table" then
+    return nil, "Failed to parse import string."
+  end
+  local added, skipped, addedMutes = 0, 0, 0
+  for sid, cfg in pairs(result.spells or {}) do
+    if db.spell_config[sid] then
+      skipped = skipped + 1
+    else
+      db.spell_config[sid] = { sound = cfg.sound, muteExclusions = cfg.muteExclusions }
+      applyAutoMutesForSpell(sid)
+      added = added + 1
+    end
+  end
+  for fid in pairs(result.mutes or {}) do
+    if not db.mute_file_data_ids[fid] then
+      db.mute_file_data_ids[fid] = true
+      MuteSoundFile(fid)
+      addedMutes = addedMutes + 1
     end
   end
   return added, skipped, addedMutes
+end
+
+---------------------------------------------------------------------------
+-- Preset management
+---------------------------------------------------------------------------
+function Resonance:ImportToPreset(str)
+  local name, result = decodePresetString(str)
+  if not name and type(result) == "string" then
+    return nil, result
+  end
+  if not result or type(result) ~= "table" then
+    return nil, "Failed to parse import string."
+  end
+  if not name or name == "" then
+    local idx = 1
+    repeat
+      name = "Imported Preset" .. (idx > 1 and (" " .. idx) or "")
+      idx = idx + 1
+    until not db.saved_presets[name]
+  end
+  return name, result
+end
+
+function Resonance:SaveCurrentAsPreset(name)
+  if not name or name == "" then return false end
+  local preset = { spells = {}, mutes = {} }
+  for sid, cfg in pairs(db.spell_config or {}) do
+    local entry = { sound = cfg.sound }
+    if cfg.muteExclusions then
+      entry.muteExclusions = {}
+      for fid in pairs(cfg.muteExclusions) do
+        entry.muteExclusions[fid] = true
+      end
+    end
+    preset.spells[sid] = entry
+  end
+  for fid, enabled in pairs(db.mute_file_data_ids or {}) do
+    if enabled then preset.mutes[fid] = true end
+  end
+  db.saved_presets[name] = preset
+  return true
+end
+
+function Resonance:ApplySavedPreset(name)
+  local preset = db.saved_presets[name]
+  if not preset then return 0, 0, 0 end
+  local added, skipped, addedMutes = 0, 0, 0
+  for sid, cfg in pairs(preset.spells or {}) do
+    if db.spell_config[sid] then
+      skipped = skipped + 1
+    else
+      local newCfg = { sound = cfg.sound }
+      if cfg.muteExclusions then
+        newCfg.muteExclusions = {}
+        for fid in pairs(cfg.muteExclusions) do
+          newCfg.muteExclusions[fid] = true
+        end
+      end
+      db.spell_config[sid] = newCfg
+      db.preset_spells[sid] = name
+      applyAutoMutesForSpell(sid)
+      added = added + 1
+    end
+  end
+  for fid in pairs(preset.mutes or {}) do
+    if not db.mute_file_data_ids[fid] then
+      db.mute_file_data_ids[fid] = true
+      MuteSoundFile(fid)
+      addedMutes = addedMutes + 1
+    end
+  end
+  return added, skipped, addedMutes
+end
+
+function Resonance:DeleteSavedPreset(name)
+  if not name then return end
+  db.saved_presets[name] = nil
+end
+
+function Resonance:ExportPresetData(name, presetData)
+  return encodePresetData(name, presetData.spells, presetData.mutes)
+end
+
+function Resonance:ClassPresetToData(classKey)
+  local template = Resonance_ClassTemplates and Resonance_ClassTemplates[classKey]
+  if not template then return nil end
+  local data = { spells = {}, mutes = {} }
+  for _, entry in ipairs(template) do
+    data.spells[entry.spellID] = { sound = entry.sound }
+  end
+  return data
 end
 
 ---------------------------------------------------------------------------
@@ -545,7 +667,7 @@ function Resonance:ApplyClassTemplate(classKey)
       skipped = skipped + 1
     else
       db.spell_config[sid] = { sound = entry.sound }
-      db.template_spells[sid] = true
+      db.preset_spells[sid] = classKey
       applyAutoMutesForSpell(sid)
       added = added + 1
     end
@@ -553,14 +675,20 @@ function Resonance:ApplyClassTemplate(classKey)
   return added, skipped
 end
 
-function Resonance:RemoveTemplateSpells()
+function Resonance:RemovePresetSpells(presetName)
   local removed = 0
-  for sid in pairs(db.template_spells) do
+  local toRemove = {}
+  for sid, source in pairs(db.preset_spells) do
+    if not presetName or source == presetName then
+      toRemove[#toRemove + 1] = sid
+    end
+  end
+  for _, sid in ipairs(toRemove) do
     removeAutoMutesForSpell(sid)
     db.spell_config[sid] = nil
+    db.preset_spells[sid] = nil
     removed = removed + 1
   end
-  wipe(db.template_spells)
   return removed
 end
 
