@@ -671,7 +671,7 @@ local LDBIcon = LibStub("LibDBIcon-1.0")
 
 local ldbObj = LDB:NewDataObject("Resonance", {
   type = "launcher",
-  icon = "Interface\\Icons\\Spell_Shadow_SonicBurst",
+  icon = 6383545,
   OnClick = function(_, button)
     if button == "RightButton" then
       db.enabled = not db.enabled

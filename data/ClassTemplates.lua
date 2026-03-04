@@ -9,16 +9,17 @@
 Resonance_ClassTemplates = {
   WARRIOR = {
     { spellID = 163201, name = "Execute",           sound = 567983 },  -- Execute.ogg
-    { spellID = 1680,   name = "Whirlwind",         sound = 568214 },  -- Whirlwind.ogg
+    { spellID = 1680,   name = "Whirlwind",         sound = 568519 },  -- WhirlwindShort.ogg
     { spellID = 6343,   name = "Thunder Clap",      sound = 569222 },  -- ThunderClap.ogg
     { spellID = 772,    name = "Rend",              sound = 568003 },  -- RendTarget.ogg
-    { spellID = 845,    name = "Cleave",            sound = 568646 },  -- HeroicStrikeImpacts.ogg
-    { spellID = 12294,  name = "Mortal Strike",     sound = 568664 },  -- ColossusSmash.ogg
-    { spellID = 6572,   name = "Revenge",           sound = 569571 },  -- Devastate.ogg
+    { spellID = 845,    name = "Cleave",            sound = 568227 },  -- CleaveTarget.ogg
+    { spellID = 12294,  name = "Mortal Strike",     sound = 569098 },  -- DecisiveStrike.ogg
+    { spellID = 23922,  name = "Shield Slam",       sound = 567879 },  -- m1hSwordHitMetalShieldCrit.ogg
+    { spellID = 6572,   name = "Revenge",           sound = 569120 },  -- warrior_revenge1.ogg
     -- Heroic Leap removed: sound plays on cast, not on landing (WoW API limitation)
-    { spellID = 34428,  name = "Victory Rush",      sound = 568555 },  -- DecisiveStrike.ogg
+    { spellID = 34428,  name = "Victory Rush",      sound = 568430 },  -- victory_rush_impact.ogg
     { spellID = 6552,   name = "Pummel",            sound = 567944 },  -- mWooshMediumCrit.ogg
-    { spellID = 5246,   name = "Intimidating Shout", sound = 569675 }, -- ChallengingRoar.ogg
+    { spellID = 5246,   name = "Intimidating Shout", sound = 567950 }, -- Fear.ogg
     { spellID = 1160,   name = "Demoralizing Shout", sound = 568028 }, -- BattleShoutTarget.ogg
     { spellID = 2565,   name = "Shield Block",      sound = 569473 },  -- ShieldWallTarget.ogg
     -- Mountain Thane hero talent procs (mute-only, no replacement sound)

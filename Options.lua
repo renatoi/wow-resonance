@@ -526,7 +526,7 @@ local function buildLayout()
 
   -- Content container with border
   local contentBox = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-  contentBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(TAB_HEIGHT + 6 - TAB_OVERLAP))
+  contentBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(TAB_HEIGHT + 8 - TAB_OVERLAP))
   contentBox:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
   contentBox:SetBackdrop({
     bgFile   = "Interface\\BUTTONS\\WHITE8X8",
@@ -548,16 +548,14 @@ local function buildLayout()
     btn.text:SetText(name)
     btn:SetWidth(btn.text:GetStringWidth() + 26)
 
-    -- Mask that hides the bottom border when tab is active
+    -- Mask that hides the bottom border of the tab
     btn.bottomMask = btn:CreateTexture(nil, "OVERLAY")
-    btn.bottomMask:SetColorTexture(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
     btn.bottomMask:SetPoint("BOTTOMLEFT", 3, -TAB_OVERLAP)
     btn.bottomMask:SetPoint("BOTTOMRIGHT", -3, -TAB_OVERLAP)
     btn.bottomMask:SetHeight(TAB_OVERLAP + 8)
-    btn.bottomMask:Hide()
 
     if i == 1 then
-      btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -6)
+      btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8)
     else
       btn:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 4, 0)
     end
@@ -586,7 +584,7 @@ local function buildLayout()
     for _, part in ipairs(scrollbarParts) do part:Hide() end
 
     local function updateScrollbar(self)
-      local _, yRange = self:GetVerticalScrollRange()
+      local yRange = self:GetVerticalScrollRange()
       local show = yRange and yRange > 0
       for _, part in ipairs(self.scrollbarParts) do
         part:SetShown(show)
@@ -633,17 +631,17 @@ local function buildLayout()
     end
     for i, btn in ipairs(tabButtons) do
       if i == id then
-        btn:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], CONTENT_BG[4])
+        btn:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
         btn:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
         btn:SetFrameLevel(contentBox:GetFrameLevel() + 2)
         btn.text:SetFontObject("GameFontHighlight")
-        btn.bottomMask:Show()
+        btn.bottomMask:SetColorTexture(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
       else
-        btn:SetBackdropColor(0.08, 0.08, 0.08, 0.5)
-        btn:SetBackdropBorderColor(0.4, 0.4, 0.4, 0.7)
-        btn:SetFrameLevel(contentBox:GetFrameLevel() + 1)
+        btn:SetBackdropColor(0.06, 0.06, 0.06, 1)
+        btn:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
+        btn:SetFrameLevel(contentBox:GetFrameLevel() - 1)
         btn.text:SetFontObject("GameFontNormal")
-        btn.bottomMask:Hide()
+        btn.bottomMask:SetColorTexture(0.06, 0.06, 0.06, 1)
       end
     end
     for _, dd in ipairs(allDropdowns) do dd:Hide() end
@@ -662,8 +660,8 @@ local function buildLayout()
   local gen = tabFrames[1].content
 
   local aceContainer = CreateFrame("Frame", nil, gen)
-  aceContainer:SetPoint("TOPLEFT", 0, 0)
-  aceContainer:SetPoint("TOPRIGHT", 0, 0)
+  aceContainer:SetPoint("TOPLEFT", 16, -16)
+  aceContainer:SetPoint("TOPRIGHT", -16, 0)
   aceContainer:SetHeight(300)
 
   local AceConfigDialog = LibStub("AceConfigDialog-3.0")
@@ -1430,7 +1428,7 @@ local function buildLayout()
   local eiTitle = eiTitleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   eiTitle:SetPoint("LEFT", 6, 0)
 
-  local eiCloseBtn = CreateFrame("Button", nil, eiTitleBar, "UIPanelCloseButton")
+  local eiCloseBtn = CreateFrame("Button", nil, eiFrame, "UIPanelCloseButton")
   eiCloseBtn:SetPoint("TOPRIGHT", eiFrame, "TOPRIGHT", -2, -2)
 
   tinsert(UISpecialFrames, "ResonanceExportImport")
@@ -1729,11 +1727,7 @@ local function buildLayout()
   muteCharRadio:SetScript("OnClick", function() setMuteMode("character") end)
   muteFidRadio:SetScript("OnClick", function() setMuteMode("fid") end)
 
-  -- Muted IDs list
-  local muteListHeader = muteTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  muteListHeader:SetPoint("TOPLEFT", muteSearchFrame, "BOTTOMLEFT", 0, -10)
-  muteListHeader:SetText("Muted IDs:")
-
+  -- Muted sounds list
   local clearAllBtn = makeButton(muteTab, "Clear All Manual", 120, function()
     local p = Resonance.db.profile
     for fid, enabled in pairs(p.mute_file_data_ids) do
@@ -1744,10 +1738,9 @@ local function buildLayout()
     wipe(p.mute_file_data_ids)
     refreshMuteList()
   end)
-  clearAllBtn:SetPoint("LEFT", muteListHeader, "RIGHT", 8, 0)
 
   local muteListContainer = CreateFrame("Frame", nil, muteTab)
-  muteListContainer:SetPoint("TOPLEFT", muteListHeader, "BOTTOMLEFT", 0, -4)
+  muteListContainer:SetPoint("TOPLEFT", muteSearchFrame, "BOTTOMLEFT", 0, -10)
   muteListContainer:SetPoint("RIGHT", muteTab, "RIGHT", -4, 0)
   muteListContainer:SetHeight(ROW_HEIGHT)
 
@@ -1760,6 +1753,7 @@ local function buildLayout()
   refreshMuteList = function()
     profile = Resonance.db.profile
     for _, row in ipairs(muteListRows) do row:Hide() end
+    clearAllBtn:Hide()
 
     -- Collect all muted FIDs, tracking source
     local fidSet = {}
@@ -1767,8 +1761,7 @@ local function buildLayout()
       if enabled then fidSet[fid] = { source = "manual" } end
     end
     -- Build reverse lookup: FID -> { spells, excluded }
-    -- Include ALL auto-mute FIDs (even excluded ones) so they stay visible in the list
-    local autoFidInfo = {}  -- [fid] = { spells = {}, excluded = bool }
+    local autoFidInfo = {}
     for sid in pairs(profile.spell_config or {}) do
       local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
       if fids then
@@ -1777,7 +1770,6 @@ local function buildLayout()
           if not autoFidInfo[fid] then autoFidInfo[fid] = { spells = {}, excluded = true } end
           local name = Resonance.getSpellName(sid) or tostring(sid)
           autoFidInfo[fid].spells[#autoFidInfo[fid].spells + 1] = name
-          -- If ANY spell does NOT exclude this FID, it's actively muted
           if not (excl and excl[fid]) then
             autoFidInfo[fid].excluded = false
           end
@@ -1794,14 +1786,79 @@ local function buildLayout()
       fidSet[fid].excluded = info.excluded
     end
 
-    local sorted = {}
+    -- Split into manual-only and auto (includes "both", "auto", "auto_excluded")
+    local manualEntries = {}
+    local autoEntries = {}
     for fid, info in pairs(fidSet) do
-      sorted[#sorted + 1] = { fid = fid, source = info.source, spells = info.spells }
+      local path = lookupFIDPath(fid)
+      local sortKey = path and path:lower() or tostring(fid)
+      local entry = { fid = fid, source = info.source, spells = info.spells, excluded = info.excluded, sortKey = sortKey }
+      if info.source == "manual" then
+        manualEntries[#manualEntries + 1] = entry
+      else
+        autoEntries[#autoEntries + 1] = entry
+      end
     end
-    table.sort(sorted, function(a, b) return a.fid < b.fid end)
+    table.sort(manualEntries, function(a, b) return a.sortKey < b.sortKey end)
 
-    for idx, entry in ipairs(sorted) do
-      local fid = entry.fid
+    -- Group auto entries by primary spell (first alphabetically)
+    local spellNameSet = {}
+    for _, entry in ipairs(autoEntries) do
+      if entry.spells then
+        for _, name in ipairs(entry.spells) do spellNameSet[name] = true end
+      end
+    end
+    local sortedSpellNames = {}
+    for name in pairs(spellNameSet) do sortedSpellNames[#sortedSpellNames + 1] = name end
+    table.sort(sortedSpellNames)
+
+    local spellGroups = {}
+    for _, name in ipairs(sortedSpellNames) do spellGroups[name] = {} end
+    local assignedFids = {}
+    for _, spellName in ipairs(sortedSpellNames) do
+      for _, entry in ipairs(autoEntries) do
+        if not assignedFids[entry.fid] and entry.spells then
+          for _, name in ipairs(entry.spells) do
+            if name == spellName then
+              spellGroups[spellName][#spellGroups[spellName] + 1] = entry
+              assignedFids[entry.fid] = true
+              break
+            end
+          end
+        end
+      end
+      table.sort(spellGroups[spellName], function(a, b) return a.sortKey < b.sortKey end)
+    end
+
+    -- Build flat display list with headers
+    local displayItems = {}
+    displayItems[#displayItems + 1] = { type = "header", text = "Manually muted sounds:", showClearAll = true }
+    if #manualEntries == 0 then
+      displayItems[#displayItems + 1] = { type = "none" }
+    else
+      for _, entry in ipairs(manualEntries) do
+        displayItems[#displayItems + 1] = { type = "sound", entry = entry }
+      end
+    end
+    displayItems[#displayItems + 1] = { type = "header", text = "Auto-muted sounds from current spells:" }
+    local hasAutoGroups = false
+    for _, spellName in ipairs(sortedSpellNames) do
+      local group = spellGroups[spellName]
+      if #group > 0 then
+        hasAutoGroups = true
+        displayItems[#displayItems + 1] = { type = "spell_header", text = spellName }
+        for _, entry in ipairs(group) do
+          displayItems[#displayItems + 1] = { type = "sound", entry = entry }
+        end
+      end
+    end
+    if not hasAutoGroups then
+      displayItems[#displayItems + 1] = { type = "none" }
+    end
+
+    -- Render rows
+    local soundRowIdx = 0
+    for idx, item in ipairs(displayItems) do
       local row = muteListRows[idx]
       if not row then
         row = CreateFrame("Frame", nil, muteListContainer)
@@ -1824,103 +1881,138 @@ local function buildLayout()
       row:SetPoint("TOPLEFT", muteListContainer, "TOPLEFT", 0, -(idx - 1) * ROW_HEIGHT)
       row:SetPoint("RIGHT", muteListContainer, "RIGHT", 0, 0)
 
-      local display
-      local path = lookupFIDPath(fid)
-      if path then
-        display = formatSoundDisplay(path, fid)
-      else
-        display = "|cffff8800" .. fid .. "|r"
-      end
-      local isAuto = entry.source == "auto" or entry.source == "auto_excluded" or entry.source == "both"
-      local spellTag = ""
-      if isAuto and entry.spells and #entry.spells > 0 then
-        spellTag = table.concat(entry.spells, ", ")
-      end
-      if isAuto then
-        if entry.excluded then
-          display = "|cff888888[unmuted]|r |cff66aaff[" .. (spellTag ~= "" and spellTag or "auto") .. "]|r " .. display
-        else
-          display = "|cff66aaff[" .. (spellTag ~= "" and spellTag or "auto") .. "]|r " .. display
+      -- Hide all interactive elements by default
+      row.playBtn:Hide()
+      row.removeBtn:Hide()
+      if row.muteToggle then row.muteToggle:Hide() end
+
+      if item.type == "header" then
+        row.text:SetFontObject(GameFontNormal)
+        row.text:SetPoint("LEFT", 4, 0)
+        row.text:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+        row.text:SetText(item.text)
+        if item.showClearAll then
+          row.text:SetPoint("RIGHT", row, "RIGHT", -134, 0)
+          clearAllBtn:SetParent(row)
+          clearAllBtn:ClearAllPoints()
+          clearAllBtn:SetPoint("LEFT", row.text, "RIGHT", 6, 0)
+          clearAllBtn:Show()
         end
-      end
-      row.text:SetText(display)
+      elseif item.type == "none" then
+        row.text:SetFontObject(GameFontDisableSmall)
+        row.text:SetPoint("LEFT", 12, 0)
+        row.text:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+        row.text:SetText("None")
+      elseif item.type == "spell_header" then
+        row.text:SetFontObject(GameFontHighlightSmall)
+        row.text:SetPoint("LEFT", 8, 0)
+        row.text:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+        row.text:SetText("|cff66aaff[" .. item.text .. "]|r")
+      elseif item.type == "sound" then
+        soundRowIdx = soundRowIdx + 1
+        local entry = item.entry
+        local fid = entry.fid
 
-      row.playBtn:SetScript("OnClick", function() safePlaySound(fid) end)
+        row.text:SetFontObject(GameFontHighlightSmall)
 
-      -- Create muteToggle button if needed (separate from removeBtn)
-      if not row.muteToggle then
-        row.muteToggle = makeButton(row, "Unmute", 52, nil)
-        row.muteToggle:SetPoint("RIGHT", row.playBtn, "LEFT", -2, 0)
-      end
+        local display
+        local path = lookupFIDPath(fid)
+        if path then
+          display = formatSoundDisplay(path, fid)
+        else
+          display = "|cffff8800" .. fid .. "|r"
+        end
+        local isAuto = entry.source ~= "manual"
+        if isAuto and entry.excluded then
+          display = "|cff888888[unmuted]|r " .. display
+        end
+        row.text:SetText(display)
 
-      row.removeBtn:SetEnabled(true)
-      row.removeBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        row.playBtn:Show()
+        row.playBtn:SetScript("OnClick", function() safePlaySound(fid) end)
 
-      if isAuto then
-        -- Auto-muted: show mute/unmute toggle, hide remove button
-        row.removeBtn:Hide()
-        row.muteToggle:Show()
-        row.muteToggle:SetText(entry.excluded and "Mute" or "Unmute")
-        row.text:SetPoint("RIGHT", row, "RIGHT", -100, 0)
-        row.muteToggle:SetScript("OnClick", function()
-          if entry.excluded then
-            -- Re-mute: remove exclusions for this FID from all spells
-            for sid in pairs(profile.spell_config or {}) do
-              local excl = profile.spell_config[sid].muteExclusions
-              if excl then excl[fid] = nil end
-            end
-          else
-            -- Unmute: add exclusion to all spells that auto-mute this FID
-            for sid in pairs(profile.spell_config or {}) do
-              local spellFids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
-              if spellFids then
-                for _, sfid in ipairs(spellFids) do
-                  if sfid == fid then
-                    if not profile.spell_config[sid].muteExclusions then
-                      profile.spell_config[sid].muteExclusions = {}
+        if not row.muteToggle then
+          row.muteToggle = makeButton(row, "Unmute", 60, nil)
+          row.muteToggle:SetPoint("RIGHT", row.playBtn, "LEFT", -4, 0)
+        end
+
+        row.removeBtn:SetEnabled(true)
+        row.removeBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        if isAuto then
+          row.removeBtn:Hide()
+          row.muteToggle:Show()
+          row.muteToggle:SetText(entry.excluded and "Mute" or "Unmute")
+          row.text:SetPoint("LEFT", 16, 0)
+          row.text:SetPoint("RIGHT", row, "RIGHT", -114, 0)
+          row.muteToggle:SetScript("OnClick", function()
+            profile = Resonance.db.profile
+            if entry.excluded then
+              for sid in pairs(profile.spell_config or {}) do
+                local excl = profile.spell_config[sid].muteExclusions
+                if excl then excl[fid] = nil end
+              end
+              Resonance.rebuildAutoMutes()
+              MuteSoundFile(fid)
+              Resonance.msg("Re-muted FID " .. fid)
+            else
+              for sid in pairs(profile.spell_config or {}) do
+                local spellFids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+                if spellFids then
+                  for _, sfid in ipairs(spellFids) do
+                    if sfid == fid then
+                      if not profile.spell_config[sid].muteExclusions then
+                        profile.spell_config[sid].muteExclusions = {}
+                      end
+                      profile.spell_config[sid].muteExclusions[fid] = true
+                      break
                     end
-                    profile.spell_config[sid].muteExclusions[fid] = true
-                    break
                   end
                 end
               end
+              Resonance.rebuildAutoMutes()
+              UnmuteSoundFile(fid)
+              Resonance.msg("Unmuted FID " .. fid)
             end
-          end
-          Resonance.rebuildAutoMutes()
-          Resonance.clearMutes()
-          if profile.enabled then Resonance.applyMutes() end
-          refreshMuteList()
-        end)
-      else
-        -- Manual-only: show remove button, hide toggle
-        row.muteToggle:Hide()
-        row.removeBtn:Show()
-        row.text:SetPoint("RIGHT", row, "RIGHT", -44, 0)
-        row.removeBtn:SetScript("OnEnter", function(self)
-          GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-          GameTooltip:AddLine("Unmute", 1, 1, 1)
-          GameTooltip:Show()
-        end)
-        row.removeBtn:SetScript("OnClick", function()
-          profile.mute_file_data_ids[fid] = nil
-          UnmuteSoundFile(fid)
-          refreshMuteList()
-        end)
+            refreshMuteList()
+          end)
+        else
+          row.muteToggle:Hide()
+          row.removeBtn:Show()
+          row.text:SetPoint("LEFT", 8, 0)
+          row.text:SetPoint("RIGHT", row, "RIGHT", -44, 0)
+          row.removeBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Unmute", 1, 1, 1)
+            GameTooltip:Show()
+          end)
+          row.removeBtn:SetScript("OnClick", function()
+            profile.mute_file_data_ids[fid] = nil
+            UnmuteSoundFile(fid)
+            refreshMuteList()
+          end)
+        end
       end
 
-      if not row.stripe and idx % 2 == 0 then
-        row.stripe = row:CreateTexture(nil, "BACKGROUND")
-        row.stripe:SetAllPoints()
-        row.stripe:SetColorTexture(1, 1, 1, 0.04)
+      -- Striping for sound rows only
+      if item.type == "sound" then
+        if not row.stripe then
+          row.stripe = row:CreateTexture(nil, "BACKGROUND")
+          row.stripe:SetAllPoints()
+          row.stripe:SetColorTexture(1, 1, 1, 0.04)
+        end
+        row.stripe:SetShown(soundRowIdx % 2 == 0)
+      else
+        if row.stripe then row.stripe:Hide() end
       end
-      if row.stripe then row.stripe:SetShown(idx % 2 == 0) end
 
       row:Show()
     end
 
-    local totalH = math.max(#sorted * ROW_HEIGHT, ROW_HEIGHT)
+    for i = #displayItems + 1, #muteListRows do muteListRows[i]:Hide() end
+    local totalH = math.max(#displayItems * ROW_HEIGHT, ROW_HEIGHT)
     muteListContainer:SetHeight(totalH)
-    muteListEmpty:SetShown(#sorted == 0)
+    muteListEmpty:SetShown(false)
     recalcContentHeight(3)
   end
 
@@ -1932,8 +2024,8 @@ local function buildLayout()
   local profTab = tabFrames[4].content
 
   local profContainer = CreateFrame("Frame", nil, profTab)
-  profContainer:SetPoint("TOPLEFT", 0, 0)
-  profContainer:SetPoint("TOPRIGHT", 0, 0)
+  profContainer:SetPoint("TOPLEFT", 16, -16)
+  profContainer:SetPoint("TOPRIGHT", -16, 0)
   profContainer:SetHeight(400)
 
   local function buildProfilesTab()
