@@ -48,6 +48,11 @@ def deploy():
     if not WOW_ADDON_DIR.parent.exists():
         sys.exit(f"Error: WoW AddOns directory not found at {WOW_ADDON_DIR.parent}")
 
+    # Detect if source and dest are the same directory (e.g. symlink/bind mount)
+    same_dir = WOW_ADDON_DIR.resolve() == SCRIPT_DIR.resolve()
+    if same_dir:
+        print("  (source and addon dir are the same — skipping stale file cleanup)")
+
     # Collect the set of relative paths we'll write
     expected = set()
     for src, rel in addon_files():
@@ -55,12 +60,12 @@ def deploy():
         expected.add(rel)
         dest.parent.mkdir(parents=True, exist_ok=True)
         # Only copy if source is newer or different size
-        if not dest.exists() or src.stat().st_mtime > dest.stat().st_mtime or src.stat().st_size != dest.stat().st_size:
+        if not same_dir and (not dest.exists() or src.stat().st_mtime > dest.stat().st_mtime or src.stat().st_size != dest.stat().st_size):
             shutil.copy2(src, dest)
             print(f"  updated: {rel}")
 
-    # Delete stale files (like rsync --delete)
-    if WOW_ADDON_DIR.exists():
+    # Delete stale files (like rsync --delete) — skip when source == dest
+    if not same_dir and WOW_ADDON_DIR.exists():
         for child in sorted(WOW_ADDON_DIR.rglob("*"), reverse=True):
             rel = child.relative_to(WOW_ADDON_DIR)
             if child.is_file() and rel not in expected:

@@ -35,6 +35,7 @@ Open settings from the game menu (**Esc → Options → AddOns → Resonance**) 
 | **General** | Toggle the addon, debug mode, vocalization muting, weapon muting, sound channel |
 | **Spell Sounds** | Add/edit per-spell sound replacements with search and preview |
 | **Muted Sounds** | Manage manually muted FileDataIDs |
+| **Presets** | Apply built-in class presets or save/load your own |
 | **Profiles** | Create, copy, or reset setting profiles |
 
 ### Slash commands
@@ -63,12 +64,13 @@ embeds.xml             — Ace library loader
 data/
   SpellSounds.lua      — Searchable database of spell sound paths + FileDataIDs
   CharacterSounds.lua  — Searchable database of character/emote sounds
+  ClassTemplates.lua   — Built-in class presets (212 spells across 11 classes)
   SpellMuteData.lua    — Auto-generated: spell→FileDataID mute mappings,
                          vocalization data, weapon impact data
 libs/                  — Embedded Ace3 framework + LibDBIcon + LibDataBroker
 sounds/                — Bundled fallback sound files
 tools/
-  spell_sounds.py      — Data generation script
+  spell_sounds.py      — DB2 chain walker + data generation script
 build.py               — Build/deploy script
 ```
 
@@ -88,17 +90,29 @@ It also builds vocalization mute tables by mapping race/gender → character mod
 ```bash
 cd tools/
 
-# Look up sounds for a specific spell
+# Look up sounds for a specific spell (default: retail data)
 python spell_sounds.py 12294                    # by spell ID (Mortal Strike)
 python spell_sounds.py --name "Mortal Strike"   # by name
 
+# Target a specific game build
+python spell_sounds.py --build mop 12294        # MoP Classic data
+python spell_sounds.py --build cata 12294       # Cataclysm Classic data
+python spell_sounds.py --build classic 12294    # Classic Era data
+python spell_sounds.py --build 5.5.3.66128 12294  # explicit version string
+
+# List available builds from wago.tools
+python spell_sounds.py --list-builds
+
 # Regenerate all mute data (takes a while — downloads ~16 DB2 tables)
 python spell_sounds.py --generate-mute-data
+python spell_sounds.py --generate-mute-data --build mop  # from MoP Classic data
 
 # Force re-download cached DB2 tables
 python spell_sounds.py --refresh
 python spell_sounds.py --clear-cache
 ```
+
+Build aliases: `retail` (default), `mop` (MoP Classic 5.5.x), `cata` (Cataclysm Classic 3.80.x), `classic` (Classic Era 1.15.x). Each build's CSV cache is stored separately under `tools/.db2_cache/<version>/`.
 
 The `SpellSounds.lua` and `CharacterSounds.lua` files are sourced from [Leatrix Sounds](https://www.curseforge.com/wow/addons/leatrix-sounds) — these provide the browsable sound library in the addon's UI.
 

@@ -7,11 +7,23 @@ Uses wago.tools public CSV API to download datamined DB2 tables.
 Usage:
     python spell_sounds.py <SpellID> [SpellID ...]
     python spell_sounds.py --name "Mortal Strike"
-    python spell_sounds.py --lua <SpellID> [SpellID ...]   # output as Lua table
+    python spell_sounds.py --build mop 12294                # MoP Classic data
+    python spell_sounds.py --build cata --name "Lava Burst"  # Cata Classic data
+    python spell_sounds.py --lua <SpellID> [SpellID ...]    # output as Lua table
+    python spell_sounds.py --generate-mute-data             # generate SpellMuteData.lua
+    python spell_sounds.py --generate-mute-data --build mop # from MoP Classic data
+    python spell_sounds.py --list-builds                    # show available builds
     python spell_sounds.py --clear-cache                    # delete cached CSVs
 
-Paths:
-  A: SpellID → SpellXSpellVisual → SpellVisualEvent → SpellVisualKitEffect(type=1)
+Build aliases:
+    retail   Current retail (default, no build param)
+    mop      MoP Classic (5.5.3.x)
+    cata     Cataclysm Classic (3.80.x)
+    classic  Classic Era (1.15.x)
+    (or pass a raw version string like 5.5.3.66128)
+
+DB2 chain paths:
+  A: SpellID → SpellXSpellVisual → SpellVisualEvent → SpellVisualKitEffect(type=5)
      → SoundKitEntry → FileDataID
   B: SpellID → SpellXSpellVisual → SpellVisual.AnimEventSoundID
      → SoundKitEntry → FileDataID
@@ -28,6 +40,15 @@ from pathlib import Path
 
 CACHE_DIR = Path(__file__).parent / ".db2_cache"
 WAGO_BASE = "https://wago.tools/db2"
+
+# Friendly build aliases → (wago.tools product, latest known build version)
+# Use `--list-builds` to fetch current versions from the API.
+BUILD_ALIASES = {
+    "retail": ("wow", None),          # None = omit ?build= param (wago default)
+    "mop": ("wow_classic", "5.5.3.66128"),
+    "cata": ("wow_classic_titan", "3.80.0.66130"),
+    "classic": ("wow_classic_era", "1.15.8.66129"),
+}
 
 TABLES = [
     "SpellXSpellVisual",
@@ -114,16 +135,27 @@ UNIT_SOUND_TYPE_NAMES = {
 
 
 
-def download_csv(table_name: str, force: bool = False) -> Path:
-    """Download a DB2 CSV from wago.tools, caching locally."""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = CACHE_DIR / f"{table_name}.csv"
+def download_csv(table_name: str, force: bool = False,
+                  build: str | None = None) -> Path:
+    """Download a DB2 CSV from wago.tools, caching locally.
+
+    Args:
+        table_name: DB2 table name (e.g. "SpellName").
+        force: Re-download even if cached.
+        build: Game build version string (e.g. "5.5.3.66128").
+               None means use wago.tools default (latest retail).
+    """
+    cache_subdir = CACHE_DIR / (build or "retail")
+    cache_subdir.mkdir(parents=True, exist_ok=True)
+    path = cache_subdir / f"{table_name}.csv"
 
     if path.exists() and not force:
         return path
 
     url = f"{WAGO_BASE}/{table_name}/csv"
-    print(f"  Downloading {table_name}...", end=" ", flush=True)
+    if build:
+        url += f"?build={build}"
+    print(f"  Downloading {table_name} ({build or 'retail'})...", end=" ", flush=True)
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Resonance-SpellLookup/1.0"})
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -364,11 +396,12 @@ def resolve_spell_name(name: str, spell_name_index: dict[str, list[dict]]) -> li
     return matches
 
 
-def build_vox_data(csv_paths: dict, ske_idx: dict) -> dict:
+def build_vox_data(csv_paths: dict, ske_idx: dict,
+                   build: str | None = None) -> dict:
     """Build race/gender vocalization lookup from CreatureSoundData chain."""
     vox_tables = {}
     for table in VOX_TABLES:
-        vox_tables[table] = download_csv(table)
+        vox_tables[table] = download_csv(table, build=build)
 
     # ChrRaces: ID -> ClientPrefix
     race_names = {}
@@ -435,11 +468,11 @@ def build_vox_data(csv_paths: dict, ske_idx: dict) -> dict:
     }
 
 
-def build_weapon_data(ske_idx: dict) -> list[int]:
+def build_weapon_data(ske_idx: dict, build: str | None = None) -> list[int]:
     """Build a flat list of all weapon impact + swing sound FileDataIDs."""
     weapon_tables = {}
     for table in WEAPON_TABLES:
-        weapon_tables[table] = download_csv(table)
+        weapon_tables[table] = download_csv(table, build=build)
 
     all_fids = set()
 
@@ -472,17 +505,17 @@ def build_weapon_data(ske_idx: dict) -> list[int]:
 
 
 def generate_mute_data(indices: dict, xsv_index: dict, output_path: Path,
-                       csv_paths: dict) -> None:
+                       csv_paths: dict, build: str | None = None) -> None:
     """Generate SpellMuteData.lua with SpellID→FileDataIDs mapping for all spells."""
     ske_idx = indices["SoundKitEntry_by_SoundKitID"]
 
     # Build vocalization data
     print("Building vocalization data...")
-    vox_data = build_vox_data(csv_paths, ske_idx)
+    vox_data = build_vox_data(csv_paths, ske_idx, build=build)
 
     # Build weapon impact data
     print("Building weapon impact/swing data...")
-    weapon_fids = build_weapon_data(ske_idx)
+    weapon_fids = build_weapon_data(ske_idx, build=build)
 
     print("Generating mute data for all spells...")
     spell_ids = sorted(xsv_index.keys())
@@ -569,12 +602,30 @@ def generate_mute_data(indices: dict, xsv_index: dict, output_path: Path,
     print(f"  Written to {output_path} ({size_mb:.1f} MB)")
 
 
+def resolve_build(raw: str | None) -> str | None:
+    """Resolve a build alias or version string to a wago.tools build version.
+
+    Returns None for retail (no ?build= needed), or a version string like
+    "5.5.3.66128" for specific builds.
+    """
+    if raw is None:
+        return None
+    alias = raw.lower()
+    if alias in BUILD_ALIASES:
+        _, version = BUILD_ALIASES[alias]
+        return version
+    # Assume it's a raw version string (e.g. "5.5.3.66128")
+    return raw
+
+
 def load_tables_and_build_indices(args) -> tuple[dict, list]:
-    """Download/load CSVs and build indices. Returns (indices, xsv_rows)."""
-    print("Loading DB2 tables...")
+    """Download/load CSVs and build indices. Returns (indices, csv_paths)."""
+    build = resolve_build(getattr(args, "build", None))
+    build_label = build or "retail"
+    print(f"Loading DB2 tables ({build_label})...")
     csv_paths = {}
     for table in TABLES:
-        csv_paths[table] = download_csv(table, force=args.refresh)
+        csv_paths[table] = download_csv(table, force=args.refresh, build=build)
 
     print("Building indices...")
     xsv = load_csv(csv_paths["SpellXSpellVisual"])
@@ -598,16 +649,49 @@ def load_tables_and_build_indices(args) -> tuple[dict, list]:
     return indices, csv_paths
 
 
+def list_builds():
+    """Fetch and display available builds from wago.tools."""
+    print("Fetching available builds from wago.tools...")
+    url = "https://wago.tools/api/builds"
+    req = urllib.request.Request(url, headers={"User-Agent": "Resonance-SpellLookup/1.0"})
+    import json
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read())
+
+    print("\nKnown aliases:")
+    for alias, (product, version) in sorted(BUILD_ALIASES.items()):
+        print(f"  {alias:10s} → {product} ({version or 'latest'})")
+
+    print("\nAll products (latest 3 builds each):")
+    for product in sorted(data.keys()):
+        versions = [b.get("version", "?") for b in data[product][:3]]
+        print(f"  {product}: {', '.join(versions)}")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Look up sound FileDataIDs for WoW spells")
+    parser = argparse.ArgumentParser(
+        description="Look up sound FileDataIDs for WoW spells",
+        epilog="Build aliases: " + ", ".join(
+            f"{k} ({v[0]})" for k, v in sorted(BUILD_ALIASES.items())
+        ),
+    )
     parser.add_argument("spell_ids", nargs="*", type=int, help="SpellID(s) to look up")
     parser.add_argument("--name", "-n", type=str, help="Look up by spell name instead of ID")
+    parser.add_argument("--build", "-b", type=str, default=None,
+                        help="Game build to target: alias (retail, mop, cata, classic) "
+                             "or version string (e.g. 5.5.3.66128). Default: retail")
     parser.add_argument("--lua", action="store_true", help="Output as Lua mute snippet")
     parser.add_argument("--generate-mute-data", action="store_true",
                         help="Generate SpellMuteData.lua with all SpellID→FileDataID mappings")
+    parser.add_argument("--list-builds", action="store_true",
+                        help="List available builds from wago.tools")
     parser.add_argument("--clear-cache", action="store_true", help="Delete cached CSV files")
     parser.add_argument("--refresh", action="store_true", help="Re-download CSVs")
     args = parser.parse_args()
+
+    if args.list_builds:
+        list_builds()
+        return
 
     if args.clear_cache:
         if CACHE_DIR.exists():
@@ -619,10 +703,11 @@ def main():
         return
 
     if args.generate_mute_data:
+        build = resolve_build(args.build)
         indices, csv_paths = load_tables_and_build_indices(args)
         output_path = Path(__file__).parent.parent / "data" / "SpellMuteData.lua"
         generate_mute_data(indices, indices["SpellXSpellVisual_by_SpellID"],
-                           output_path, csv_paths)
+                           output_path, csv_paths, build=build)
         return
 
     if not args.spell_ids and not args.name:

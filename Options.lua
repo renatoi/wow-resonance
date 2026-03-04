@@ -219,6 +219,20 @@ local ROW_HEIGHT = 22
 local CONTENT_WIDTH = 580
 local AUTOCOMPLETE_ROWS = 8
 
+local CLASS_DISPLAY = {
+  WARRIOR = "Warrior", MAGE = "Mage", ROGUE = "Rogue", PALADIN = "Paladin",
+  DRUID = "Druid", WARLOCK = "Warlock", PRIEST = "Priest", SHAMAN = "Shaman",
+  HUNTER = "Hunter", DEATHKNIGHT = "Death Knight", MONK = "Monk",
+  DEMONHUNTER = "Demon Hunter", EVOKER = "Evoker",
+}
+
+-- Display order for class groups in spell list
+local CLASS_ORDER = {
+  "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST",
+  "DEATHKNIGHT", "SHAMAN", "MAGE", "WARLOCK", "MONK", "DRUID",
+  "DEMONHUNTER", "EVOKER",
+}
+
 ---------------------------------------------------------------------------
 -- Panel registration
 ---------------------------------------------------------------------------
@@ -1249,96 +1263,218 @@ local function buildLayout()
   end)
 
   -- Spell list rendering
+  local listHeaders = {}  -- reusable class header frames
+  local collapsedGroups = {}  -- { [groupKey] = true } for collapsed sections
+  local collapsedInitialized = false  -- set defaults on first render
+  local _, playerClass = UnitClass("player")
+
+  local function getOrCreateHeader(idx)
+    if listHeaders[idx] then return listHeaders[idx] end
+    local hdr = CreateFrame("Button", nil, listContainer)
+    hdr:SetHeight(ROW_HEIGHT)
+    local bg = hdr:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.2, 0.2, 0.25, 0.5)
+    hdr.bg = bg
+    hdr.arrow = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    hdr.arrow:SetPoint("LEFT", 4, 0)
+    hdr.arrow:SetWidth(14)
+    hdr.arrow:SetJustifyH("LEFT")
+    hdr.text = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    hdr.text:SetPoint("LEFT", hdr.arrow, "RIGHT", 2, 0)
+    hdr.text:SetJustifyH("LEFT")
+    hdr.count = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hdr.count:SetPoint("LEFT", hdr.text, "RIGHT", 6, 0)
+    hdr.count:SetTextColor(0.6, 0.6, 0.6)
+    -- Highlight on hover
+    hdr.highlight = hdr:CreateTexture(nil, "HIGHLIGHT")
+    hdr.highlight:SetAllPoints()
+    hdr.highlight:SetColorTexture(1, 1, 1, 0.05)
+    listHeaders[idx] = hdr
+    return hdr
+  end
+
+  local function getOrCreateRow(idx)
+    if listRows[idx] then return listRows[idx] end
+    local row = CreateFrame("Frame", nil, listContainer)
+    row:SetHeight(ROW_HEIGHT)
+    listRows[idx] = row
+
+    row.nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.nameText:SetPoint("LEFT", 4, 0)
+    row.nameText:SetWidth(200)
+    row.nameText:SetJustifyH("LEFT")
+    row.nameText:SetWordWrap(false)
+
+    row.soundText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.soundText:SetPoint("LEFT", row.nameText, "RIGHT", 8, 0)
+    row.soundText:SetPoint("RIGHT", row, "RIGHT", -58, 0)
+    row.soundText:SetJustifyH("LEFT")
+    row.soundText:SetWordWrap(false)
+
+    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound")
+    row.playBtn:SetPoint("RIGHT", row, "RIGHT", -36, 0)
+
+    row.editBtn = makeIconButton(row, "Interface\\WorldMap\\GEAR_64GREY", 20, "Edit")
+    row.editBtn:SetPoint("RIGHT", row, "RIGHT", -18, 0)
+
+    row.delBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Delete")
+    row.delBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
+
+    return row
+  end
+
   refreshList = function()
     profile = Resonance.db.profile
     for _, row in ipairs(listRows) do row:Hide() end
+    for _, hdr in ipairs(listHeaders) do hdr:Hide() end
 
-    local sorted = {}
+    -- Group spells by source, only including those with a sound
+    local groups = {}       -- source -> { {spellID, cfg}, ... }
+    local groupSet = {}     -- track which sources exist
     for sid, cfg in pairs(profile.spell_config or {}) do
-      sorted[#sorted + 1] = { spellID = sid, cfg = cfg }
+      if cfg.sound ~= nil then
+        local source = profile.preset_spells and profile.preset_spells[sid]
+        local key = source or "_custom"
+        if not groups[key] then
+          groups[key] = {}
+          groupSet[key] = true
+        end
+        groups[key][#groups[key] + 1] = { spellID = sid, cfg = cfg }
+      end
     end
-    table.sort(sorted, function(a, b) return a.spellID < b.spellID end)
 
-    for idx, entry in ipairs(sorted) do
-      local row = listRows[idx]
-      if not row then
-        row = CreateFrame("Frame", nil, listContainer)
-        row:SetHeight(ROW_HEIGHT)
-        listRows[idx] = row
+    -- Sort spells within each group by spell name
+    for _, spells in pairs(groups) do
+      table.sort(spells, function(a, b)
+        local na = Resonance.getSpellName(a.spellID) or ""
+        local nb = Resonance.getSpellName(b.spellID) or ""
+        return na < nb
+      end)
+    end
 
-        row.nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        row.nameText:SetPoint("LEFT", 4, 0)
-        row.nameText:SetWidth(200)
-        row.nameText:SetJustifyH("LEFT")
-        row.nameText:SetWordWrap(false)
-
-        row.soundText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        row.soundText:SetPoint("LEFT", row.nameText, "RIGHT", 8, 0)
-        row.soundText:SetPoint("RIGHT", row, "RIGHT", -58, 0)
-        row.soundText:SetJustifyH("LEFT")
-        row.soundText:SetWordWrap(false)
-
-        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play sound")
-        row.playBtn:SetPoint("RIGHT", row, "RIGHT", -36, 0)
-
-        row.editBtn = makeIconButton(row, "Interface\\WorldMap\\GEAR_64GREY", 20, "Edit")
-        row.editBtn:SetPoint("RIGHT", row, "RIGHT", -18, 0)
-
-        row.delBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Delete")
-        row.delBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
+    -- Build ordered list of group keys: player's class first, then class order, then saved presets, then custom
+    local orderedKeys = {}
+    if groupSet[playerClass] then
+      orderedKeys[#orderedKeys + 1] = playerClass
+      groupSet[playerClass] = nil
+    end
+    for _, cls in ipairs(CLASS_ORDER) do
+      if groupSet[cls] then
+        orderedKeys[#orderedKeys + 1] = cls
+        groupSet[cls] = nil
       end
+    end
+    local extras = {}
+    for key in pairs(groupSet) do
+      if key ~= "_custom" then extras[#extras + 1] = key end
+    end
+    table.sort(extras)
+    for _, key in ipairs(extras) do orderedKeys[#orderedKeys + 1] = key end
+    if groups["_custom"] then orderedKeys[#orderedKeys + 1] = "_custom" end
 
-      row:SetPoint("TOPLEFT", listContainer, "TOPLEFT", 0, -(idx - 1) * ROW_HEIGHT)
-      row:SetPoint("RIGHT", listContainer, "RIGHT", 0, 0)
-
-      if idx % 2 == 0 then
-        if not row.stripe then
-          row.stripe = row:CreateTexture(nil, "BACKGROUND")
-          row.stripe:SetAllPoints()
-          row.stripe:SetColorTexture(1, 0.82, 0, 0.08)
+    -- Default: player's class and custom expanded, everything else collapsed
+    if not collapsedInitialized and #orderedKeys > 0 then
+      for _, key in ipairs(orderedKeys) do
+        if key ~= playerClass and key ~= "_custom" then
+          collapsedGroups[key] = true
         end
-        row.stripe:Show()
-      elseif row.stripe then row.stripe:Hide() end
+      end
+      collapsedInitialized = true
+    end
 
-      local spellName = Resonance.getSpellName(entry.spellID) or "?"
-      local presetSource = profile.preset_spells and profile.preset_spells[entry.spellID]
-      row.nameText:SetText(spellName .. " (" .. entry.spellID .. ")" .. (presetSource and " |cff66aaff[P]|r" or ""))
+    -- Render grouped list
+    local yOff = 0
+    local rowIdx = 0
+    local hdrIdx = 0
+    local totalSpells = 0
 
-      local cfg = entry.cfg
-      if cfg.sound then
-        local sound = cfg.sound
-        if type(sound) == "number" then
-          local path = lookupFIDPath(sound)
-          if path then
-            row.soundText:SetText(formatSoundDisplay(path, sound))
-          else
-            row.soundText:SetText("|cff00ff00FID:" .. sound .. "|r")
-          end
-        else
-          local filename = tostring(sound):match("[^/\\]+$") or tostring(sound)
-          row.soundText:SetText("|cff00ff00" .. filename .. "|r")
-        end
+    for _, key in ipairs(orderedKeys) do
+      local spells = groups[key]
+      local collapsed = collapsedGroups[key]
+
+      -- Class/group header
+      hdrIdx = hdrIdx + 1
+      local hdr = getOrCreateHeader(hdrIdx)
+      hdr:ClearAllPoints()
+      hdr:SetPoint("TOPLEFT", listContainer, "TOPLEFT", 0, -yOff)
+      hdr:SetPoint("RIGHT", listContainer, "RIGHT", 0, 0)
+
+      local displayName = CLASS_DISPLAY[key] or (key == "_custom" and "Custom" or key)
+      local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[key]
+      if cc then
+        hdr.text:SetText(cc:WrapTextInColorCode(displayName))
       else
-        row.soundText:SetText("|cff888888no sound|r")
+        hdr.text:SetText(displayName)
       end
-
-      row.playBtn:SetEnabled(cfg.sound ~= nil)
-      row.playBtn:SetScript("OnClick", function() if cfg.sound then safePlaySound(cfg.sound) end end)
-      row.editBtn:SetScript("OnClick", function() openEditor(entry.spellID) end)
-      row.delBtn:SetScript("OnClick", function()
-        Resonance.removeAutoMutesForSpell(entry.spellID)
-        Resonance.db.profile.spell_config[entry.spellID] = nil
-        Resonance.db.profile.preset_spells[entry.spellID] = nil
-        closeEditor()
+      hdr.arrow:SetText(collapsed and "|cffaaaaaa+|r" or "|cffaaaaaa-|r")
+      hdr.count:SetText("(" .. #spells .. ")")
+      local hdrKey = key
+      hdr:SetScript("OnClick", function()
+        collapsedGroups[hdrKey] = not collapsedGroups[hdrKey]
         refreshList()
       end)
+      hdr:Show()
+      yOff = yOff + ROW_HEIGHT
 
-      row:Show()
+      -- Spell rows (skip if collapsed)
+      if not collapsed then
+        for i, entry in ipairs(spells) do
+          rowIdx = rowIdx + 1
+          totalSpells = totalSpells + 1
+          local row = getOrCreateRow(rowIdx)
+          row:ClearAllPoints()
+          row:SetPoint("TOPLEFT", listContainer, "TOPLEFT", 0, -yOff)
+          row:SetPoint("RIGHT", listContainer, "RIGHT", 0, 0)
+
+          if i % 2 == 0 then
+            if not row.stripe then
+              row.stripe = row:CreateTexture(nil, "BACKGROUND")
+              row.stripe:SetAllPoints()
+              row.stripe:SetColorTexture(1, 0.82, 0, 0.08)
+            end
+            row.stripe:Show()
+          elseif row.stripe then row.stripe:Hide() end
+
+          local spellName = Resonance.getSpellName(entry.spellID) or "?"
+          row.nameText:SetText(spellName .. " |cff888888(" .. entry.spellID .. ")|r")
+
+          local cfg = entry.cfg
+          local sound = cfg.sound
+          if type(sound) == "number" then
+            local path = lookupFIDPath(sound)
+            if path then
+              row.soundText:SetText(formatSoundDisplay(path, sound))
+            else
+              row.soundText:SetText("|cff00ff00FID:" .. sound .. "|r")
+            end
+          else
+            local filename = tostring(sound):match("[^/\\]+$") or tostring(sound)
+            row.soundText:SetText("|cff00ff00" .. filename .. "|r")
+          end
+
+          row.playBtn:SetEnabled(true)
+          row.playBtn:SetScript("OnClick", function() safePlaySound(cfg.sound) end)
+          row.editBtn:SetScript("OnClick", function() openEditor(entry.spellID) end)
+          row.delBtn:SetScript("OnClick", function()
+            Resonance.removeAutoMutesForSpell(entry.spellID)
+            Resonance.db.profile.spell_config[entry.spellID] = nil
+            Resonance.db.profile.preset_spells[entry.spellID] = nil
+            closeEditor()
+            refreshList()
+          end)
+
+          row:Show()
+          yOff = yOff + ROW_HEIGHT
+        end
+      else
+        totalSpells = totalSpells + #spells
+      end
     end
 
-    local totalH = math.max(#sorted * ROW_HEIGHT, ROW_HEIGHT)
+    local totalH = math.max(yOff, ROW_HEIGHT)
     listContainer:SetHeight(totalH)
-    listEmpty:SetShown(#sorted == 0)
+    listEmpty:SetShown(totalSpells == 0)
     recalcContentHeight(2)
   end
 
@@ -1771,13 +1907,6 @@ local function buildLayout()
   -- Tab 4: Presets
   -------------------------------------------------------------------
   local presetTab = tabFrames[4].content
-
-  local CLASS_DISPLAY = {
-    WARRIOR = "Warrior", MAGE = "Mage", ROGUE = "Rogue", PALADIN = "Paladin",
-    DRUID = "Druid", WARLOCK = "Warlock", PRIEST = "Priest", SHAMAN = "Shaman",
-    HUNTER = "Hunter", DEATHKNIGHT = "Death Knight", MONK = "Monk",
-    DEMONHUNTER = "Demon Hunter", EVOKER = "Evoker",
-  }
 
   -- Export/Import dialog (shared by Presets tab)
   local eiFrame = CreateFrame("Frame", "ResonanceExportImport", UIParent, "BackdropTemplate")
