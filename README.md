@@ -64,15 +64,35 @@ embeds.xml             — Ace library loader
 data/
   SpellSounds.lua      — Searchable database of spell sound paths + FileDataIDs
   CharacterSounds.lua  — Searchable database of character/emote sounds
-  ClassTemplates.lua   — Built-in class presets (212 spells across 11 classes)
+  ClassTemplates.lua   — Built-in class presets (spells across 11 classes)
   SpellMuteData.lua    — Auto-generated: spell→FileDataID mute mappings,
                          vocalization data, weapon impact data
+  ClassicSpellSounds.lua — Reference table: spellID → classic-era sound FIDs
+                         (not loaded at runtime, used for template development)
 libs/                  — Embedded Ace3 framework + LibDBIcon + LibDataBroker
 sounds/                — Bundled fallback sound files
 tools/
   spell_sounds.py      — DB2 chain walker + data generation script
 build.py               — Build/deploy script
 ```
+
+### Classic spell sound reference (`data/ClassicSpellSounds.lua`)
+
+This file maps classic spell IDs to their original Classic/TBC/Wrath-era sound FileDataIDs. It is **not loaded by the addon** — it exists purely as a development reference when building or updating `ClassTemplates.lua`.
+
+To find the classic sounds for a spell:
+1. Look up the spell on [Wowhead Classic](https://www.wowhead.com/classic/spell=SPELLID) (check the Sound tab)
+2. Or use [Wago Tools](https://wago.tools/db2/SoundKitEntry) to trace SoundKit → FileDataID
+3. Add the mapping to `ClassicSpellSounds.lua` for future reference
+4. Use those FIDs in `ClassTemplates.lua`
+
+### Template auto-update
+
+When a user loads a class template (e.g., Warrior), the addon tracks which class it came from. On subsequent logins, `refreshPresetsFromTemplates()` automatically:
+- **Updates** existing preset spells to match the latest template values (sound, muteExclusions)
+- **Adds** new spells that were added to the template since the user last loaded it
+
+This means template improvements (new spells, sound fixes) are automatically applied without users needing to re-apply the template.
 
 ### Where the data comes from
 
@@ -106,6 +126,10 @@ python spell_sounds.py --list-builds
 # Regenerate all mute data (takes a while — downloads ~16 DB2 tables)
 python spell_sounds.py --generate-mute-data
 python spell_sounds.py --generate-mute-data --build mop  # from MoP Classic data
+
+# Regenerate ClassicSpellSounds.lua reference table from Classic Era DB2 data
+# Reads spell IDs from ClassTemplates.lua and looks up their classic-era sounds
+python spell_sounds.py --generate-classic-reference
 
 # Force re-download cached DB2 tables
 python spell_sounds.py --refresh

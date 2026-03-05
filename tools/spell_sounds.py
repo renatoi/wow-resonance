@@ -12,6 +12,7 @@ Usage:
     python spell_sounds.py --lua <SpellID> [SpellID ...]    # output as Lua table
     python spell_sounds.py --generate-mute-data             # generate SpellMuteData.lua
     python spell_sounds.py --generate-mute-data --build mop # from MoP Classic data
+    python spell_sounds.py --generate-classic-reference     # generate ClassicSpellSounds.lua
     python spell_sounds.py --list-builds                    # show available builds
     python spell_sounds.py --clear-cache                    # delete cached CSVs
 
@@ -33,6 +34,7 @@ DB2 chain paths:
 
 import argparse
 import csv
+import re
 import sys
 import urllib.request
 from collections import defaultdict
@@ -602,6 +604,197 @@ def generate_mute_data(indices: dict, xsv_index: dict, output_path: Path,
     print(f"  Written to {output_path} ({size_mb:.1f} MB)")
 
 
+def parse_class_templates(path: Path) -> dict[str, list[dict]]:
+    """Parse ClassTemplates.lua to extract spell entries grouped by class.
+
+    Returns: {"WARRIOR": [{"spellID": 163201, "name": "Execute"}, ...], ...}
+    """
+    content = path.read_text(encoding="utf-8")
+    classes = {}
+    current_class = None
+
+    for line in content.splitlines():
+        # Match class header: "  WARRIOR = {"
+        class_match = re.match(r"\s*(\w+)\s*=\s*\{", line)
+        if class_match:
+            key = class_match.group(1)
+            # Skip non-class keys (Resonance_ClassTemplates itself)
+            if key != "Resonance_ClassTemplates":
+                current_class = key
+                classes[current_class] = []
+            continue
+
+        # Closing brace ends current class
+        if current_class and re.match(r"\s*\}", line):
+            current_class = None
+            continue
+
+        if current_class:
+            spell_match = re.search(
+                r'spellID\s*=\s*(\d+)\s*,\s*name\s*=\s*"([^"]+)"', line
+            )
+            if spell_match:
+                classes[current_class].append({
+                    "spellID": int(spell_match.group(1)),
+                    "name": spell_match.group(2),
+                })
+
+    return classes
+
+
+def _find_classic_spell(retail_id: int, name: str, indices: dict,
+                        name_to_ids: dict[str, list[int]],
+                        xsv_index: dict) -> tuple[int, dict]:
+    """Look up a spell's classic sounds, trying retail ID first then name.
+
+    Uses the SpellXSpellVisual index to verify a name-matched spell actually
+    has visual data (filters out passive/aura/NPC spells that share names).
+
+    Returns (classic_id, results_dict).
+    """
+    # Try the retail ID directly
+    results = find_sounds_for_spell(retail_id, indices)
+    if results["all_file_data_ids"]:
+        return retail_id, results
+
+    # Fall back to name search — prefer IDs that have SpellXSpellVisual data
+    candidates = name_to_ids.get(name.lower(), [])
+    # Sort by ID ascending to prefer lower (usually more canonical) spell IDs
+    for cid in sorted(candidates):
+        if cid not in xsv_index:
+            continue
+        r = find_sounds_for_spell(cid, indices)
+        if r["all_file_data_ids"]:
+            return cid, r
+
+    empty = {"all_file_data_ids": set()}
+    return retail_id, empty
+
+
+# Which build to use per class — vanilla classes use Classic Era,
+# DK uses Cata Classic (Wrath+), Monk uses MoP Classic
+CLASS_BUILD_MAP = {
+    "DEATHKNIGHT": "cata",
+    "MONK": "mop",
+}
+
+
+def generate_classic_reference(args, output_path: Path) -> None:
+    """Generate ClassicSpellSounds.lua by looking up each template spell in
+    the appropriate classic-era DB2 data.
+
+    Vanilla classes use Classic Era data, DK uses Cata Classic (has Wrath
+    content), and Monk uses MoP Classic. Each class automatically selects
+    the right build.
+
+    For each spell in ClassTemplates.lua:
+      1. Try the retail spell ID in the build's data
+      2. If not found, search by spell name to find the classic-era ID
+      3. Write the mapping with all discovered FileDataIDs
+
+    The output is a development reference — sounds should be verified against
+    Wowhead Classic before being used in ClassTemplates.lua.
+    """
+    template_path = Path(__file__).parent.parent / "data" / "ClassTemplates.lua"
+    if not template_path.exists():
+        print(f"Error: {template_path} not found.")
+        sys.exit(1)
+
+    classes = parse_class_templates(template_path)
+
+    # Determine which builds we need
+    needed_builds = set()
+    for class_key in classes:
+        needed_builds.add(CLASS_BUILD_MAP.get(class_key, "classic"))
+
+    # Load indices for each build
+    build_data: dict[str, tuple[dict, dict, dict]] = {}  # build -> (indices, name_to_ids, xsv_index)
+    for build_alias in sorted(needed_builds):
+        print(f"\n--- Loading {build_alias} data ---")
+        args.build = build_alias
+        indices, csv_paths = load_tables_and_build_indices(args)
+
+        spell_names_csv = load_csv(csv_paths["SpellName"])
+        name_to_ids: dict[str, list[int]] = defaultdict(list)
+        for row in spell_names_csv:
+            sn = row.get("Name_lang", "")
+            if sn:
+                try:
+                    name_to_ids[sn.lower()].append(int(row["ID"]))
+                except (ValueError, KeyError):
+                    pass
+
+        xsv_index = indices["SpellXSpellVisual_by_SpellID"]
+        build_data[build_alias] = (indices, name_to_ids, xsv_index)
+
+    found = 0
+    not_found = 0
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("-- Classic spell sound reference table\n")
+        f.write("-- Auto-generated by tools/spell_sounds.py "
+                "--generate-classic-reference\n")
+        f.write("-- Maps spell IDs to their Classic-era sound FIDs via DB2 "
+                "chain walking\n")
+        f.write("--\n")
+        f.write("-- Format: [spellID] = { fid, fid, ... }\n")
+        f.write("-- This is a REFERENCE TABLE only -- not loaded by the addon "
+                "at runtime\n")
+        f.write("-- Sounds should be verified against Wowhead Classic before "
+                "use in ClassTemplates\n")
+        f.write("--\n")
+        f.write("-- To verify a spell's classic sounds:\n")
+        f.write("--   1. Go to https://www.wowhead.com/classic/spell=SPELLID "
+                "(Sound tab)\n")
+        f.write("--   2. Or use https://wago.tools/db2/SoundKitEntry to trace "
+                "SoundKit -> FileDataID\n")
+        f.write("\nResonance_ClassicSpellSounds = {\n")
+
+        for class_key, spells in classes.items():
+            build_alias = CLASS_BUILD_MAP.get(class_key, "classic")
+            indices, name_to_ids, xsv_index = build_data[build_alias]
+
+            f.write(f"  {'---' * 25}\n")
+            f.write(f"  -- {class_key}")
+            if build_alias != "classic":
+                f.write(f" (from {build_alias} data)")
+            f.write("\n")
+            f.write(f"  {'---' * 25}\n")
+
+            for spell in spells:
+                retail_id = spell["spellID"]
+                name = spell["name"]
+
+                classic_id, results = _find_classic_spell(
+                    retail_id, name, indices, name_to_ids, xsv_index
+                )
+
+                if results["all_file_data_ids"]:
+                    fids = sorted(results["all_file_data_ids"])
+                    fid_str = ", ".join(str(fid) for fid in fids)
+                    if classic_id != retail_id:
+                        # Name-matched to a different spell ID — may be
+                        # a false match (different spell with same name)
+                        f.write(f"  -- {name} (retail: {retail_id}, "
+                                f"name-matched to {classic_id} — verify!)\n")
+                    else:
+                        f.write(f"  -- {name}\n")
+                    f.write(f"  [{classic_id}] = {{ {fid_str} }},\n")
+                    found += 1
+                else:
+                    f.write(f"  -- {name} ({retail_id}): "
+                            f"no sounds found\n")
+                    not_found += 1
+
+        f.write("}\n")
+
+    print(f"\n  Written to {output_path}")
+    print(f"  {found} spells with sounds, {not_found} without")
+    if not_found:
+        print("  (Spells without sounds are likely retail-only or hero "
+              "talent variants)")
+
+
 def resolve_build(raw: str | None) -> str | None:
     """Resolve a build alias or version string to a wago.tools build version.
 
@@ -683,6 +876,8 @@ def main():
     parser.add_argument("--lua", action="store_true", help="Output as Lua mute snippet")
     parser.add_argument("--generate-mute-data", action="store_true",
                         help="Generate SpellMuteData.lua with all SpellID→FileDataID mappings")
+    parser.add_argument("--generate-classic-reference", action="store_true",
+                        help="Generate ClassicSpellSounds.lua from Classic Era DB2 data")
     parser.add_argument("--list-builds", action="store_true",
                         help="List available builds from wago.tools")
     parser.add_argument("--clear-cache", action="store_true", help="Delete cached CSV files")
@@ -708,6 +903,11 @@ def main():
         output_path = Path(__file__).parent.parent / "data" / "SpellMuteData.lua"
         generate_mute_data(indices, indices["SpellXSpellVisual_by_SpellID"],
                            output_path, csv_paths, build=build)
+        return
+
+    if args.generate_classic_reference:
+        output_path = Path(__file__).parent.parent / "data" / "ClassicSpellSounds.lua"
+        generate_classic_reference(args, output_path)
         return
 
     if not args.spell_ids and not args.name:

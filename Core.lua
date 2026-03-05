@@ -48,7 +48,7 @@ local defaults = {
     spell_config = {},
     preset_spells = {},   -- { [spellID] = presetName } tracks which spells came from presets
     saved_presets = {},   -- { [name] = { spells = {[sid]={sound,muteExclusions}}, mutes = {[fid]=true} } }
-    muteVocalizations = false,
+    muteVocalizations = "off",
     muteWeaponImpacts = false,
     minimap = { hide = false },
   },
@@ -113,26 +113,39 @@ local function previewSound(value)
   return false
 end
 
+local function playOneSoundWithUnmute(snd, dbg)
+  local isMuted = type(snd) == "number" and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd])
+  if dbg then msg(("  Playing: %s (muted: %s)"):format(tostring(snd), tostring(isMuted and true or false))) end
+  if isMuted then
+    local fid = snd
+    -- WoW's MuteSoundFile is refcounted; unmute enough times to fully clear it
+    for _ = 1, 5 do UnmuteSoundFile(fid) end
+    previewSound(fid)
+    -- Re-mute once after a delay (applyMutes only uses count=1 per FID; reload normalizes)
+    C_Timer.After(0.2, function() MuteSoundFile(fid) end)
+  else
+    previewSound(snd)
+  end
+end
+
 local function playResolvedSound(spellID, spellName)
   local dbg = db.debug
 
   -- 0) spell_config: unified per-spell configuration
   local cfg = db.spell_config and db.spell_config[spellID]
   if cfg and cfg.sound then
-    -- Temporarily unmute the replacement sound in case it's also in the mute list (manual or auto)
-    local isMuted = type(cfg.sound) == "number" and (db.mute_file_data_ids[cfg.sound] or autoMutedFIDs[cfg.sound] or voxMutedFIDs[cfg.sound] or weaponMutedFIDs[cfg.sound])
-    if dbg then msg(("  spell_config sound: %s (type: %s, muted: %s, channel: %s)"):format(tostring(cfg.sound), type(cfg.sound), tostring(isMuted and true or false), getChannel())) end
-    if isMuted then
-      local fid = cfg.sound
-      -- WoW's MuteSoundFile is refcounted; unmute enough times to fully clear it
-      for _ = 1, 5 do UnmuteSoundFile(fid) end
-      local ok = previewSound(fid)
-      if dbg then msg(("  PlaySoundFile result: %s"):format(tostring(ok))) end
-      -- Re-mute once after a delay (applyMutes only uses count=1 per FID; reload normalizes)
-      C_Timer.After(0.2, function() MuteSoundFile(fid) end)
-    else
-      local ok = previewSound(cfg.sound)
-      if dbg then msg(("  PlaySoundFile result: %s"):format(tostring(ok))) end
+    -- Support single sound, table of sounds, or table with random pool
+    local sounds = type(cfg.sound) == "table" and cfg.sound or { cfg.sound }
+    if dbg then msg(("  spell_config: %d sound(s), channel: %s"):format(#sounds, getChannel())) end
+    for _, snd in ipairs(sounds) do
+      playOneSoundWithUnmute(snd, dbg)
+    end
+    -- Random pool: pick one at random from cfg.sound.random
+    if type(cfg.sound) == "table" and cfg.sound.random then
+      local pool = cfg.sound.random
+      local pick = pool[math.random(1, #pool)]
+      if dbg then msg(("  Random pool (%d): picked %s"):format(#pool, tostring(pick))) end
+      playOneSoundWithUnmute(pick, dbg)
     end
     -- User explicitly configured this sound; don't fall through
     -- (PlaySoundFile may return nil for valid FileDataIDs)
@@ -189,9 +202,14 @@ local function getPlayerCSDEntry()
   return Resonance_VoxFIDs[csdID]
 end
 
-local function applyVoxMutes()
-  local voxEntry = getPlayerCSDEntry()
-  if not voxEntry then return end
+local function getVoxMode()
+  local v = db.muteVocalizations
+  if v == true then return "mine" end
+  if v == false or v == "off" then return "off" end
+  return v  -- "mine" or "all"
+end
+
+local function muteVoxEntry(voxEntry)
   local count = 0
   for _, fids in pairs(voxEntry) do
     for _, fid in ipairs(fids) do
@@ -202,8 +220,28 @@ local function applyVoxMutes()
       end
     end
   end
+  return count
+end
+
+local function applyVoxMutes()
+  local mode = getVoxMode()
+  if mode == "off" then return end
+  local count = 0
+  if mode == "mine" then
+    local voxEntry = getPlayerCSDEntry()
+    if voxEntry then
+      count = muteVoxEntry(voxEntry)
+    end
+  elseif mode == "all" then
+    if Resonance_VoxFIDs then
+      for _, voxEntry in pairs(Resonance_VoxFIDs) do
+        count = count + muteVoxEntry(voxEntry)
+      end
+    end
+  end
   if count > 0 then
-    msg(("Muted %d vocalization sounds."):format(count))
+    local label = mode == "all" and "all races" or "your race/gender"
+    msg(("Muted %d vocalization sounds (%s)."):format(count, label))
   end
 end
 
@@ -222,6 +260,11 @@ local function clearVoxMutes()
   if count > 0 then
     msg(("Cleared %d vocalization mutes."):format(count))
   end
+end
+
+local function refreshVoxMutes()
+  clearVoxMutes()
+  if db.enabled then applyVoxMutes() end
 end
 
 ---------------------------------------------------------------------------
@@ -301,6 +344,15 @@ local function filterExclusions(fids, exclusions)
 end
 
 local function rebuildAutoMutes()
+  -- Unmute all previously auto-muted FIDs before rebuilding.
+  -- MuteSoundFile persists across /reload, so we must explicitly unmute
+  -- any FIDs that were muted in the previous session but should no longer
+  -- be muted (e.g., FIDs now in muteExclusions after a template update).
+  for fid, refcount in pairs(autoMutedFIDs) do
+    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] then
+      UnmuteSoundFile(fid)
+    end
+  end
   wipe(autoMutedFIDs)
   for sid, _ in pairs(db.spell_config or {}) do
     local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
@@ -412,17 +464,27 @@ local function b64decode(data)
 end
 
 ---------------------------------------------------------------------------
--- Export / Import (V2 format with preset name support, backward compat V1)
+-- Export / Import
 ---------------------------------------------------------------------------
 local function encodePresetData(name, spells, mutes)
-  local lines = { "V2" }
+  local lines = { "V1" }
   if name and name ~= "" then
     lines[#lines + 1] = "N" .. name
   end
   for sid, cfg in pairs(spells or {}) do
     if cfg.sound then
       local val
-      if type(cfg.sound) == "number" then
+      if type(cfg.sound) == "table" then
+        local parts = {}
+        for _, s in ipairs(cfg.sound) do parts[#parts + 1] = tostring(s) end
+        -- Append random pool as R<fid>|<fid>|...
+        if cfg.sound.random then
+          local rParts = {}
+          for _, s in ipairs(cfg.sound.random) do rParts[#rParts + 1] = tostring(s) end
+          parts[#parts + 1] = "R" .. table.concat(rParts, "|")
+        end
+        val = table.concat(parts, ",")
+      elseif type(cfg.sound) == "number" then
         val = tostring(cfg.sound)
       else
         val = '"' .. tostring(cfg.sound) .. '"'
@@ -479,8 +541,28 @@ local function decodePresetString(str)
         local sound
         if val and val ~= "" then
           local quoted = val:match('^"(.*)"$')
-          if quoted then sound = quoted
-          else sound = tonumber(val) end
+          if quoted then
+            sound = quoted
+          elseif val:find(",") then
+            -- Multiple comma-separated FIDs, may contain R<fid>|<fid> random pool
+            sound = {}
+            for part in val:gmatch("[^,]+") do
+              local rPool = part:match("^R(.+)$")
+              if rPool then
+                sound.random = {}
+                for fidStr in rPool:gmatch("(%d+)") do
+                  sound.random[#sound.random + 1] = tonumber(fidStr)
+                end
+              else
+                local n = tonumber(part)
+                if n then sound[#sound + 1] = n end
+              end
+            end
+            if #sound == 1 and not sound.random then sound = sound[1] end
+            if #sound == 0 and not sound.random then sound = nil end
+          else
+            sound = tonumber(val)
+          end
         end
         spells[sid] = { sound = sound }
       end
@@ -635,7 +717,14 @@ function Resonance:ClassPresetToData(classKey)
   if not template then return nil end
   local data = { spells = {}, mutes = {} }
   for _, entry in ipairs(template) do
-    data.spells[entry.spellID] = { sound = entry.sound }
+    local spell = { sound = entry.sound }
+    if entry.muteExclusions then
+      spell.muteExclusions = {}
+      for _, fid in ipairs(entry.muteExclusions) do
+        spell.muteExclusions[fid] = true
+      end
+    end
+    data.spells[entry.spellID] = spell
   end
   return data
 end
@@ -666,13 +755,88 @@ function Resonance:ApplyClassTemplate(classKey)
     if db.spell_config[sid] then
       skipped = skipped + 1
     else
-      db.spell_config[sid] = { sound = entry.sound }
+      local cfg = { sound = entry.sound }
+      if entry.muteExclusions then
+        cfg.muteExclusions = {}
+        for _, fid in ipairs(entry.muteExclusions) do
+          cfg.muteExclusions[fid] = true
+        end
+      end
+      db.spell_config[sid] = cfg
       db.preset_spells[sid] = classKey
       applyAutoMutesForSpell(sid)
       added = added + 1
     end
   end
   return added, skipped
+end
+
+-- Refresh preset spells to match current template values (runs on load)
+-- Updates sound and muteExclusions from template; preserves user's additional unmutes
+-- Also auto-adds new template spells for classes the user has already loaded
+local function refreshPresetsFromTemplates()
+  if not Resonance_ClassTemplates then return end
+  local updated, added = 0, 0
+
+  -- Collect which class templates the user has loaded
+  local loadedClasses = {}
+  for _, source in pairs(db.preset_spells) do
+    loadedClasses[source] = true
+  end
+
+  -- Update existing preset spells
+  for sid, source in pairs(db.preset_spells) do
+    local template = Resonance_ClassTemplates[source]
+    if template then
+      for _, entry in ipairs(template) do
+        if entry.spellID == sid then
+          local cfg = db.spell_config[sid]
+          if cfg then
+            -- Update sound from template
+            cfg.sound = entry.sound
+            -- Merge muteExclusions: template base + user's additional unmutes
+            if entry.muteExclusions then
+              if not cfg.muteExclusions then cfg.muteExclusions = {} end
+              for _, fid in ipairs(entry.muteExclusions) do
+                cfg.muteExclusions[fid] = true
+              end
+            end
+            updated = updated + 1
+          end
+          break
+        end
+      end
+    end
+  end
+
+  -- Auto-add new template spells for classes already loaded
+  for classKey in pairs(loadedClasses) do
+    local template = Resonance_ClassTemplates[classKey]
+    if template then
+      for _, entry in ipairs(template) do
+        local sid = entry.spellID
+        if not db.spell_config[sid] then
+          local cfg = { sound = entry.sound }
+          if entry.muteExclusions then
+            cfg.muteExclusions = {}
+            for _, fid in ipairs(entry.muteExclusions) do
+              cfg.muteExclusions[fid] = true
+            end
+          end
+          db.spell_config[sid] = cfg
+          db.preset_spells[sid] = classKey
+          added = added + 1
+        end
+      end
+    end
+  end
+
+  if updated > 0 or added > 0 then
+    rebuildAutoMutes()
+    if added > 0 then
+      msg(added .. " new template spell(s) auto-added.")
+    end
+  end
 end
 
 function Resonance:RemovePresetSpells(presetName)
@@ -711,7 +875,7 @@ local function getGeneralOptions()
           db.enabled = v
           if v then
             applyMutes()
-            if db.muteVocalizations then applyVoxMutes() end
+            if getVoxMode() ~= "off" then applyVoxMutes() end
             if db.muteWeaponImpacts then applyWeaponMutes() end
           else
             clearVoxMutes()
@@ -748,15 +912,20 @@ local function getGeneralOptions()
         set = function(_, v) Resonance.toggleMinimapButton(v) end,
       },
       muteVocalizations = {
-        type = "toggle",
+        type = "select",
         name = "Mute character vocalizations",
-        desc = "Mute all character vocalization sounds (grunts, shouts, etc.) for your race/gender. Applies globally, not per-spell.",
+        desc = "Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game.",
         order = 5,
-        width = "full",
-        get = function() return db.muteVocalizations end,
+        values = {
+          off = "Off",
+          mine = "Mine",
+          all = "All races",
+        },
+        sorting = { "off", "mine", "all" },
+        get = function() return getVoxMode() end,
         set = function(_, v)
           db.muteVocalizations = v
-          if v then if db.enabled then applyVoxMutes() end else clearVoxMutes() end
+          refreshVoxMutes()
         end,
       },
       muteWeaponImpacts = {
@@ -773,8 +942,8 @@ local function getGeneralOptions()
       },
       soundChannel = {
         type = "select",
-        name = "Sound Channel",
-        desc = "Which audio channel to play replacement sounds on.",
+        name = "Replacement sound channel",
+        desc = "Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders.",
         order = 7,
         values = {
           Master = "Master",
@@ -805,7 +974,7 @@ local ldbObj = LDB:NewDataObject("Resonance", {
       db.enabled = not db.enabled
       if db.enabled then
         applyMutes()
-        if db.muteVocalizations then applyVoxMutes() end
+        if getVoxMode() ~= "off" then applyVoxMutes() end
         if db.muteWeaponImpacts then applyWeaponMutes() end
       else
         clearVoxMutes()
@@ -886,7 +1055,7 @@ function Resonance:OnInitialize()
     wipe(autoMutedFIDs)
     rebuildAutoMutes()
     if db.enabled then applyMutes() end
-    if db.muteVocalizations then applyVoxMutes() end
+    if getVoxMode() ~= "off" then applyVoxMutes() end
     if db.muteWeaponImpacts then applyWeaponMutes() end
   end
   self.db.RegisterCallback(self, "OnProfileChanged", onProfileChanged)
@@ -911,9 +1080,11 @@ end
 
 function Resonance:OnEnable()
   self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+  self:RegisterEvent("UNIT_MODEL_CHANGED")
+  refreshPresetsFromTemplates()
   rebuildAutoMutes()
   if db.enabled then applyMutes() end
-  if db.muteVocalizations then applyVoxMutes() end
+  if getVoxMode() ~= "off" then applyVoxMutes() end
   if db.muteWeaponImpacts then applyWeaponMutes() end
   msg("Loaded. Type /res or go to Esc > Options > Addons > Resonance.")
 end
@@ -921,6 +1092,15 @@ end
 ---------------------------------------------------------------------------
 -- Event handler
 ---------------------------------------------------------------------------
+function Resonance:UNIT_MODEL_CHANGED(_, unit)
+  if unit ~= "player" then return end
+  -- Player changed appearance (barbershop gender change, etc.) — re-apply vox mutes
+  -- Only relevant for "mine" mode; "all" already covers everything
+  if getVoxMode() == "mine" then
+    refreshVoxMutes()
+  end
+end
+
 function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   if unit ~= "player" and not db.triggerOnOtherPlayers then return end
   if not spellID then return end
@@ -954,7 +1134,7 @@ function Resonance:ChatCommand(input)
   elseif cmd == "on" then
     db.enabled = true
     applyMutes()
-    if db.muteVocalizations then applyVoxMutes() end
+    if getVoxMode() ~= "off" then applyVoxMutes() end
     if db.muteWeaponImpacts then applyWeaponMutes() end
     msg("Enabled.")
   elseif cmd == "off" then
@@ -1050,6 +1230,49 @@ function Resonance:ChatCommand(input)
     local name = getSpellName(sid) or ""
     msg(("Testing sound for: %s (spellID %d)"):format(name ~= "" and name or "<?>", sid))
     playResolvedSound(sid, name)
+  elseif cmd == "diag" then
+    msg("=== Resonance Diagnostics ===")
+    local libs = {
+      "LibStub", "CallbackHandler-1.0",
+      "AceAddon-3.0", "AceDB-3.0", "AceDBOptions-3.0",
+      "AceEvent-3.0", "AceConsole-3.0",
+      "AceConfigRegistry-3.0", "AceConfigCmd-3.0",
+      "AceConfigDialog-3.0", "AceConfig-3.0",
+      "AceGUI-3.0",
+      "LibDataBroker-1.1", "LibDBIcon-1.0",
+    }
+    for _, name in ipairs(libs) do
+      if name == "LibStub" then
+        local ok = _G.LibStub ~= nil
+        msg(("  %s: %s"):format(name, ok and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
+      else
+        local lib, minor = LibStub:GetLibrary(name, true)
+        if lib then
+          msg(("  %s: |cff00ff00v%s|r"):format(name, tostring(minor or "?")))
+        else
+          msg(("  %s: |cffff0000NOT LOADED|r"):format(name))
+        end
+      end
+    end
+    -- Check AceGUI widget types
+    local aceGUI = LibStub:GetLibrary("AceGUI-3.0", true)
+    if aceGUI then
+      local widgets = { "SimpleGroup", "Button", "CheckBox", "Dropdown", "Label", "Slider", "EditBox", "Heading" }
+      msg("  AceGUI widgets:")
+      for _, wtype in ipairs(widgets) do
+        local ok, w = pcall(function() return aceGUI:Create(wtype) end)
+        if ok and w then
+          aceGUI:Release(w)
+          msg(("    %s: |cff00ff00OK|r"):format(wtype))
+        else
+          msg(("    %s: |cffff0000FAILED|r %s"):format(wtype, ok and "" or tostring(w)))
+        end
+      end
+    end
+    msg("  Settings API: " .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
+    msg("  Spell mute data: " .. (Resonance_SpellMuteData and ("|cff00ff00" .. tostring(#(Resonance_SpellMuteData or {})) .. " (table)|r") or "|cffff0000NOT LOADED|r"))
+    msg("  Vox data: " .. (Resonance_VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
+    msg("=== End Diagnostics ===")
   elseif cmd == "sfx" then
     rest = (rest or ""):lower()
     if rest == "off" then

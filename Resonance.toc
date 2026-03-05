@@ -3,6 +3,8 @@
 ## Notes: Mute modern spell sounds and play custom (e.g., Vanilla/TBC/Wrath) sounds on your casts. Works with any class.
 ## Author: Renato
 ## Version: 1.0.0
+## Category: Audio & Video
+## IconTexture: Interface\Icons\INV_Misc_Drum_06
 ## SavedVariables: ResonanceDB
 
 embeds.xml
