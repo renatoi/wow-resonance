@@ -119,10 +119,21 @@ local function playOneSoundWithUnmute(snd, dbg)
   if isMuted then
     local fid = snd
     -- WoW's MuteSoundFile is refcounted; unmute enough times to fully clear it
-    for _ = 1, 5 do UnmuteSoundFile(fid) end
+    -- (stale mute state can accumulate across reloads when FIDs appear in many spells' mute data)
+    for _ = 1, 20 do UnmuteSoundFile(fid) end
     previewSound(fid)
-    -- Re-mute once after a delay (applyMutes only uses count=1 per FID; reload normalizes)
-    C_Timer.After(0.2, function() MuteSoundFile(fid) end)
+    -- Re-mute after a delay so the sound has time to play, but only if still supposed to be muted
+    C_Timer.After(0.5, function()
+      if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then
+        MuteSoundFile(fid)
+      elseif db.mute_file_data_ids[fid] then
+        MuteSoundFile(fid)
+      elseif weaponMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      elseif voxMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
+    end)
   else
     previewSound(snd)
   end

@@ -15,27 +15,35 @@
 
 Resonance_ClassTemplates = {
   WARRIOR = {
-    { spellID = 163201, name = "Execute",           sound = 567983 },  -- Execute.ogg
-    { spellID = 1680,   name = "Whirlwind",         sound = {568519, 569098} },  -- WhirlwindShort.ogg + DecisiveStrike.ogg
-    { spellID = 6343,   name = "Thunder Clap",      sound = {569222, 568516} },  -- ThunderClap.ogg + LightningBoltImpact.ogg
+    { spellID = 163201, name = "Execute",           sound = 569485, muteExclusions = {569485} },  -- fireshield.ogg (classic Execute)
+    { spellID = 5308,   name = "Execute",           sound = 569485, muteExclusions = {569485} },  -- fireshield.ogg (classic base ID)
+    { spellID = 280735, name = "Execute",           sound = 569485, muteExclusions = {569485} },  -- fireshield.ogg (Fury variant)
+    { spellID = 1680,   name = "Whirlwind",         sound = 568519 },  -- WhirlwindShort.ogg
+    { spellID = 190411, name = "Whirlwind",         sound = 568519 },  -- WhirlwindShort.ogg (Fury variant)
+    { spellID = 6343,   name = "Thunder Clap",      sound = 569222, muteExclusions = {1362397, 1362398, 1362399, 1362400} },  -- ThunderClap.ogg (exclude Heroic Leap impact FIDs)
     { spellID = 772,    name = "Rend",              sound = 568003 },  -- RendTarget.ogg
-    { spellID = 845,    name = "Cleave",            sound = 568227 },  -- CleaveTarget.ogg
-    { spellID = 12294,  name = "Mortal Strike",     sound = 569098 },  -- DecisiveStrike.ogg
+    { spellID = 845,    name = "Cleave",            sound = 568646 },  -- spell_heroicstrike_impact_01.ogg
+    { spellID = 12294,  name = "Mortal Strike",     sound = 568664 },  -- colossussmash_impact_01.ogg
     { spellID = 23922,  name = "Shield Slam",       sound = 567879 },  -- m1hSwordHitMetalShieldCrit.ogg
-    { spellID = 6572,   name = "Revenge",           sound = {569120, 569098} },  -- warrior_revenge1.ogg + DecisiveStrike.ogg
+    { spellID = 6572,   name = "Revenge",           sound = 569571 },  -- spell_wr_devastate_impact_01.ogg
     -- Heroic Leap removed: sound plays on cast, not on landing (WoW API limitation)
     { spellID = 34428,  name = "Victory Rush",      sound = 568430 },  -- victory_rush_impact.ogg
-    { spellID = 6552,   name = "Pummel",            sound = {567944, 569236} },  -- mWooshMediumCrit.ogg + challengingshout.ogg
-    { spellID = 1715,   name = "Hamstring",           sound = {569827, 569396} },  -- SwingWeaponSpecialWarriorC.ogg + MaimImpact.ogg
-    { spellID = 5246,   name = "Intimidating Shout", sound = 567950 }, -- Fear.ogg
-    { spellID = 1160,   name = "Demoralizing Shout", sound = {568028, 568268} }, -- BattleShoutTarget.ogg + taunt.ogg
+    { spellID = 6552,   name = "Pummel",            sound = 567944 },  -- mWooshMediumCrit.ogg
+    { spellID = 5246,   name = "Intimidating Shout", sound = 569675 }, -- ChallengingRoar.ogg
+    { spellID = 1160,   name = "Demoralizing Shout", sound = 568028 }, -- BattleShoutTarget.ogg
     { spellID = 2565,   name = "Shield Block",      sound = 569473 },  -- ShieldWallTarget.ogg
     { spellID = 167105, name = "Colossus Smash",    sound = 568664 },  -- colossussmash_impact_01.ogg
     { spellID = 46924,  name = "Bladestorm",         sound = 568202 },  -- warrior_bladestorm.ogg
-    { spellID = 20243,  name = "Devastate",          sound = {random = {568983, 569535, 569524, 569367, 568703, 569563, 569362, 569491}} },  -- 1 random from 8 devastate impact variants
+    { spellID = 20243,  name = "Devastate",          sound = 568983 },  -- warrior_devastate1.ogg
+    { spellID = 23881,  name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg
+    { spellID = 335096, name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg (talent variant)
+    { spellID = 85288,  name = "Raging Blow",        sound = 568003 },  -- RendTarget.ogg
+    { spellID = 335097, name = "Bloodbath",          sound = 568003 },  -- RendTarget.ogg (talent replacing Raging Blow)
+    { spellID = 184367, name = "Rampage",            sound = 569098 },  -- DecisiveStrike.ogg (classic Mortal Strike sound)
+    { spellID = 1715,   name = "Hamstring",          sound = 568003 },  -- RendTarget.ogg
     { spellID = 46968,  name = "Shockwave",          sound = 569193 },  -- warrior_shockwave_area.ogg
     -- Ravager talent (replaces Bladestorm, may proc from Revenge)
-    { spellID = 384110, name = "Ravager",            sound = nil },              -- mute-only (loud modern proc sound)
+    { spellID = 384110, name = "Ravager",            sound = nil, muteExclusions = {1362400} },  -- mute-only (exclude Heroic Leap impact)
     -- Buffs / Defensives
     { spellID = 23920,  name = "Spell Reflection",     sound = 568951 },  -- spellreflection_state_shield.ogg
     { spellID = 871,    name = "Shield Wall",           sound = 568510 },  -- defensivestance.ogg
@@ -46,12 +54,11 @@ Resonance_ClassTemplates = {
     { spellID = 6673,   name = "Battle Shout",           sound = 568028 },  -- battleshouttarget.ogg
     { spellID = 97462,  name = "Rallying Cry",           sound = 568028 },  -- battleshouttarget.ogg
     { spellID = 12323,  name = "Piercing Howl",          sound = {568028, 568268} },  -- battleshouttarget.ogg + taunt.ogg
-    -- Ranged
-    { spellID = 57755,  name = "Heroic Throw",           sound = 568659 },  -- warrior_heroic_throw_impact1.ogg
-    { spellID = 64382,  name = "Shattering Throw",       sound = 568659 },  -- warrior_heroic_throw_impact1.ogg
+    -- Ranged (Heroic Throw removed: projectile, not instant impact — keep retail sounds)
+    { spellID = 64382,  name = "Shattering Throw",       sound = 568659, muteExclusions = {1362400} },  -- warrior_heroic_throw_impact1.ogg (exclude Heroic Leap impact)
     { spellID = 3411,   name = "Intervene",              sound = 568712 },  -- heroricleap.ogg
     -- Mountain Thane hero talent variants
-    { spellID = 435222, name = "Thunder Blast",     sound = {569222, 568516} },  -- ThunderClap.ogg + LightningBoltImpact.ogg (same as Thunder Clap)
+    { spellID = 435222, name = "Thunder Blast",     sound = {569222, 568516}, muteExclusions = {1362397, 1362398, 1362399, 1362400} },  -- ThunderClap.ogg + LightningBoltImpact.ogg (exclude Heroic Leap impact)
     { spellID = 435791, name = "Lightning Strike",  sound = 568516 },            -- LightningBoltImpact.ogg
   },
   MAGE = {
@@ -90,23 +97,23 @@ Resonance_ClassTemplates = {
     { spellID = 431044, name = "Frostfire Bolt",    sound = 569765 },  -- frostcast.ogg (replaces Frostbolt for Frostfire mages)
   },
   ROGUE = {
-    { spellID = 53,     name = "Backstab",          sound = 569059 },  -- Strike.ogg
+    { spellID = 53,     name = "Backstab",          sound = 569555 },  -- backstab_impact_chest.ogg
     { spellID = 196819, name = "Eviscerate",        sound = 569637 },  -- evisceratetarget.ogg
     { spellID = 1752,   name = "Sinister Strike",   sound = 569227 },  -- sinisterstrikeimpact.ogg
     { spellID = 1776,   name = "Gouge",             sound = 568415 },  -- gougetarget.ogg
     { spellID = 408,    name = "Kidney Shot",       sound = 569110 },  -- kidneyshot.ogg
     { spellID = 1856,   name = "Vanish",            sound = 568798 },  -- vanish.ogg
-    { spellID = 51723,  name = "Fan of Knives",     sound = 568260 },  -- bladesringimpact.ogg
+    { spellID = 51723,  name = "Fan of Knives",     sound = 569425 },  -- fanofknivesloop.ogg
     { spellID = 36563,  name = "Shadowstep",        sound = 568893 },  -- shadowstepimpact.ogg
     { spellID = 1329,   name = "Mutilate",          sound = 568080 },  -- mutilate_impact_chest.ogg
-    { spellID = 5938,   name = "Shiv",              sound = 569098 },  -- DecisiveStrike.ogg
+    { spellID = 5938,   name = "Shiv",              sound = 569471 },  -- shadowstrike_impact_chest.ogg
     { spellID = 185313, name = "Shadow Dance",      sound = 568653 },  -- rogue_shadowdance_state.ogg
     { spellID = 8676,   name = "Ambush",            sound = 569059 },  -- Strike.ogg
     { spellID = 1943,   name = "Rupture",           sound = 568003 },  -- RendTarget.ogg
     { spellID = 703,    name = "Garrote",           sound = 568003 },  -- RendTarget.ogg
     { spellID = 1766,   name = "Kick",              sound = {567944, 569236} },  -- mWooshMediumCrit.ogg + challengingshout.ogg
     { spellID = 2094,   name = "Blind",             sound = 568719 },  -- BeastSoothe.ogg
-    { spellID = 5277,   name = "Evasion",           sound = {569766, 569698} },  -- ShadowCast.ogg + invisibility_impact_chest.ogg
+    { spellID = 5277,   name = "Evasion",           sound = 569423 },  -- Stealth.ogg
     { spellID = 31224,  name = "Cloak of Shadows",  sound = 569040 },  -- shadowformimpact.ogg
     { spellID = 1833,   name = "Cheap Shot",        sound = 569110 },  -- kidneyshot.ogg
     { spellID = 32645,  name = "Envenom",           sound = 569420 },  -- disembowel_impact.ogg
@@ -195,7 +202,7 @@ Resonance_ClassTemplates = {
     { spellID = 702,    name = "Curse of Weakness",  sound = 569079 },  -- curse.ogg
     { spellID = 172,    name = "Corruption",        sound = {568208, 568670} },  -- BestowDiseaseImpact.ogg + DeathCoilTarget.ogg
     { spellID = 1949,   name = "Hellfire",          sound = 569045 },  -- PreCastFireLow.ogg
-    { spellID = 17962,  name = "Conflagrate",       sound = {569764, random = {569559, 568461, 568429, 569449}} },  -- firecast.ogg + 1 random fire impact
+    { spellID = 17962,  name = "Conflagrate",       sound = 569559 },  -- MoltenBlastImpact.ogg
     { spellID = 17877,  name = "Shadowburn",        sound = {568670, 569220} },  -- DeathCoilTarget.ogg + MindRotTarget.ogg
     { spellID = 980,    name = "Agony",              sound = 569079 },  -- curse.ogg
     { spellID = 30108,  name = "Unstable Affliction", sound = 569658 }, -- unstableaffliction_impact_chest.ogg
@@ -223,7 +230,7 @@ Resonance_ClassTemplates = {
     { spellID = 15407,  name = "Mind Flay",         sound = 569766 },  -- ShadowCast.ogg
     { spellID = 14914,  name = "Holy Fire",         sound = 569770 },  -- HolyImpactDDUber.ogg
     { spellID = 8122,   name = "Psychic Scream",    sound = 567950 },  -- Fear.ogg
-    { spellID = 586,    name = "Fade",              sound = 569698 },  -- invisibility_impact_chest.ogg (cata classic; vanilla was stealth.ogg)
+    { spellID = 586,    name = "Fade",              sound = 569423 },  -- Stealth.ogg
     { spellID = 32379,  name = "Shadow Word: Death", sound = 569220 }, -- MindRotTarget.ogg
     { spellID = 34914,  name = "Vampiric Touch",    sound = 568353 },  -- shadowwordpain_chest.ogg
     { spellID = 10060,  name = "Power Infusion",    sound = 568534 },  -- priest_powerinfusion1.ogg
