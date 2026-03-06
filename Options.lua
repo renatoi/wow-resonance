@@ -646,6 +646,7 @@ local function buildLayout()
   built = true
 
   local profile = Resonance.db.profile
+  local _, playerClass = UnitClass("player")
 
   local refreshList
   local refreshMuteList
@@ -1624,7 +1625,6 @@ local function buildLayout()
   local listHeaders = {}  -- reusable class header frames
   local collapsedGroups = {}  -- { [groupKey] = true } for collapsed sections
   local collapsedInitialized = false  -- set defaults on first render
-  local _, playerClass = UnitClass("player")
 
   local function getOrCreateHeader(idx)
     if listHeaders[idx] then return listHeaders[idx] end
@@ -1687,18 +1687,21 @@ local function buildLayout()
     for _, row in ipairs(listRows) do row:Hide() end
     for _, hdr in ipairs(listHeaders) do hdr:Hide() end
 
-    -- Group spells by source, only including those with a sound
+    -- Group spells by source, only showing the player's class and custom spells
     local groups = {}       -- source -> { {spellID, cfg}, ... }
     local groupSet = {}     -- track which sources exist
     for sid, cfg in pairs(profile.spell_config or {}) do
       if cfg.sound ~= nil then
         local source = profile.preset_spells and profile.preset_spells[sid]
         local key = source or "_custom"
-        if not groups[key] then
-          groups[key] = {}
-          groupSet[key] = true
+        -- Only show player's own class, saved presets, and custom spells
+        if key == playerClass or key == "_custom" or not CLASS_DISPLAY[key] then
+          if not groups[key] then
+            groups[key] = {}
+            groupSet[key] = true
+          end
+          groups[key][#groups[key] + 1] = { spellID = sid, cfg = cfg }
         end
-        groups[key][#groups[key] + 1] = { spellID = sid, cfg = cfg }
       end
     end
 
@@ -1711,17 +1714,11 @@ local function buildLayout()
       end)
     end
 
-    -- Build ordered list of group keys: player's class first, then class order, then saved presets, then custom
+    -- Build ordered list of group keys: player's class first, then saved presets, then custom
     local orderedKeys = {}
     if groupSet[playerClass] then
       orderedKeys[#orderedKeys + 1] = playerClass
       groupSet[playerClass] = nil
-    end
-    for _, cls in ipairs(CLASS_ORDER) do
-      if groupSet[cls] then
-        orderedKeys[#orderedKeys + 1] = cls
-        groupSet[cls] = nil
-      end
     end
     local extras = {}
     for key in pairs(groupSet) do
@@ -1757,7 +1754,6 @@ local function buildLayout()
       hdr:SetPoint("RIGHT", listContainer, "RIGHT", 0, 0)
 
       local displayName = CLASS_DISPLAY[key] or (key == "_custom" and "Custom" or key)
-      if key == playerClass then displayName = displayName .. " (You)" end
       local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[key]
       if cc then
         hdr.text:SetText(cc:WrapTextInColorCode(displayName))
@@ -2086,17 +2082,19 @@ local function buildLayout()
     for fid, enabled in pairs(profile.mute_file_data_ids or {}) do
       if enabled then fidSet[fid] = { source = "manual" } end
     end
-    -- Build reverse lookup: FID -> { spellIDs, excluded }
+    -- Build reverse lookup: FID -> { spellIDs, excluded } (only for current class)
     local autoFidInfo = {}
     for sid in pairs(profile.spell_config or {}) do
-      local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
-      if fids then
-        local excl = profile.spell_config[sid].muteExclusions
-        for _, fid in ipairs(fids) do
-          if not autoFidInfo[fid] then autoFidInfo[fid] = { spellIDs = {}, excluded = true } end
-          autoFidInfo[fid].spellIDs[#autoFidInfo[fid].spellIDs + 1] = sid
-          if not (excl and excl[fid]) then
-            autoFidInfo[fid].excluded = false
+      if Resonance.shouldAutoMuteSpell(sid) then
+        local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+        if fids then
+          local excl = profile.spell_config[sid].muteExclusions
+          for _, fid in ipairs(fids) do
+            if not autoFidInfo[fid] then autoFidInfo[fid] = { spellIDs = {}, excluded = true } end
+            autoFidInfo[fid].spellIDs[#autoFidInfo[fid].spellIDs + 1] = sid
+            if not (excl and excl[fid]) then
+              autoFidInfo[fid].excluded = false
+            end
           end
         end
       end
@@ -2309,7 +2307,6 @@ local function buildLayout()
       hdr:SetPoint("RIGHT", muteListContainer, "RIGHT", 0, 0)
 
       local displayName = CLASS_DISPLAY[classKey] or (classKey == "_custom" and "Custom" or classKey)
-      if classKey == playerClass then displayName = displayName .. " (You)" end
       local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classKey]
       if cc then
         hdr.text:SetText(cc:WrapTextInColorCode(displayName))
@@ -2557,6 +2554,9 @@ local function buildLayout()
   local presetImportBtn = makeButton(presetTab, "Import", 54, nil)
   presetImportBtn:SetPoint("LEFT", presetSaveBtn, "RIGHT", 6, 0)
 
+  local presetExportProfileBtn = makeButton(presetTab, "Export Full Profile", 130, nil)
+  presetExportProfileBtn:SetPoint("LEFT", presetImportBtn, "RIGHT", 6, 0)
+
   -- Inline save name input (hidden by default)
   local presetSaveFrame = CreateFrame("Frame", nil, presetTab)
   presetSaveFrame:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -6)
@@ -2634,33 +2634,29 @@ local function buildLayout()
 
     local presets = {}
 
-    -- Built-in class presets
-    if Resonance_ClassTemplates then
-      local classList = {}
-      for classKey in pairs(Resonance_ClassTemplates) do
-        classList[#classList + 1] = classKey
-      end
-      table.sort(classList, function(a, b)
-        return (CLASS_DISPLAY[a] or a) < (CLASS_DISPLAY[b] or b)
-      end)
-      for _, classKey in ipairs(classList) do
-        local tpl = Resonance_ClassTemplates[classKey]
-        local spellCount = #tpl
-        local activeCount = 0
-        for _, entry in ipairs(tpl) do
-          if profile.preset_spells[entry.spellID] == classKey then
-            activeCount = activeCount + 1
-          end
+    -- Helper to build a class preset entry
+    local function makeClassPresetEntry(classKey)
+      local tpl = Resonance_ClassTemplates[classKey]
+      local spellCount = #tpl
+      local activeCount = 0
+      for _, entry in ipairs(tpl) do
+        if profile.preset_spells[entry.spellID] == classKey then
+          activeCount = activeCount + 1
         end
-        presets[#presets + 1] = {
-          name = CLASS_DISPLAY[classKey] or classKey,
-          key = classKey,
-          source = "class",
-          spellCount = spellCount,
-          muteCount = 0,
-          activeCount = activeCount,
-        }
       end
+      return {
+        name = CLASS_DISPLAY[classKey] or classKey,
+        key = classKey,
+        source = "class",
+        spellCount = spellCount,
+        muteCount = 0,
+        activeCount = activeCount,
+      }
+    end
+
+    -- Player's class preset first
+    if Resonance_ClassTemplates and Resonance_ClassTemplates[playerClass] then
+      presets[#presets + 1] = makeClassPresetEntry(playerClass)
     end
 
     -- Saved presets
@@ -2687,6 +2683,22 @@ local function buildLayout()
         muteCount = muteCount,
         activeCount = activeCount,
       }
+    end
+
+    -- Other class presets (de-emphasized, for alt setup)
+    if Resonance_ClassTemplates then
+      local otherClasses = {}
+      for classKey in pairs(Resonance_ClassTemplates) do
+        if classKey ~= playerClass then
+          otherClasses[#otherClasses + 1] = classKey
+        end
+      end
+      table.sort(otherClasses, function(a, b)
+        return (CLASS_DISPLAY[a] or a) < (CLASS_DISPLAY[b] or b)
+      end)
+      for _, classKey in ipairs(otherClasses) do
+        presets[#presets + 1] = makeClassPresetEntry(classKey)
+      end
     end
 
     -- Check if any preset spells are active (for Remove All button)
@@ -2752,10 +2764,14 @@ local function buildLayout()
         row.stripe:Show()
       elseif row.stripe then row.stripe:Hide() end
 
-      -- Name
+      -- Name (de-emphasize other classes)
       local nameDisplay = preset.name
       if preset.source == "class" then
-        nameDisplay = nameDisplay .. "  |cff888888(Class)|r"
+        if preset.key == playerClass then
+          nameDisplay = nameDisplay .. "  |cff888888(Your Class)|r"
+        else
+          nameDisplay = "|cff666666" .. nameDisplay .. "  (Other Class)|r"
+        end
       end
       row.nameText:SetText(nameDisplay)
 
@@ -2952,6 +2968,25 @@ local function buildLayout()
     eiStatus:SetText("Paste a preset string below.")
     eiFrame:Show()
     eiEditBox:SetFocus()
+  end)
+
+  -- Export Full Profile button
+  presetExportProfileBtn:SetScript("OnClick", function()
+    eiMode = "export"
+    eiTitle:SetText("Export Full Profile")
+    local exportStr = Resonance:ExportConfig("Full Profile")
+    eiEditBox:SetText(exportStr)
+    eiActionBtn:SetText("Close")
+    local sc = 0
+    for _ in pairs(profile.spell_config or {}) do sc = sc + 1 end
+    local mc = 0
+    for fid, enabled in pairs(profile.mute_file_data_ids or {}) do
+      if enabled then mc = mc + 1 end
+    end
+    eiStatus:SetText(sc .. " spells, " .. mc .. " manual mutes (all classes).")
+    eiFrame:Show()
+    eiEditBox:SetFocus()
+    eiEditBox:HighlightText()
   end)
 
   -- Remove All Preset Spells button

@@ -40,7 +40,6 @@ local defaults = {
   profile = {
     enabled = true,
     debug = false,
-    triggerOnOtherPlayers = false,
     soundChannel = "Master",
     mute_file_data_ids = {},
     local_file_overrides_by_spell_name = {},
@@ -354,6 +353,18 @@ local function filterExclusions(fids, exclusions)
   return filtered
 end
 
+-- Should we auto-mute for this spell? Only mute FIDs for spells that belong
+-- to the player's own class (or custom / saved-preset spells). Spells from
+-- other class templates would just silence those sounds for nearby players
+-- with no benefit since UNIT_SPELLCAST_SUCCEEDED only fires for "player".
+local function shouldAutoMuteSpell(spellID)
+  local source = db.preset_spells and db.preset_spells[spellID]
+  if not source then return true end                    -- custom spell, always mute
+  if not (Resonance_ClassTemplates and Resonance_ClassTemplates[source]) then return true end  -- saved preset (not a class key)
+  local _, myClass = UnitClass("player")
+  return source == myClass
+end
+
 local function rebuildAutoMutes()
   -- Unmute all previously auto-muted FIDs before rebuilding.
   -- MuteSoundFile persists across /reload, so we must explicitly unmute
@@ -366,14 +377,17 @@ local function rebuildAutoMutes()
   end
   wipe(autoMutedFIDs)
   for sid, _ in pairs(db.spell_config or {}) do
-    local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
-    if fids then
-      addAutoMuteFIDs(filterExclusions(fids, getExclusions(sid)))
+    if shouldAutoMuteSpell(sid) then
+      local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+      if fids then
+        addAutoMuteFIDs(filterExclusions(fids, getExclusions(sid)))
+      end
     end
   end
 end
 
 local function applyAutoMutesForSpell(spellID)
+  if not shouldAutoMuteSpell(spellID) then return end
   local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[spellID]
   if not fids then return end
   fids = filterExclusions(fids, getExclusions(spellID))
@@ -753,6 +767,7 @@ Resonance.clearMutes = clearMutes
 Resonance.applyAutoMutesForSpell = applyAutoMutesForSpell
 Resonance.removeAutoMutesForSpell = removeAutoMutesForSpell
 Resonance.rebuildAutoMutes = rebuildAutoMutes
+Resonance.shouldAutoMuteSpell = shouldAutoMuteSpell
 Resonance.autoMutedFIDs = autoMutedFIDs
 Resonance.voxMutedFIDs = voxMutedFIDs
 Resonance.weaponMutedFIDs = weaponMutedFIDs
@@ -904,23 +919,26 @@ local function getGeneralOptions()
         get = function() return db.debug end,
         set = function(_, v) db.debug = v end,
       },
-      triggerOnOtherPlayers = {
-        type = "toggle",
-        name = "Trigger on other players' spells",
-        desc = "Also play custom sounds when other players cast spells (party, raid, nearby). Uses your spell configurations and spellbook.",
-        order = 3,
-        width = "full",
-        get = function() return db.triggerOnOtherPlayers end,
-        set = function(_, v) db.triggerOnOtherPlayers = v end,
-      },
       showMinimap = {
         type = "toggle",
         name = "Show minimap button",
         desc = "Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition.",
-        order = 4,
+        order = 3,
         width = "full",
         get = function() return not db.minimap.hide end,
         set = function(_, v) Resonance.toggleMinimapButton(v) end,
+      },
+      muteWeaponImpacts = {
+        type = "toggle",
+        name = "Mute weapon impact sounds",
+        desc = "Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type.",
+        order = 4,
+        width = "full",
+        get = function() return db.muteWeaponImpacts end,
+        set = function(_, v)
+          db.muteWeaponImpacts = v
+          if v then if db.enabled then applyWeaponMutes() end else clearWeaponMutes() end
+        end,
       },
       muteVocalizations = {
         type = "select",
@@ -939,23 +957,11 @@ local function getGeneralOptions()
           refreshVoxMutes()
         end,
       },
-      muteWeaponImpacts = {
-        type = "toggle",
-        name = "Mute weapon impact sounds",
-        desc = "Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type.",
-        order = 6,
-        width = "full",
-        get = function() return db.muteWeaponImpacts end,
-        set = function(_, v)
-          db.muteWeaponImpacts = v
-          if v then if db.enabled then applyWeaponMutes() end else clearWeaponMutes() end
-        end,
-      },
       soundChannel = {
         type = "select",
         name = "Replacement sound channel",
         desc = "Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders.",
-        order = 7,
+        order = 6,
         values = {
           Master = "Master",
           SFX = "SFX",
@@ -1029,7 +1035,7 @@ local function migrateFromCastSounds()
   local src = CastSoundsDB
 
   -- Copy known keys
-  local simpleKeys = { "enabled", "debug", "triggerOnOtherPlayers", "soundChannel" }
+  local simpleKeys = { "enabled", "debug", "soundChannel" }
   for _, k in ipairs(simpleKeys) do
     if src[k] ~= nil then dest[k] = src[k] end
   end
@@ -1113,15 +1119,14 @@ function Resonance:UNIT_MODEL_CHANGED(_, unit)
 end
 
 function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
-  if unit ~= "player" and not db.triggerOnOtherPlayers then return end
+  if unit ~= "player" then return end
   if not spellID then return end
   if not shouldTriggerForSpell(spellID) then return end
 
   local spellName = getSpellName(spellID) or ""
 
   if db.debug then
-    local src = unit == "player" and "" or (" [%s]"):format(unit)
-    msg(("Cast: %s (spellID %d)%s"):format(spellName ~= "" and spellName or "<?>", spellID, src))
+    msg(("Cast: %s (spellID %d)"):format(spellName ~= "" and spellName or "<?>", spellID))
   end
 
   playResolvedSound(spellID, spellName)
