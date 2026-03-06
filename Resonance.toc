@@ -1,6 +1,16 @@
 ## Interface: 120001
 ## Title: Resonance
 ## Notes: Mute modern spell sounds and play custom (e.g., Vanilla/TBC/Wrath) sounds on your casts. Works with any class.
+## Notes-ptBR: Silencia sons modernos de magias e reproduz sons clássicos (Vanilla/TBC/Wrath) nas suas conjurações. Funciona com qualquer classe.
+## Notes-deDE: Schaltet moderne Zauberklänge stumm und spielt klassische Sounds (Vanilla/TBC/Wrath) bei deinen Zaubern ab. Funktioniert mit jeder Klasse.
+## Notes-frFR: Rend muets les sons modernes des sorts et joue des sons classiques (Vanilla/TBC/Wrath) sur vos incantations. Fonctionne avec toutes les classes.
+## Notes-esES: Silencia los sonidos modernos de hechizos y reproduce sonidos clásicos (Vanilla/TBC/Wrath) en tus lanzamientos. Funciona con cualquier clase.
+## Notes-esMX: Silencia los sonidos modernos de hechizos y reproduce sonidos clásicos (Vanilla/TBC/Wrath) en tus lanzamientos. Funciona con cualquier clase.
+## Notes-itIT: Silenzia i suoni moderni degli incantesimi e riproduce suoni classici (Vanilla/TBC/Wrath) sui tuoi lanci. Funziona con qualsiasi classe.
+## Notes-ruRU: Приглушает современные звуки заклинаний и воспроизводит классические звуки (Vanilla/TBC/Wrath). Работает с любым классом.
+## Notes-koKR: 현대 주문 소리를 음소거하고 클래식(바닐라/TBC/리치왕) 소리를 재생합니다. 모든 직업에서 작동합니다.
+## Notes-zhCN: 静音现代法术音效，播放经典（香草/TBC/巫妖王）音效。适用于所有职业。
+## Notes-zhTW: 靜音現代法術音效，播放經典（香草/TBC/巫妖王）音效。適用於所有職業。
 ## Author: Renato
 ## Version: 1.0.0
 ## Category: Audio & Video
@@ -14,5 +24,6 @@ data/CharacterSounds.lua
 data/SpellMuteData.lua
 data/ClassTemplates.lua
 
+Locales.lua
 Core.lua
 Options.lua

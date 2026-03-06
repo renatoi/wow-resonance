@@ -26,6 +26,7 @@
 
 Resonance = LibStub("AceAddon-3.0"):NewAddon("Resonance", "AceConsole-3.0", "AceEvent-3.0")
 
+local L = Resonance_L
 local ADDON_ROOT = "Interface\\AddOns\\Resonance\\"
 
 local db          -- shortcut to self.db.profile, set in OnInitialize
@@ -250,8 +251,8 @@ local function applyVoxMutes()
     end
   end
   if count > 0 then
-    local label = mode == "all" and "all races" or "your race/gender"
-    msg(("Muted %d vocalization sounds (%s)."):format(count, label))
+    local label = mode == "all" and L["all races"] or L["your race/gender"]
+    msg(L["Muted %d vocalization sounds (%s)."]:format(count, label))
   end
 end
 
@@ -268,7 +269,7 @@ local function clearVoxMutes()
   end
   wipe(voxMutedFIDs)
   if count > 0 then
-    msg(("Cleared %d vocalization mutes."):format(count))
+    msg(L["Cleared %d vocalization mutes."]:format(count))
   end
 end
 
@@ -291,7 +292,7 @@ local function applyWeaponMutes()
     end
   end
   if count > 0 then
-    msg(("Muted %d weapon impact sounds."):format(count))
+    msg(L["Muted %d weapon impact sounds."]:format(count))
   end
 end
 
@@ -308,7 +309,7 @@ local function clearWeaponMutes()
   end
   wipe(weaponMutedFIDs)
   if count > 0 then
-    msg(("Cleared %d weapon impact mutes."):format(count))
+    msg(L["Cleared %d weapon impact mutes."]:format(count))
   end
 end
 
@@ -427,7 +428,7 @@ local function applyMutes()
     end
   end
   if count > 0 then
-    msg(("Applied %d sound mutes."):format(count))
+    msg(L["Applied %d sound mutes."]:format(count))
   end
 end
 
@@ -446,7 +447,7 @@ local function clearMutes()
     end
   end
   if count > 0 then
-    msg(("Cleared %d sound mutes."):format(count))
+    msg(L["Cleared %d sound mutes."]:format(count))
   end
 end
 
@@ -534,22 +535,22 @@ local function encodePresetData(name, spells, mutes)
 end
 
 local function decodePresetString(str)
-  if not str or str == "" then return nil, "Empty import string." end
+  if not str or str == "" then return nil, L["Empty import string."] end
   str = str:match("^%s*(.-)%s*$")
   if str:sub(1, 11) ~= "!Resonance!" then
-    return nil, "Invalid format: missing !Resonance! prefix."
+    return nil, L["Invalid format: missing !Resonance! prefix."]
   end
   local encoded = str:sub(12)
   local ok, decoded = pcall(b64decode, encoded)
   if not ok or not decoded or decoded == "" then
-    return nil, "Failed to decode import string."
+    return nil, L["Failed to decode import string."]
   end
   local lines = {}
   for line in decoded:gmatch("[^\n]+") do
     lines[#lines + 1] = line
   end
   if #lines == 0 or (lines[1] ~= "V1" and lines[1] ~= "V2") then
-    return nil, "Unknown format version."
+    return nil, L["Unknown format version."]
   end
   local name = nil
   local spells = {}
@@ -634,7 +635,7 @@ function Resonance:ImportConfig(str)
     return nil, result
   end
   if not result or type(result) ~= "table" then
-    return nil, "Failed to parse import string."
+    return nil, L["Failed to parse import string."]
   end
   local added, skipped, addedMutes = 0, 0, 0
   for sid, cfg in pairs(result.spells or {}) do
@@ -665,7 +666,7 @@ function Resonance:ImportToPreset(str)
     return nil, result
   end
   if not result or type(result) ~= "table" then
-    return nil, "Failed to parse import string."
+    return nil, L["Failed to parse import string."]
   end
   if not name or name == "" then
     local idx = 1
@@ -861,7 +862,7 @@ local function refreshPresetsFromTemplates()
   if updated > 0 or added > 0 then
     rebuildAutoMutes()
     if added > 0 then
-      msg(added .. " new template spell(s) auto-added.")
+      msg(L["%d new template spell(s) auto-added."]:format(added))
     end
   end
 end
@@ -889,12 +890,12 @@ end
 local function getGeneralOptions()
   return {
     type = "group",
-    name = "General",
+    name = L["General"],
     args = {
       enabled = {
         type = "toggle",
-        name = "Enable Resonance",
-        desc = "Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play.",
+        name = L["Enable Resonance"],
+        desc = L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."],
         order = 1,
         width = "full",
         get = function() return db.enabled end,
@@ -913,8 +914,8 @@ local function getGeneralOptions()
       },
       debug = {
         type = "toggle",
-        name = "Debug mode (print casts to chat)",
-        desc = "Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure.",
+        name = L["Debug mode (print casts to chat)"],
+        desc = L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."],
         order = 2,
         width = "full",
         get = function() return db.debug end,
@@ -922,8 +923,8 @@ local function getGeneralOptions()
       },
       showMinimap = {
         type = "toggle",
-        name = "Show minimap button",
-        desc = "Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition.",
+        name = L["Show minimap button"],
+        desc = L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."],
         order = 3,
         width = "full",
         get = function() return not db.minimap.hide end,
@@ -931,8 +932,8 @@ local function getGeneralOptions()
       },
       muteWeaponImpacts = {
         type = "toggle",
-        name = "Mute weapon impact sounds",
-        desc = "Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type.",
+        name = L["Mute weapon impact sounds"],
+        desc = L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."],
         order = 4,
         width = "full",
         get = function() return db.muteWeaponImpacts end,
@@ -943,13 +944,13 @@ local function getGeneralOptions()
       },
       muteVocalizations = {
         type = "select",
-        name = "Mute character vocalizations",
-        desc = "Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game.",
+        name = L["Mute character vocalizations"],
+        desc = L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."],
         order = 5,
         values = {
-          off = "Off",
-          mine = "Mine",
-          all = "All races",
+          off = L["Off"],
+          mine = L["Mine"],
+          all = L["All races"],
         },
         sorting = { "off", "mine", "all" },
         get = function() return getVoxMode() end,
@@ -960,8 +961,8 @@ local function getGeneralOptions()
       },
       soundChannel = {
         type = "select",
-        name = "Replacement sound channel",
-        desc = "Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders.",
+        name = L["Replacement sound channel"],
+        desc = L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."],
         order = 6,
         values = {
           Master = "Master",
@@ -999,16 +1000,16 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         clearWeaponMutes()
         clearMutes()
       end
-      msg(db.enabled and "Enabled." or "Disabled.")
+      msg(db.enabled and L["Enabled."] or L["Disabled."])
     else
       if Resonance.openOptions then Resonance.openOptions() end
     end
   end,
   OnTooltipShow = function(tt)
     tt:AddLine("Resonance")
-    tt:AddLine("Left-click: Open options", 1, 1, 1)
-    tt:AddLine("Right-click: Toggle on/off", 1, 1, 1)
-    tt:AddLine("Drag: Move button", 0.7, 0.7, 0.7)
+    tt:AddLine(L["Left-click: Open options"], 1, 1, 1)
+    tt:AddLine(L["Right-click: Toggle on/off"], 1, 1, 1)
+    tt:AddLine(L["Drag: Move button"], 0.7, 0.7, 0.7)
   end,
 })
 
@@ -1049,7 +1050,7 @@ local function migrateFromCastSounds()
 
   -- Don't copy auto_muted_fids — it's runtime-only now
 
-  msg("Migrated settings from CastSoundsDB. You can disable the old CastSounds addon.")
+  msg(L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."])
   CastSoundsDB = nil
 end
 
@@ -1104,7 +1105,7 @@ function Resonance:OnEnable()
   if db.enabled then applyMutes() end
   if getVoxMode() ~= "off" then applyVoxMutes() end
   if db.muteWeaponImpacts then applyWeaponMutes() end
-  msg("Loaded. Type /res or go to Esc > Options > Addons > Resonance.")
+  msg(L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."])
 end
 
 ---------------------------------------------------------------------------
@@ -1145,7 +1146,7 @@ function Resonance:ChatCommand(input)
     if Resonance.openOptions then
       Resonance.openOptions()
     else
-      msg("Options panel not loaded.")
+      msg(L["Options panel not loaded."])
     end
     return
   elseif cmd == "on" then
@@ -1153,13 +1154,13 @@ function Resonance:ChatCommand(input)
     applyMutes()
     if getVoxMode() ~= "off" then applyVoxMutes() end
     if db.muteWeaponImpacts then applyWeaponMutes() end
-    msg("Enabled.")
+    msg(L["Enabled."])
   elseif cmd == "off" then
     db.enabled = false
     clearVoxMutes()
     clearWeaponMutes()
     clearMutes()
-    msg("Disabled.")
+    msg(L["Disabled."])
   elseif cmd == "debug" then
     rest = (rest or ""):lower()
     db.debug = (rest == "on" or rest == "1" or rest == "true")
@@ -1171,25 +1172,25 @@ function Resonance:ChatCommand(input)
   elseif cmd == "muteadd" then
     local fid = tonumber(rest)
     if not fid then
-      msg("Usage: /res muteadd <fileDataID>")
+      msg(L["Usage: /res muteadd <fileDataID>"])
       return
     end
     db.mute_file_data_ids[fid] = true
     MuteSoundFile(fid)
-    msg(("Muted fileDataID %d."):format(fid))
+    msg(L["Muted fileDataID %d."]:format(fid))
   elseif cmd == "mutedel" then
     local fid = tonumber(rest)
     if not fid then
-      msg("Usage: /res mutedel <fileDataID>")
+      msg(L["Usage: /res mutedel <fileDataID>"])
       return
     end
     db.mute_file_data_ids[fid] = nil
     if not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0) then
       UnmuteSoundFile(fid)
     end
-    msg(("Unmuted fileDataID %d."):format(fid))
+    msg(L["Unmuted fileDataID %d."]:format(fid))
   elseif cmd == "mutelist" then
-    msg("Muted fileDataIDs:")
+    msg(L["Muted fileDataIDs:"])
     local n = 0
     for fid, enabled in pairs(db.mute_file_data_ids or {}) do
       if enabled then
@@ -1197,58 +1198,58 @@ function Resonance:ChatCommand(input)
         n = n + 1
       end
     end
-    if n == 0 then msg("  (none)") end
+    if n == 0 then msg(L["  (none)"]) end
   elseif cmd == "map" then
     local sid, fid = rest:match("^(%d+)%s+(%d+)$")
     sid = sid and tonumber(sid)
     fid = fid and tonumber(fid)
     if not sid or not fid then
-      msg("Usage: /res map <spellID> <fileDataID>")
+      msg(L["Usage: /res map <spellID> <fileDataID>"])
       return
     end
     db.spell_to_play_file_data_id[sid] = fid
-    msg(("Mapped spellID %d -> fileDataID %d."):format(sid, fid))
+    msg(L["Mapped spellID %d -> fileDataID %d."]:format(sid, fid))
   elseif cmd == "unmap" then
     local sid = tonumber(rest)
     if not sid then
-      msg("Usage: /res unmap <spellID>")
+      msg(L["Usage: /res unmap <spellID>"])
       return
     end
     db.spell_to_play_file_data_id[sid] = nil
-    msg(("Unmapped spellID %d."):format(sid))
+    msg(L["Unmapped spellID %d."]:format(sid))
   elseif cmd == "override" then
     local name, path = rest:match('^"(.-)"%s+(.+)$')
     if not name then
       name, path = rest:match("^(.-)%s+(.+)$")
     end
     if not name or not path then
-      msg('Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav')
+      msg(L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'])
       return
     end
     db.local_file_overrides_by_spell_name[name] = path
-    msg(("Override for '%s' -> %s"):format(name, path))
+    msg(L["Override for '%s' -> %s"]:format(name, path))
   elseif cmd == "clearoverride" then
     local name = rest
     if name and name:sub(1, 1) == '"' then
       name = name:match('^"(.-)"$') or name
     end
     if not name or name == "" then
-      msg('Usage: /res clearoverride "Mortal Strike"')
+      msg(L['Usage: /res clearoverride "Mortal Strike"'])
       return
     end
     db.local_file_overrides_by_spell_name[name] = nil
-    msg(("Cleared override for '%s'"):format(name))
+    msg(L["Cleared override for '%s'"]:format(name))
   elseif cmd == "testspell" then
     local sid = tonumber(rest)
     if not sid then
-      msg("Usage: /res testspell <spellID>")
+      msg(L["Usage: /res testspell <spellID>"])
       return
     end
     local name = getSpellName(sid) or ""
-    msg(("Testing sound for: %s (spellID %d)"):format(name ~= "" and name or "<?>", sid))
+    msg(L["Testing sound for: %s (spellID %d)"]:format(name ~= "" and name or "<?>", sid))
     playResolvedSound(sid, name)
   elseif cmd == "diag" then
-    msg("=== Resonance Diagnostics ===")
+    msg(L["=== Resonance Diagnostics ==="])
     local libs = {
       "LibStub", "CallbackHandler-1.0",
       "AceAddon-3.0", "AceDB-3.0", "AceDBOptions-3.0",
@@ -1289,19 +1290,19 @@ function Resonance:ChatCommand(input)
     msg("  Settings API: " .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
     msg("  Spell mute data: " .. (Resonance_SpellMuteData and ("|cff00ff00" .. tostring(#(Resonance_SpellMuteData or {})) .. " (table)|r") or "|cffff0000NOT LOADED|r"))
     msg("  Vox data: " .. (Resonance_VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
-    msg("=== End Diagnostics ===")
+    msg(L["=== End Diagnostics ==="])
   elseif cmd == "sfx" then
     rest = (rest or ""):lower()
     if rest == "off" then
       SetCVar("Sound_EnableSFX", 0)
-      msg("SFX disabled (you may lose footsteps).")
+      msg(L["SFX disabled (you may lose footsteps)."])
     else
       SetCVar("Sound_EnableSFX", 1)
-      msg("SFX enabled.")
+      msg(L["SFX enabled."])
     end
   else
-    msg("Commands:")
-    msg("  /res                     Open settings panel")
+    msg(L["Commands:"])
+    msg(L["  /res                     Open settings panel"])
     msg("  /res on|off")
     msg("  /res debug on|off")
     msg("  /res testspell <spellID>")

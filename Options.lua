@@ -1,4 +1,5 @@
 local Resonance = LibStub("AceAddon-3.0"):GetAddon("Resonance")
+local L = Resonance_L
 
 ---------------------------------------------------------------------------
 -- Sound database search
@@ -289,7 +290,7 @@ local ROW_HEIGHT = 22
 local CONTENT_WIDTH = 580
 local AUTOCOMPLETE_ROWS = 8
 
-local CLASS_DISPLAY = {
+local CLASS_DISPLAY = LOCALIZED_CLASS_NAMES_MALE or {
   WARRIOR = "Warrior", MAGE = "Mage", ROGUE = "Rogue", PALADIN = "Paladin",
   DRUID = "Druid", WARLOCK = "Warlock", PRIEST = "Priest", SHAMAN = "Shaman",
   HUNTER = "Hunter", DEATHKNIGHT = "Death Knight", MONK = "Monk",
@@ -401,10 +402,22 @@ local function makeIconButton(parent, icon, size, tooltip, onClick)
   return btn
 end
 
-local function makeButton(parent, text, width, onClick)
+-- Shared hidden button for measuring localized text widths
+local _measureBtn
+local function btnTextWidth(text)
+  if not _measureBtn then
+    _measureBtn = CreateFrame("Button", nil, UIParent, "UIPanelButtonTemplate")
+    _measureBtn:Hide()
+  end
+  _measureBtn:SetText(text)
+  return _measureBtn:GetFontString():GetStringWidth() or 0
+end
+
+local function makeButton(parent, text, minWidth, onClick)
   local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-  btn:SetSize(width + 4, 26)
   btn:SetText(text)
+  local textW = btn:GetFontString():GetStringWidth() or 0
+  btn:SetSize(math.max((minWidth or 0) + 4, textW + 16), 26)
   if onClick then btn:SetScript("OnClick", onClick) end
   return btn
 end
@@ -502,11 +515,22 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
     btn:SetScript("OnLeave", function() tip:Hide() end)
   end
 
-  -- Calculate button widths to determine text area
-  local primaryW = (actionDef.width or 48) + 4
+  -- Measure button text widths to size dynamically for localized labels
+  local function measuredBtnW(label, minW)
+    local tw = btnTextWidth(label)
+    return math.max((minW or 0) + 4, tw + 16)
+  end
+  local primaryW = measuredBtnW(actionDef.label, actionDef.width or 48)
+  if actionDef.altLabels then
+    for _, alt in ipairs(actionDef.altLabels) do
+      primaryW = math.max(primaryW, measuredBtnW(alt, actionDef.width or 48))
+    end
+  end
   local btnAreaW = primaryW + 4
-  for _, ea in ipairs(extraActions or {}) do
-    btnAreaW = btnAreaW + (ea.width or 40) + 4 + 2
+  local extraWidths = {}
+  for idx, ea in ipairs(extraActions or {}) do
+    extraWidths[idx] = measuredBtnW(ea.label, ea.width or 40)
+    btnAreaW = btnAreaW + extraWidths[idx] + 2
   end
   local textRightOffset = -(btnAreaW + 28)  -- play button (22) + gaps
 
@@ -544,7 +568,7 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
     row.extraBtns = {}
     for j, ea in ipairs(extraActions or {}) do
       local btn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-      btn:SetSize((ea.width or 40) + 4, 22)
+      btn:SetSize(extraWidths[j], 22)
       btn:SetPoint("RIGHT", prevBtn, "LEFT", -2, 0)
       btn:SetText(ea.label)
       local callback = ea.onClick
@@ -554,7 +578,7 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
       prevBtn = btn
     end
 
-    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play / Stop")
+    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
     wirePlayStop(row.playBtn, function()
       if row.entry then return onPlay(row.entry) end
     end)
@@ -601,7 +625,7 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
       end
     end
     if #data > AUTOCOMPLETE_ROWS then
-      self.scrollHint:SetText(("Showing %d\226\128\147%d of %d"):format(off + 1, math.min(off + AUTOCOMPLETE_ROWS, #data), #data))
+      self.scrollHint:SetText(L["Showing %d\226\128\147%d of %d"]:format(off + 1, math.min(off + AUTOCOMPLETE_ROWS, #data), #data))
       scrollTrack:Show()
       scrollThumb:Show()
       local trackH = AUTOCOMPLETE_ROWS * ROW_HEIGHT
@@ -656,7 +680,7 @@ local function buildLayout()
   -------------------------------------------------------------------
   -- Tab system
   -------------------------------------------------------------------
-  local TAB_NAMES = { "General", "Spell Sounds", "Muted Sounds", "Presets", "Profiles" }
+  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Presets"], L["Profiles"] }
   local TAB_HEIGHT = 28
   local TAB_OVERLAP = 4
   local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
@@ -838,13 +862,13 @@ local function buildLayout()
   -------------------------------------------------------------------
   local spellTab = tabFrames[2].content
 
-  local clearAllSpellsBtn = makeButton(spellTab, "Clear All", 65, nil)
+  local clearAllSpellsBtn = makeButton(spellTab, L["Clear All"], 65, nil)
   clearAllSpellsBtn:SetPoint("TOPRIGHT", spellTab, "TOPRIGHT", -16, -8)
 
-  local clearPresetsBtn = makeButton(spellTab, "Clear Presets", 90, nil)
+  local clearPresetsBtn = makeButton(spellTab, L["Clear Presets"], 90, nil)
   clearPresetsBtn:SetPoint("RIGHT", clearAllSpellsBtn, "LEFT", -4, 0)
 
-  local addBtn = makeButton(spellTab, "+ Add Spell", 80, nil)
+  local addBtn = makeButton(spellTab, L["+ Add Spell"], 80, nil)
   addBtn:SetPoint("RIGHT", clearPresetsBtn, "LEFT", -4, 0)
 
   -- Table header
@@ -861,18 +885,18 @@ local function buildLayout()
   hdrSpell:SetPoint("LEFT", 4, 0)
   hdrSpell:SetWidth(200)
   hdrSpell:SetJustifyH("LEFT")
-  hdrSpell:SetText("Spell")
+  hdrSpell:SetText(L["Spell"])
 
   local hdrSound = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   hdrSound:SetPoint("LEFT", hdrSpell, "RIGHT", 8, 0)
   hdrSound:SetPoint("RIGHT", tableHeader, "RIGHT", -58, 0)
   hdrSound:SetJustifyH("LEFT")
-  hdrSound:SetText("Sound")
+  hdrSound:SetText(L["Sound"])
 
   local hdrActions = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   hdrActions:SetPoint("RIGHT", tableHeader, "RIGHT", -2, 0)
   hdrActions:SetJustifyH("RIGHT")
-  hdrActions:SetText("Actions")
+  hdrActions:SetText(L["Actions"])
 
   local listContainer = CreateFrame("Frame", nil, spellTab)
   listContainer:SetPoint("TOPLEFT", tableHeader, "BOTTOMLEFT", 0, -2)
@@ -881,7 +905,7 @@ local function buildLayout()
 
   local listEmpty = listContainer:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   listEmpty:SetPoint("TOPLEFT", 4, 0)
-  listEmpty:SetText("No spells configured. Click '+ Add Spell' to get started.")
+  listEmpty:SetText(L["No spells configured. Click '+ Add Spell' to get started."])
 
   local listRows = {}
 
@@ -929,7 +953,7 @@ local function buildLayout()
   -- SpellID input
   local edSpellLabel = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   edSpellLabel:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 12, -10)
-  edSpellLabel:SetText("Spell ID:")
+  edSpellLabel:SetText(L["Spell ID:"])
 
   local edSpellIDBox = makeEditBox(editorFrame, 100, edSpellLabel, 0, -2, "e.g. 6343")
   edSpellIDBox:SetNumeric(true)
@@ -947,7 +971,7 @@ local function buildLayout()
     local sid = tonumber(edSpellIDBox:GetText())
     if sid and sid > 0 then
       local name = Resonance.getSpellName(sid)
-      edSpellPreview:SetText(name and ("|cff00ff00" .. name .. "|r") or "|cffff4444Unknown spell|r")
+      edSpellPreview:SetText(name and ("|cff00ff00" .. name .. "|r") or "|cffff4444" .. L["Unknown spell"] .. "|r")
     else
       edSpellPreview:SetText("")
     end
@@ -964,7 +988,7 @@ local function buildLayout()
   -- Spell name search (shown when adding new spell)
   local edSpellSearchLabel = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   edSpellSearchLabel:SetPoint("TOPLEFT", edSpellIDBox, "BOTTOMLEFT", 0, -6)
-  edSpellSearchLabel:SetText("Search by name:")
+  edSpellSearchLabel:SetText(L["Search by name:"])
 
   local edSpellSearchBox = makeEditBox(editorFrame, CONTENT_WIDTH - 60, edSpellSearchLabel, 0, -2, "e.g. Mortal Strike")
 
@@ -978,12 +1002,12 @@ local function buildLayout()
         edSpellSearchDD:Hide()
       end
     end,
-    "Use", CONTENT_WIDTH
+    L["Use"], CONTENT_WIDTH
   )
   for _, row in ipairs(edSpellSearchDD.rows) do
     row.playBtn:Hide()
     row.playBtn:SetSize(1, 1)
-    row.text:SetPoint("RIGHT", row, "RIGHT", -58, 0)
+    row.text:SetPoint("RIGHT", row, "RIGHT", -(row.actionBtn:GetWidth() + 6), 0)
   end
 
   local function edDoSpellSearch()
@@ -991,7 +1015,7 @@ local function buildLayout()
     local q = edSpellSearchBox:GetText()
     if #q < 2 then edSpellSearchDD:SetData({}, ""); edSpellSearchDD:Hide(); return end
     local results = searchSpells(q)
-    edSpellSearchDD:SetData(results, #results == 0 and "No matches." or #results .. " results")
+    edSpellSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
   end
 
   local edSpellSearchClear = makeClearButton(edSpellSearchBox, function() edSpellSearchDD:Hide() end)
@@ -1021,7 +1045,7 @@ local function buildLayout()
 
   local repHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   repHeader:SetPoint("TOPLEFT", repAnchor, "TOPLEFT", 0, 0)
-  repHeader:SetText("Replacement Sound")
+  repHeader:SetText(L["Replacement Sound"])
 
   local function formatSoundBrief(snd)
     if type(snd) == "number" then
@@ -1106,12 +1130,12 @@ local function buildLayout()
   edSoundListFrame:SetHeight(ROW_HEIGHT)
 
   -- Play All button on the header line
-  local edPlayAllBtn = makeIconButton(editorFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 20, "Play all sounds / Stop")
+  local edPlayAllBtn = makeIconButton(editorFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 20, L["Play all sounds / Stop"])
   wirePlayStop(edPlayAllBtn, function() return editorSound end)
   edPlayAllBtn:SetPoint("LEFT", repHeader, "RIGHT", 6, 0)
 
   -- Clear All button on the header line
-  local edClearAllBtn = makeIconButton(editorFrame, "Interface\\Buttons\\UI-StopButton", 16, "Clear all sounds",
+  local edClearAllBtn = makeIconButton(editorFrame, "Interface\\Buttons\\UI-StopButton", 16, L["Clear all sounds"],
     function() editorSound = nil; edRefreshSoundList() end)
   edClearAllBtn:SetPoint("LEFT", edPlayAllBtn, "RIGHT", 4, 0)
 
@@ -1128,7 +1152,7 @@ local function buildLayout()
           entries[#entries + 1] = { kind = "fixed", sound = s, idx = i }
         end
         if editorSound.random and #editorSound.random > 0 then
-          entries[#entries + 1] = { kind = "header", text = "Random pool (1 picked per cast):" }
+          entries[#entries + 1] = { kind = "header", text = L["Random pool (1 picked per cast):"] }
           for i, s in ipairs(editorSound.random) do
             entries[#entries + 1] = { kind = "random", sound = s, idx = i }
           end
@@ -1154,10 +1178,10 @@ local function buildLayout()
         row.text:SetJustifyH("LEFT")
         row.text:SetWordWrap(false)
 
-        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 20, "Play / Stop")
+        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 20, L["Play / Stop"])
         row.playBtn:SetPoint("RIGHT", row, "RIGHT", -24, 0)
 
-        row.removeBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 16, "Remove sound")
+        row.removeBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 16, L["Remove sound"])
         row.removeBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
 
         edSoundRows[i] = row
@@ -1218,13 +1242,13 @@ local function buildLayout()
 
   edBrowseRadio = makeRadio(editorFrame)
   edBrowseRadio:SetPoint("TOPLEFT", edSoundListFrame, "BOTTOMLEFT", 0, -6)
-  edBrowseRadio.label:SetText("Browse")
+  edBrowseRadio.label:SetText(L["Browse"])
 
   local edFileRadio = makeRadio(editorFrame)
   edFileRadio:SetPoint("LEFT", edBrowseRadio.label, "RIGHT", 12, 0)
-  edFileRadio.label:SetText("File Path / FID")
+  edFileRadio.label:SetText(L["File Path / FID"])
 
-  local edBrowseBox = makeEditBox(editorFrame, CONTENT_WIDTH - 60, edBrowseRadio, 0, -4, "Search spell sounds...")
+  local edBrowseBox = makeEditBox(editorFrame, CONTENT_WIDTH - 60, edBrowseRadio, 0, -4, L["Search spell sounds..."])
   edBrowseBox:SetPoint("TOPLEFT", edBrowseRadio, "BOTTOMLEFT", 0, -4)
 
   local edBrowseDD
@@ -1234,15 +1258,15 @@ local function buildLayout()
       edSetSound(e.fileDataID)
       edBrowseDD:Hide()
     end,
-    { label = "Replace", width = 52, tooltip = "Replace all sounds with this one" },
+    { label = L["Replace"], width = 52, tooltip = L["Replace all sounds with this one"] },
     CONTENT_WIDTH,
     {
-      { label = "Add", width = 36, tooltip = "Add as an additional fixed sound (always plays)",
+      { label = L["Add"], width = 36, tooltip = L["Add as an additional fixed sound (always plays)"],
         onClick = function(e)
           edAddFixedSound(e.fileDataID)
           edBrowseDD:Hide()
         end },
-      { label = "+Rnd", width = 38, tooltip = "Add to the random pool (1 picked at random per cast)",
+      { label = L["+Rnd"], width = 38, tooltip = L["Add to the random pool (1 picked at random per cast)"],
         onClick = function(e)
           edAddRandomSound(e.fileDataID)
           edBrowseDD:Hide()
@@ -1258,7 +1282,7 @@ local function buildLayout()
     for _, r in ipairs(results) do
       r.display = formatSoundDisplay(r.path, r.fileDataID)
     end
-    edBrowseDD:SetData(results, #results == 0 and "No matches." or #results .. " results")
+    edBrowseDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
   end
 
   local edBrowseClear = makeClearButton(edBrowseBox, function() edBrowseDD:Hide() end)
@@ -1288,7 +1312,7 @@ local function buildLayout()
   local edFileBox = makeEditBox(edFileFrame, CONTENT_WIDTH - 240, edFileFrame, 0, 0, "path or FID")
   edFileBox:SetPoint("TOPLEFT", edFileFrame, "TOPLEFT", 0, 0)
 
-  local edFilePlayBtn = makeIconButton(edFileFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play / Stop")
+  local edFilePlayBtn = makeIconButton(edFileFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
   wirePlayStop(edFilePlayBtn, function()
     local v = edFileBox:GetText()
     return tonumber(v) or v
@@ -1310,26 +1334,26 @@ local function buildLayout()
     btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
   end
 
-  local edFileReplaceBtn = makeButton(edFileFrame, "Replace", 52, function()
+  local edFileReplaceBtn = makeButton(edFileFrame, L["Replace"], 52, function()
     local v = edGetFileValue()
     if v then edSetSound(v) end
   end)
   edFileReplaceBtn:SetPoint("LEFT", edFilePlayBtn, "RIGHT", 2, 0)
-  addButtonTooltip(edFileReplaceBtn, "Replace all sounds with this one")
+  addButtonTooltip(edFileReplaceBtn, L["Replace all sounds with this one"])
 
-  local edFileAddBtn = makeButton(edFileFrame, "Add", 36, function()
+  local edFileAddBtn = makeButton(edFileFrame, L["Add"], 36, function()
     local v = edGetFileValue()
     if v then edAddFixedSound(v) end
   end)
   edFileAddBtn:SetPoint("LEFT", edFileReplaceBtn, "RIGHT", 2, 0)
-  addButtonTooltip(edFileAddBtn, "Add as an additional fixed sound (always plays)")
+  addButtonTooltip(edFileAddBtn, L["Add as an additional fixed sound (always plays)"])
 
-  local edFileRndBtn = makeButton(edFileFrame, "+Rnd", 40, function()
+  local edFileRndBtn = makeButton(edFileFrame, L["+Rnd"], 40, function()
     local v = edGetFileValue()
     if v then edAddRandomSound(v) end
   end)
   edFileRndBtn:SetPoint("LEFT", edFileAddBtn, "RIGHT", 2, 0)
-  addButtonTooltip(edFileRndBtn, "Add to the random pool (1 picked at random per cast)")
+  addButtonTooltip(edFileRndBtn, L["Add to the random pool (1 picked at random per cast)"])
 
   local function edSetSoundMode(isBrowse)
     edBrowseRadio:SetChecked(isBrowse)
@@ -1365,7 +1389,7 @@ local function buildLayout()
 
   local autoMuteHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   autoMuteHeader:SetPoint("TOPLEFT", autoMuteAnchor, "TOPLEFT", 0, 0)
-  autoMuteHeader:SetText("Auto-Muted Sounds")
+  autoMuteHeader:SetText(L["Auto-Muted Sounds"])
 
   local autoMuteInfo = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   autoMuteInfo:SetPoint("TOPLEFT", autoMuteHeader, "BOTTOMLEFT", 0, -4)
@@ -1395,14 +1419,14 @@ local function buildLayout()
     for _, row in ipairs(autoMuteRows) do row:Hide() end
 
     if not spellID then
-      autoMuteInfo:SetText("|cff888888No auto-mute data available.|r")
+      autoMuteInfo:SetText("|cff888888" .. L["No auto-mute data available."] .. "|r")
       autoMuteScroll:Hide()
       return
     end
 
     local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[spellID]
     if not fids or #fids == 0 then
-      autoMuteInfo:SetText("|cff888888No auto-mute data for this spell.|r")
+      autoMuteInfo:SetText("|cff888888" .. L["No auto-mute data for this spell."] .. "|r")
       autoMuteScroll:Hide()
       return
     end
@@ -1412,7 +1436,7 @@ local function buildLayout()
       entries[#entries + 1] = { type = "sound", fid = fid }
     end
 
-    autoMuteInfo:SetText(#fids .. " spell sound(s) — uncheck to keep a sound unmuted:")
+    autoMuteInfo:SetText(L["%d spell sound(s) — uncheck to keep a sound unmuted:"]:format(#fids))
     autoMuteScroll:Show()
 
     for i, entry in ipairs(entries) do
@@ -1428,7 +1452,7 @@ local function buildLayout()
         row.text:SetJustifyH("LEFT")
         row.text:SetWordWrap(false)
 
-        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play / Stop")
+        row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
         row.playBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
 
         row.muteBtn = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
@@ -1438,7 +1462,7 @@ local function buildLayout()
         row.muteBtn.text:SetText("")
         row.muteBtn:SetScript("OnEnter", function(self)
           GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-          GameTooltip:AddLine(self:GetChecked() and "Muted (click to unmute)" or "Not muted (click to mute)", 1, 1, 1)
+          GameTooltip:AddLine(self:GetChecked() and L["Muted (click to unmute)"] or L["Not muted (click to mute)"], 1, 1, 1)
           GameTooltip:Show()
         end)
         row.muteBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1502,10 +1526,10 @@ local function buildLayout()
   end
 
   -- Save / Cancel
-  local edCancelBtn = makeButton(editorFrame, "Cancel", 60, nil)
+  local edCancelBtn = makeButton(editorFrame, L["Cancel"], 60, nil)
   edCancelBtn:SetPoint("BOTTOMRIGHT", editorFrame, "BOTTOMRIGHT", -18, 16)
 
-  local edSaveBtn = makeButton(editorFrame, "Save", 60, nil)
+  local edSaveBtn = makeButton(editorFrame, L["Save"], 60, nil)
   edSaveBtn:SetPoint("RIGHT", edCancelBtn, "LEFT", -4, 0)
 
   local function closeEditor()
@@ -1547,11 +1571,11 @@ local function buildLayout()
         end
       end
       local name = Resonance.getSpellName(spellID)
-      edTitle:SetText("Configure: " .. (name or "Spell " .. spellID))
+      edTitle:SetText(L["Configure: "] .. (name or "Spell " .. spellID))
     else
       edSpellIDBox:SetText("")
       edSpellIDBox:Enable()
-      edTitle:SetText("Add New Spell")
+      edTitle:SetText(L["Add New Spell"])
     end
 
     edSpellSearchLabel:SetShown(isNew)
@@ -1578,7 +1602,7 @@ local function buildLayout()
   edSaveBtn:SetScript("OnClick", function()
     profile = Resonance.db.profile
     local sid = tonumber(edSpellIDBox:GetText())
-    if not sid or sid <= 0 then Resonance.msg("Enter a valid spell ID."); return end
+    if not sid or sid <= 0 then Resonance.msg(L["Enter a valid spell ID."]); return end
     local isNew = not profile.spell_config[sid]
     -- Build exclusions table (only save if non-empty)
     local exclusions = nil
@@ -1606,7 +1630,7 @@ local function buildLayout()
     local removed = Resonance:RemovePresetSpells()
     closeEditor()
     refreshList()
-    Resonance.msg(("Cleared %d preset spells."):format(removed))
+    Resonance.msg(L["Cleared %d preset spells."]:format(removed))
   end)
 
   clearAllSpellsBtn:SetScript("OnClick", function()
@@ -1618,7 +1642,7 @@ local function buildLayout()
     wipe(profile.preset_spells)
     closeEditor()
     refreshList()
-    Resonance.msg("Cleared all spell sound configurations.")
+    Resonance.msg(L["Cleared all spell sound configurations."])
   end)
 
   -- Spell list rendering
@@ -1670,13 +1694,13 @@ local function buildLayout()
     row.soundText:SetJustifyH("LEFT")
     row.soundText:SetWordWrap(false)
 
-    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play / Stop")
+    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
     row.playBtn:SetPoint("RIGHT", row, "RIGHT", -36, 0)
 
-    row.editBtn = makeIconButton(row, "Interface\\WorldMap\\GEAR_64GREY", 20, "Edit")
+    row.editBtn = makeIconButton(row, "Interface\\WorldMap\\GEAR_64GREY", 20, L["Edit"])
     row.editBtn:SetPoint("RIGHT", row, "RIGHT", -18, 0)
 
-    row.delBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Delete")
+    row.delBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, L["Delete"])
     row.delBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
 
     return row
@@ -1753,7 +1777,7 @@ local function buildLayout()
       hdr:SetPoint("TOPLEFT", listContainer, "TOPLEFT", 0, -yOff)
       hdr:SetPoint("RIGHT", listContainer, "RIGHT", 0, 0)
 
-      local displayName = CLASS_DISPLAY[key] or (key == "_custom" and "Custom" or key)
+      local displayName = CLASS_DISPLAY[key] or (key == "_custom" and L["Custom"] or key)
       local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[key]
       if cc then
         hdr.text:SetText(cc:WrapTextInColorCode(displayName))
@@ -1798,7 +1822,7 @@ local function buildLayout()
             local parts = {}
             for _, s in ipairs(sound) do parts[#parts + 1] = formatSoundBrief(s) end
             if sound.random then
-              parts[#parts + 1] = ("+1 random from %d"):format(#sound.random)
+              parts[#parts + 1] = L["+1 random from %d"]:format(#sound.random)
             end
             row.soundText:SetText("|cff00ff00" .. table.concat(parts, ", ") .. "|r")
           elseif type(sound) == "number" then
@@ -1846,15 +1870,15 @@ local function buildLayout()
 
   local muteSpellRadio = makeRadio(muteTab)
   muteSpellRadio:SetPoint("TOPLEFT", muteTab, "TOPLEFT", 16, -10)
-  muteSpellRadio.label:SetText("Spell Sounds")
+  muteSpellRadio.label:SetText(L["Spell Sounds"])
 
   local muteCharRadio = makeRadio(muteTab)
   muteCharRadio:SetPoint("LEFT", muteSpellRadio.label, "RIGHT", 10, 0)
-  muteCharRadio.label:SetText("Character Sounds")
+  muteCharRadio.label:SetText(L["Character Sounds"])
 
   local muteFidRadio = makeRadio(muteTab)
   muteFidRadio:SetPoint("LEFT", muteCharRadio.label, "RIGHT", 10, 0)
-  muteFidRadio.label:SetText("FID")
+  muteFidRadio.label:SetText(L["FID"])
 
   local muteMode = "spells"
 
@@ -1862,10 +1886,10 @@ local function buildLayout()
   muteSearchFrame:SetPoint("TOPLEFT", muteSpellRadio, "BOTTOMLEFT", 0, -4)
   muteSearchFrame:SetSize(CONTENT_WIDTH, 26)
 
-  local muteSearchBox = makeEditBox(muteSearchFrame, CONTENT_WIDTH - 120, muteSearchFrame, 0, 0, "Search sounds to mute...")
+  local muteSearchBox = makeEditBox(muteSearchFrame, CONTENT_WIDTH - 120, muteSearchFrame, 0, 0, L["Search sounds to mute..."])
   muteSearchBox:SetPoint("TOPLEFT", muteSearchFrame, "TOPLEFT", 0, 0)
 
-  local myVoxBtn = makeButton(muteTab, "My Vox", 60, function()
+  local myVoxBtn = makeButton(muteTab, L["My Vox"], 60, function()
     muteCharRadio:Click()
     muteSearchBox:SetText(getPlayerVoxKey())
     muteSearchBox:SetFocus()
@@ -1881,11 +1905,11 @@ local function buildLayout()
   muteFidBox:SetPoint("TOPLEFT", muteFidFrame, "TOPLEFT", 0, 0)
   muteFidBox:SetNumeric(true)
 
-  local muteFidPlayBtn = makeIconButton(muteFidFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play / Stop")
+  local muteFidPlayBtn = makeIconButton(muteFidFrame, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
   wirePlayStop(muteFidPlayBtn, function() return tonumber(muteFidBox:GetText()) end)
   muteFidPlayBtn:SetPoint("LEFT", muteFidBox, "RIGHT", 4, 0)
 
-  local muteFidAddBtn = makeButton(muteFidFrame, "+ Mute", 52, function()
+  local muteFidAddBtn = makeButton(muteFidFrame, L["+ Mute"], 52, function()
     local fid = tonumber(muteFidBox:GetText())
     if fid then
       Resonance.db.profile.mute_file_data_ids[fid] = true
@@ -1906,16 +1930,16 @@ local function buildLayout()
         refreshMuteList()
       end
     end,
-    "+ Mute", CONTENT_WIDTH
+    { label = L["+ Mute"], altLabels = { L["Muted"] } }, CONTENT_WIDTH
   )
 
   function muteDD:onRowRefresh(row, entry)
     local muted = isFIDMuted(entry.fileDataID)
     row.actionBtn:SetEnabled(not muted)
     if muted then
-      row.actionBtn:SetText("Muted")
+      row.actionBtn:SetText(L["Muted"])
     else
-      row.actionBtn:SetText("+ Mute")
+      row.actionBtn:SetText(L["+ Mute"])
     end
   end
 
@@ -1932,7 +1956,7 @@ local function buildLayout()
       end
       r.display = display
     end
-    muteDD:SetData(results, #results == 0 and "No matches." or #results .. " results")
+    muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
   end
 
   local muteSearchClear = makeClearButton(muteSearchBox, function() muteDD:Hide() end)
@@ -1970,7 +1994,7 @@ local function buildLayout()
   muteFidRadio:SetScript("OnClick", function() setMuteMode("fid") end)
 
   -- Muted sounds list
-  local clearAllBtn = makeButton(muteTab, "Clear All Manual", 120, function()
+  local clearAllBtn = makeButton(muteTab, L["Clear All Manual"], 120, function()
     local p = Resonance.db.profile
     for fid, enabled in pairs(p.mute_file_data_ids) do
       if enabled and not (Resonance.autoMutedFIDs[fid] and Resonance.autoMutedFIDs[fid] > 0) then
@@ -1990,7 +2014,7 @@ local function buildLayout()
 
   local manualSectionText = manualSectionHdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   manualSectionText:SetPoint("LEFT", 0, 0)
-  manualSectionText:SetText("Manually muted sounds")
+  manualSectionText:SetText(L["Manually muted sounds"])
 
   -- Table header (matching Spell Sounds tab style)
   local muteTableHeader = CreateFrame("Frame", nil, muteTab)
@@ -2006,12 +2030,12 @@ local function buildLayout()
   muteHdrSound:SetPoint("LEFT", 4, 0)
   muteHdrSound:SetPoint("RIGHT", muteTableHeader, "RIGHT", -88, 0)
   muteHdrSound:SetJustifyH("LEFT")
-  muteHdrSound:SetText("Sound")
+  muteHdrSound:SetText(L["Sound"])
 
   local muteHdrActions = muteTableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   muteHdrActions:SetPoint("RIGHT", muteTableHeader, "RIGHT", -2, 0)
   muteHdrActions:SetJustifyH("RIGHT")
-  muteHdrActions:SetText("Actions")
+  muteHdrActions:SetText(L["Actions"])
 
   local muteListContainer = CreateFrame("Frame", nil, muteTab)
   muteListContainer:SetPoint("TOPLEFT", muteTableHeader, "BOTTOMLEFT", 0, -2)
@@ -2020,7 +2044,7 @@ local function buildLayout()
 
   local muteListEmpty = muteListContainer:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   muteListEmpty:SetPoint("TOPLEFT", 4, 0)
-  muteListEmpty:SetText("No sounds muted.")
+  muteListEmpty:SetText(L["No sounds muted."])
 
   local muteListRows = {}
   local muteListHeaders = {}
@@ -2063,9 +2087,9 @@ local function buildLayout()
       row.text:SetPoint("RIGHT", row, "RIGHT", -44, 0)
       row.text:SetJustifyH("LEFT")
       row.text:SetWordWrap(false)
-      row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, "Play / Stop")
+      row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
       row.playBtn:SetPoint("RIGHT", row, "RIGHT", -20, 0)
-      row.removeBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Remove")
+      row.removeBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, L["Remove"])
       row.removeBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
     end
     return row
@@ -2247,7 +2271,7 @@ local function buildLayout()
         row.removeBtn:SetEnabled(true)
         row.removeBtn:SetScript("OnEnter", function(self)
           GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-          GameTooltip:AddLine("Unmute", 1, 1, 1)
+          GameTooltip:AddLine(L["Unmute"], 1, 1, 1)
           GameTooltip:Show()
         end)
         row.removeBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -2286,7 +2310,7 @@ local function buildLayout()
       autoLabel.text:SetFontObject(GameFontNormal)
       autoLabel.text:SetPoint("LEFT", 0, 0)
       autoLabel.text:SetPoint("RIGHT", autoLabel, "RIGHT", -4, 0)
-      autoLabel.text:SetText("Auto-muted from spell configurations")
+      autoLabel.text:SetText(L["Auto-muted from spell configurations"])
       autoLabel.playBtn:Hide()
       autoLabel.removeBtn:Hide()
       if autoLabel.muteToggle then autoLabel.muteToggle:Hide() end
@@ -2306,7 +2330,7 @@ local function buildLayout()
       hdr:SetPoint("TOPLEFT", muteListContainer, "TOPLEFT", 0, -yOff)
       hdr:SetPoint("RIGHT", muteListContainer, "RIGHT", 0, 0)
 
-      local displayName = CLASS_DISPLAY[classKey] or (classKey == "_custom" and "Custom" or classKey)
+      local displayName = CLASS_DISPLAY[classKey] or (classKey == "_custom" and L["Custom"] or classKey)
       local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classKey]
       if cc then
         hdr.text:SetText(cc:WrapTextInColorCode(displayName))
@@ -2383,13 +2407,14 @@ local function buildLayout()
             wirePlayStop(row.playBtn, function() return f end)
 
             if not row.muteToggle then
-              row.muteToggle = makeButton(row, "Unmute", 60, nil)
+              local mtMinW = math.max(btnTextWidth(L["Mute"]), btnTextWidth(L["Unmute"])) + 12
+              row.muteToggle = makeButton(row, L["Unmute"], math.max(60, mtMinW), nil)
               row.muteToggle:SetPoint("RIGHT", row.playBtn, "LEFT", -4, 0)
             end
 
             row.removeBtn:Hide()
             row.muteToggle:Show()
-            row.muteToggle:SetText(entry.excluded and "Mute" or "Unmute")
+            row.muteToggle:SetText(entry.excluded and L["Mute"] or L["Unmute"])
             row.muteToggle:SetScript("OnClick", function()
               profile = Resonance.db.profile
               if entry.excluded then
@@ -2399,7 +2424,7 @@ local function buildLayout()
                 end
                 Resonance.rebuildAutoMutes()
                 MuteSoundFile(fid)
-                Resonance.msg("Re-muted FID " .. fid)
+                Resonance.msg(L["Re-muted FID %d"]:format(fid))
               else
                 for sid in pairs(profile.spell_config or {}) do
                   local spellFids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
@@ -2417,7 +2442,7 @@ local function buildLayout()
                 end
                 Resonance.rebuildAutoMutes()
                 UnmuteSoundFile(fid)
-                Resonance.msg("Unmuted FID " .. fid)
+                Resonance.msg(L["Unmuted FID %d"]:format(fid))
               end
               refreshMuteList()
             end)
@@ -2508,7 +2533,8 @@ local function buildLayout()
   eiStatus:SetWidth(300)
   eiStatus:SetJustifyH("LEFT")
 
-  local eiActionBtn = makeButton(eiFrame, "Close", 80, nil)
+  local eiMinW = math.max(btnTextWidth(L["Close"]), btnTextWidth(L["Import"])) + 12
+  local eiActionBtn = makeButton(eiFrame, L["Close"], math.max(80, eiMinW), nil)
   eiActionBtn:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -16, 14)
 
   local eiMode = "export"
@@ -2535,7 +2561,7 @@ local function buildLayout()
         for _ in pairs(result.spells or {}) do sc = sc + 1 end
         local mc = 0
         for _ in pairs(result.mutes or {}) do mc = mc + 1 end
-        eiStatus:SetText("|cff00ff00Imported preset '" .. name .. "': " .. sc .. " spells, " .. mc .. " mutes.|r")
+        eiStatus:SetText("|cff00ff00" .. L["Imported preset '%s': %d spells, %d mutes."]:format(name, sc, mc) .. "|r")
         if refreshPresetList then refreshPresetList() end
       end
     end
@@ -2546,15 +2572,15 @@ local function buildLayout()
   presetDesc:SetPoint("TOPLEFT", presetTab, "TOPLEFT", 16, -12)
   presetDesc:SetWidth(CONTENT_WIDTH)
   presetDesc:SetJustifyH("LEFT")
-  presetDesc:SetText("Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes.")
+  presetDesc:SetText(L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."])
 
-  local presetSaveBtn = makeButton(presetTab, "Save Current Config", 130, nil)
+  local presetSaveBtn = makeButton(presetTab, L["Save Current Config"], 130, nil)
   presetSaveBtn:SetPoint("TOPLEFT", presetDesc, "BOTTOMLEFT", 0, -8)
 
-  local presetImportBtn = makeButton(presetTab, "Import", 54, nil)
+  local presetImportBtn = makeButton(presetTab, L["Import"], 54, nil)
   presetImportBtn:SetPoint("LEFT", presetSaveBtn, "RIGHT", 6, 0)
 
-  local presetExportProfileBtn = makeButton(presetTab, "Export Full Profile", 130, nil)
+  local presetExportProfileBtn = makeButton(presetTab, L["Export Full Profile"], 130, nil)
   presetExportProfileBtn:SetPoint("LEFT", presetImportBtn, "RIGHT", 6, 0)
 
   -- Inline save name input (hidden by default)
@@ -2566,16 +2592,16 @@ local function buildLayout()
 
   local presetSaveNameLabel = presetSaveFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   presetSaveNameLabel:SetPoint("LEFT", 0, 0)
-  presetSaveNameLabel:SetText("Name:")
+  presetSaveNameLabel:SetText(L["Name:"])
 
-  local presetSaveNameBox = makeEditBox(presetSaveFrame, 200, presetSaveNameLabel, 0, 0, "Preset name...")
+  local presetSaveNameBox = makeEditBox(presetSaveFrame, 200, presetSaveNameLabel, 0, 0, L["Preset name..."])
   presetSaveNameBox:ClearAllPoints()
   presetSaveNameBox:SetPoint("LEFT", presetSaveNameLabel, "RIGHT", 6, 0)
 
-  local presetSaveConfirmBtn = makeButton(presetSaveFrame, "Save", 50, nil)
+  local presetSaveConfirmBtn = makeButton(presetSaveFrame, L["Save"], 50, nil)
   presetSaveConfirmBtn:SetPoint("LEFT", presetSaveNameBox, "RIGHT", 4, 0)
 
-  local presetSaveCancelBtn = makeButton(presetSaveFrame, "Cancel", 50, nil)
+  local presetSaveCancelBtn = makeButton(presetSaveFrame, L["Cancel"], 50, nil)
   presetSaveCancelBtn:SetPoint("LEFT", presetSaveConfirmBtn, "RIGHT", 4, 0)
 
   -- List anchor (adjusts when save frame is shown)
@@ -2597,18 +2623,18 @@ local function buildLayout()
   presetHdrName:SetPoint("LEFT", 4, 0)
   presetHdrName:SetWidth(180)
   presetHdrName:SetJustifyH("LEFT")
-  presetHdrName:SetText("Preset")
+  presetHdrName:SetText(L["Preset"])
 
   local presetHdrInfo = presetTableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   presetHdrInfo:SetPoint("LEFT", presetHdrName, "RIGHT", 8, 0)
   presetHdrInfo:SetWidth(140)
   presetHdrInfo:SetJustifyH("LEFT")
-  presetHdrInfo:SetText("Contents")
+  presetHdrInfo:SetText(L["Contents"])
 
   local presetHdrActions = presetTableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   presetHdrActions:SetPoint("RIGHT", presetTableHeader, "RIGHT", -2, 0)
   presetHdrActions:SetJustifyH("RIGHT")
-  presetHdrActions:SetText("Actions")
+  presetHdrActions:SetText(L["Actions"])
 
   -- Preset list container
   local presetListContainer = CreateFrame("Frame", nil, presetTab)
@@ -2618,12 +2644,12 @@ local function buildLayout()
 
   local presetListEmpty = presetListContainer:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   presetListEmpty:SetPoint("TOPLEFT", 4, 0)
-  presetListEmpty:SetText("No presets available.")
+  presetListEmpty:SetText(L["No presets available."])
 
   local presetListRows = {}
 
   -- Remove All Preset Spells button
-  local presetRemoveAllBtn = makeButton(presetTab, "Remove All Preset Spells", 170, nil)
+  local presetRemoveAllBtn = makeButton(presetTab, L["Remove All Preset Spells"], 170, nil)
   presetRemoveAllBtn:SetPoint("TOPLEFT", presetListContainer, "BOTTOMLEFT", 0, -8)
   presetRemoveAllBtn:Hide()
 
@@ -2745,10 +2771,10 @@ local function buildLayout()
         row.infoText:SetJustifyH("LEFT")
         row.infoText:SetWordWrap(false)
 
-        row.applyBtn = makeButton(row, "Apply", 50, nil)
-        row.removeBtn = makeButton(row, "Remove", 65, nil)
-        row.exportBtn = makeButton(row, "Export", 50, nil)
-        row.deleteBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, "Delete preset")
+        row.applyBtn = makeButton(row, L["Apply"], 50, nil)
+        row.removeBtn = makeButton(row, L["Remove"], 65, nil)
+        row.exportBtn = makeButton(row, L["Export"], 50, nil)
+        row.deleteBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, L["Delete preset"])
       end
 
       row:SetPoint("TOPLEFT", presetListContainer, "TOPLEFT", 0, -(idx - 1) * ROW_HEIGHT)
@@ -2768,9 +2794,9 @@ local function buildLayout()
       local nameDisplay = preset.name
       if preset.source == "class" then
         if preset.key == playerClass then
-          nameDisplay = nameDisplay .. "  |cff888888(Your Class)|r"
+          nameDisplay = nameDisplay .. "  |cff888888" .. L["(Your Class)"] .. "|r"
         else
-          nameDisplay = "|cff666666" .. nameDisplay .. "  (Other Class)|r"
+          nameDisplay = "|cff666666" .. nameDisplay .. "  " .. L["(Other Class)"] .. "|r"
         end
       end
       row.nameText:SetText(nameDisplay)
@@ -2827,11 +2853,11 @@ local function buildLayout()
         row.deleteBtn:SetScript("OnClick", function()
           Resonance:DeleteSavedPreset(preset.key)
           Resonance:RemovePresetSpells(preset.key)
-          Resonance.msg(("Deleted preset '%s'."):format(preset.name))
+          Resonance.msg(L["Deleted preset '%s'."]:format(preset.name))
           refreshPresetList()
           if refreshList then refreshList() end
         end)
-        rightEdge = rightEdge - 22
+        rightEdge = rightEdge - (row.deleteBtn:GetWidth() + 4)
       else
         row.deleteBtn:Hide()
       end
@@ -2849,35 +2875,35 @@ local function buildLayout()
         end
         if data then
           eiMode = "export"
-          eiTitle:SetText("Export Preset: " .. preset.name)
+          eiTitle:SetText(L["Export Preset: "] .. preset.name)
           local exportStr = Resonance:ExportPresetData(preset.name, data)
           eiEditBox:SetText(exportStr)
-          eiActionBtn:SetText("Close")
+          eiActionBtn:SetText(L["Close"])
           local sc = 0
           for _ in pairs(data.spells or {}) do sc = sc + 1 end
           local mc = 0
           for _ in pairs(data.mutes or {}) do mc = mc + 1 end
-          eiStatus:SetText(sc .. " spells, " .. mc .. " mutes.")
+          eiStatus:SetText(L["%d spells, %d mutes."]:format(sc, mc))
           eiFrame:Show()
           eiEditBox:SetFocus()
           eiEditBox:HighlightText()
         end
       end)
-      rightEdge = rightEdge - 54
+      rightEdge = rightEdge - (row.exportBtn:GetWidth() + 4)
 
       -- Remove button (only if preset has active spells)
       if preset.activeCount > 0 then
         row.removeBtn:ClearAllPoints()
         row.removeBtn:SetPoint("RIGHT", row, "RIGHT", rightEdge, 0)
-        row.removeBtn:SetText("Remove")
+        row.removeBtn:SetText(L["Remove"])
         row.removeBtn:Show()
         row.removeBtn:SetScript("OnClick", function()
           local removed = Resonance:RemovePresetSpells(preset.key)
-          Resonance.msg(("Removed %d preset spells from '%s'."):format(removed, preset.name))
+          Resonance.msg(L["Removed %d preset spells from '%s'."]:format(removed, preset.name))
           refreshPresetList()
           if refreshList then refreshList() end
         end)
-        rightEdge = rightEdge - 72
+        rightEdge = rightEdge - (row.removeBtn:GetWidth() + 4)
       else
         row.removeBtn:Hide()
       end
@@ -2890,10 +2916,10 @@ local function buildLayout()
         row.applyBtn:SetScript("OnClick", function()
           if preset.source == "class" then
             local added, skipped = Resonance:ApplyClassTemplate(preset.key)
-            Resonance.msg(("Preset '%s' applied: %d spells added, %d skipped."):format(preset.name, added, skipped))
+            Resonance.msg(L["Preset '%s' applied: %d spells added, %d skipped."]:format(preset.name, added, skipped))
           else
             local added, skipped, addedMutes = Resonance:ApplySavedPreset(preset.key)
-            Resonance.msg(("Preset '%s' applied: %d spells, %d mutes added (%d skipped)."):format(preset.name, added, addedMutes, skipped))
+            Resonance.msg(L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."]:format(preset.name, added, addedMutes, skipped))
           end
           refreshPresetList()
           if refreshList then refreshList() end
@@ -2936,13 +2962,13 @@ local function buildLayout()
 
   presetSaveConfirmBtn:SetScript("OnClick", function()
     local name = presetSaveNameBox:GetText()
-    if name == "" then Resonance.msg("Enter a preset name."); return end
+    if name == "" then Resonance.msg(L["Enter a preset name."]); return end
     if Resonance.db.profile.saved_presets[name] then
-      Resonance.msg(("Preset '%s' already exists. Choose a different name."):format(name))
+      Resonance.msg(L["Preset '%s' already exists. Choose a different name."]:format(name))
       return
     end
     Resonance:SaveCurrentAsPreset(name)
-    Resonance.msg(("Saved current config as preset '%s'."):format(name))
+    Resonance.msg(L["Saved current config as preset '%s'."]:format(name))
     presetSaveFrame:Hide()
     presetListAnchor:ClearAllPoints()
     presetListAnchor:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -10)
@@ -2962,10 +2988,10 @@ local function buildLayout()
   -- Import button
   presetImportBtn:SetScript("OnClick", function()
     eiMode = "import"
-    eiTitle:SetText("Import Preset")
+    eiTitle:SetText(L["Import Preset"])
     eiEditBox:SetText("")
-    eiActionBtn:SetText("Import")
-    eiStatus:SetText("Paste a preset string below.")
+    eiActionBtn:SetText(L["Import"])
+    eiStatus:SetText(L["Paste a preset string below."])
     eiFrame:Show()
     eiEditBox:SetFocus()
   end)
@@ -2973,17 +2999,17 @@ local function buildLayout()
   -- Export Full Profile button
   presetExportProfileBtn:SetScript("OnClick", function()
     eiMode = "export"
-    eiTitle:SetText("Export Full Profile")
+    eiTitle:SetText(L["Export Full Profile"])
     local exportStr = Resonance:ExportConfig("Full Profile")
     eiEditBox:SetText(exportStr)
-    eiActionBtn:SetText("Close")
+    eiActionBtn:SetText(L["Close"])
     local sc = 0
     for _ in pairs(profile.spell_config or {}) do sc = sc + 1 end
     local mc = 0
     for fid, enabled in pairs(profile.mute_file_data_ids or {}) do
       if enabled then mc = mc + 1 end
     end
-    eiStatus:SetText(sc .. " spells, " .. mc .. " manual mutes (all classes).")
+    eiStatus:SetText(L["%d spells, %d manual mutes (all classes)."]:format(sc, mc))
     eiFrame:Show()
     eiEditBox:SetFocus()
     eiEditBox:HighlightText()
@@ -2992,7 +3018,7 @@ local function buildLayout()
   -- Remove All Preset Spells button
   presetRemoveAllBtn:SetScript("OnClick", function()
     local removed = Resonance:RemovePresetSpells()
-    Resonance.msg(("Removed %d preset spells."):format(removed))
+    Resonance.msg(L["Removed %d preset spells."]:format(removed))
     refreshPresetList()
     if refreshList then refreshList() end
   end)
@@ -3073,14 +3099,14 @@ function Resonance:SetupOptions()
     local errLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontRed")
     errLabel:SetPoint("CENTER", 0, 0)
     errLabel:SetWidth(500)
-    errLabel:SetText("Resonance options failed to load:\n\n" .. errStr)
+    errLabel:SetText(L["Resonance options failed to load:\n\n"] .. errStr)
     -- Delay chat message until PLAYER_ENTERING_WORLD so the chat frame is ready
     local frame = CreateFrame("Frame")
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     frame:SetScript("OnEvent", function(self)
       self:UnregisterAllEvents()
-      Resonance.msg("|cffff4444Options UI error: " .. errStr .. "|r")
-      Resonance.msg("|cffff4444Type /res diag for library diagnostics.|r")
+      Resonance.msg("|cffff4444" .. L["Options UI error: "] .. errStr .. "|r")
+      Resonance.msg("|cffff4444" .. L["Type /res diag for library diagnostics."] .. "|r")
     end)
   end
 end
