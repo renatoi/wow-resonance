@@ -818,14 +818,15 @@ local function refreshPresetsFromTemplates()
         if entry.spellID == sid then
           local cfg = db.spell_config[sid]
           if cfg then
-            -- Update sound from template
+            -- Update sound and muteExclusions from template (template is source of truth)
             cfg.sound = entry.sound
-            -- Merge muteExclusions: template base + user's additional unmutes
             if entry.muteExclusions then
-              if not cfg.muteExclusions then cfg.muteExclusions = {} end
+              cfg.muteExclusions = {}
               for _, fid in ipairs(entry.muteExclusions) do
                 cfg.muteExclusions[fid] = true
               end
+            else
+              cfg.muteExclusions = nil
             end
             updated = updated + 1
           end

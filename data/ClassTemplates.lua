@@ -20,7 +20,7 @@ Resonance_ClassTemplates = {
     { spellID = 280735, name = "Execute",           sound = 569485, muteExclusions = {569485} },  -- fireshield.ogg (Fury variant)
     { spellID = 1680,   name = "Whirlwind",         sound = 568519 },  -- WhirlwindShort.ogg
     { spellID = 190411, name = "Whirlwind",         sound = 568519 },  -- WhirlwindShort.ogg (Fury variant)
-    { spellID = 6343,   name = "Thunder Clap",      sound = 569222, muteExclusions = {1362397, 1362398, 1362399, 1362400} },  -- ThunderClap.ogg (exclude Heroic Leap impact FIDs)
+    { spellID = 6343,   name = "Thunder Clap",      sound = 569222 },  -- ThunderClap.ogg
     { spellID = 772,    name = "Rend",              sound = 568003 },  -- RendTarget.ogg
     { spellID = 845,    name = "Cleave",            sound = 568646 },  -- spell_heroicstrike_impact_01.ogg
     { spellID = 12294,  name = "Mortal Strike",     sound = 568664 },  -- colossussmash_impact_01.ogg
@@ -43,7 +43,7 @@ Resonance_ClassTemplates = {
     { spellID = 1715,   name = "Hamstring",          sound = 568003 },  -- RendTarget.ogg
     { spellID = 46968,  name = "Shockwave",          sound = 569193 },  -- warrior_shockwave_area.ogg
     -- Ravager talent (replaces Bladestorm, may proc from Revenge)
-    { spellID = 384110, name = "Ravager",            sound = nil, muteExclusions = {1362400} },  -- mute-only (exclude Heroic Leap impact)
+    { spellID = 384110, name = "Ravager",            sound = nil },  -- mute-only
     -- Buffs / Defensives
     { spellID = 23920,  name = "Spell Reflection",     sound = 568951 },  -- spellreflection_state_shield.ogg
     { spellID = 871,    name = "Shield Wall",           sound = 568510 },  -- defensivestance.ogg
@@ -54,11 +54,10 @@ Resonance_ClassTemplates = {
     { spellID = 6673,   name = "Battle Shout",           sound = 568028 },  -- battleshouttarget.ogg
     { spellID = 97462,  name = "Rallying Cry",           sound = 568028 },  -- battleshouttarget.ogg
     { spellID = 12323,  name = "Piercing Howl",          sound = {568028, 568268} },  -- battleshouttarget.ogg + taunt.ogg
-    -- Ranged (Heroic Throw removed: projectile, not instant impact — keep retail sounds)
-    { spellID = 64382,  name = "Shattering Throw",       sound = 568659, muteExclusions = {1362400} },  -- warrior_heroic_throw_impact1.ogg (exclude Heroic Leap impact)
+    -- Ranged (Heroic Throw, Shattering Throw removed: projectiles, not instant impact — keep retail sounds)
     { spellID = 3411,   name = "Intervene",              sound = 568712 },  -- heroricleap.ogg
     -- Mountain Thane hero talent variants
-    { spellID = 435222, name = "Thunder Blast",     sound = {569222, 568516}, muteExclusions = {1362397, 1362398, 1362399, 1362400} },  -- ThunderClap.ogg + LightningBoltImpact.ogg (exclude Heroic Leap impact)
+    { spellID = 435222, name = "Thunder Blast",     sound = 569222 },  -- ThunderClap.ogg
     { spellID = 435791, name = "Lightning Strike",  sound = 568516 },            -- LightningBoltImpact.ogg
   },
   MAGE = {
@@ -94,7 +93,7 @@ Resonance_ClassTemplates = {
     { spellID = 30449,  name = "Spellsteal",        sound = 569658 },  -- unstableaffliction_impact_chest.ogg
     { spellID = 110959, name = "Greater Invisibility", sound = 569698 },  -- invisibility_impact_chest.ogg
     -- Frostfire hero talent variant
-    { spellID = 431044, name = "Frostfire Bolt",    sound = 569765 },  -- frostcast.ogg (replaces Frostbolt for Frostfire mages)
+    { spellID = 431044, name = "Frostfire Bolt",    sound = 569765, muteExclusions = {4626795, 4626797, 4626799, 4626801, 4626803, 4626805, 4626807, 4626809, 4626927, 4626929, 4626931, 4626951, 4626953, 4626955, 4626963, 4626965, 4626967} },  -- frostcast.ogg; keep modern impact (+cast-start)
   },
   ROGUE = {
     { spellID = 53,     name = "Backstab",          sound = 569555 },  -- backstab_impact_chest.ogg
