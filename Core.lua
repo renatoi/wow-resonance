@@ -39,6 +39,18 @@ Resonance.WeaponImpactFIDs    = Resonance_WeaponImpactFIDs;    Resonance_WeaponI
 Resonance.SpellSounds         = Resonance_SpellSounds;          Resonance_SpellSounds         = nil
 Resonance.CharacterSounds     = Resonance_CharacterSounds;      Resonance_CharacterSounds     = nil
 
+-- Localize frequently-called WoW API functions.  Global lookups are
+-- measurably slower in Lua 5.1's interpreter and these are called on
+-- every spell cast and during bulk mute operations.
+local MuteSoundFile   = MuteSoundFile
+local UnmuteSoundFile = UnmuteSoundFile
+local PlaySoundFile   = PlaySoundFile
+local IsPlayerSpell   = IsPlayerSpell
+local UnitRace        = UnitRace
+local UnitSex         = UnitSex
+local UnitClass       = UnitClass
+local C_Timer         = C_Timer
+
 -- Local aliases for hot-path access
 local SpellMuteData    = Resonance.SpellMuteData
 local ClassTemplates   = Resonance.ClassTemplates
@@ -344,29 +356,17 @@ local function clearWeaponMutes()
 end
 
 ---------------------------------------------------------------------------
--- SpellMuteData accessor — values are compacted to strings after init
--- to reduce memory (~25 MB → ~6 MB). Parsed to temp tables on demand
--- without caching, so the compacted footprint is permanent.
+-- SpellMuteData accessor — values are stored as comma-separated strings
+-- directly in the data file to avoid the ~19 MB transient table spike
+-- that Lua table literals would create at parse time.
+-- Parsed to temp tables on demand without caching.
 ---------------------------------------------------------------------------
 local function getSpellMuteFIDs(sid)
   local val = SpellMuteData and SpellMuteData[sid]
   if not val then return nil end
-  if type(val) == "table" then return val end
-  -- Parse packed string: "fid,fid,..." -> { fid, fid, ... }
   local fids = {}
   for s in val:gmatch("%d+") do fids[#fids + 1] = tonumber(s) end
   return fids
-end
-
-local function compactSpellMuteData()
-  if not SpellMuteData then return end
-  for sid, fids in pairs(SpellMuteData) do
-    if type(fids) == "table" then
-      local parts = {}
-      for i, f in ipairs(fids) do parts[i] = tostring(f) end
-      SpellMuteData[sid] = table.concat(parts, ",")
-    end
-  end
 end
 
 ---------------------------------------------------------------------------
@@ -1163,9 +1163,6 @@ function Resonance:OnEnable()
   if db.enabled then applyMutes() end
   if getVoxMode() ~= "off" then applyVoxMutes() end
   if db.muteWeaponImpacts then applyWeaponMutes() end
-  -- Compact SpellMuteData: convert in-memory arrays to packed strings,
-  -- reducing footprint from ~25 MB to ~6 MB. Entries are parsed back on demand.
-  compactSpellMuteData()
   msg(L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."])
 end
 
@@ -1351,9 +1348,7 @@ function Resonance:ChatCommand(input)
       end
     end
     msg("  Settings API: " .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
-    local smdCount = 0
-    if SpellMuteData then for _ in pairs(SpellMuteData) do smdCount = smdCount + 1 end end
-    msg("  Spell mute data: " .. (SpellMuteData and ("|cff00ff00" .. smdCount .. " spells (table)|r") or "|cffff0000NOT LOADED|r"))
+    msg("  Spell mute data: " .. (SpellMuteData and "|cff00ff00loaded (string-packed)|r" or "|cffff0000NOT LOADED|r"))
     msg("  Vox data: " .. (VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
     msg(L["=== End Diagnostics ==="])
   elseif cmd == "sfx" then

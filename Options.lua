@@ -1,6 +1,14 @@
 local Resonance = LibStub("AceAddon-3.0"):GetAddon("Resonance")
 local L = Resonance_L
 
+-- Localize frequently-called WoW API functions to avoid repeated
+-- global table lookups (same rationale as Core.lua).
+local MuteSoundFile   = MuteSoundFile
+local UnmuteSoundFile = UnmuteSoundFile
+local PlaySoundFile   = PlaySoundFile
+local IsPlayerSpell   = IsPlayerSpell
+local C_Timer         = C_Timer
+
 -- Must match Core.lua's MAX_MUTE_DEPTH — the ceiling for WoW's
 -- MuteSoundFile refcount that can accumulate across reloads.
 local MAX_MUTE_DEPTH = 20
@@ -232,76 +240,120 @@ local function wirePlayStop(btn, getSoundFn)
 end
 
 ---------------------------------------------------------------------------
--- Spell search — lazy cache of player-known spells
+-- Spell search — async cache of player-known spells
+--
+-- Building the cache requires ~170k C_Spell.GetSpellName() calls which
+-- would freeze the client for several seconds if done synchronously.
+-- We use a coroutine that yields every SPELL_CACHE_BATCH entries,
+-- spreading the work across frames with a 10ms ticker.
+-- The cache starts building proactively on panel OnShow so it's usually
+-- ready before the user starts typing.
 ---------------------------------------------------------------------------
-local playerSpellCache  -- built once, then reused
+local playerSpellCache       -- nil = not started; table = building or ready
+local spellCacheBusy = false -- true while the coroutine is running
+local spellCacheTicker       -- C_Timer ticker driving the build coroutine
+local spellCacheCallbacks = {} -- functions to call when build finishes
+local SPELL_CACHE_BATCH = 5000
 
-local function buildPlayerSpellCache()
-  if playerSpellCache then return end
+local function startBuildPlayerSpellCache(onComplete)
+  if playerSpellCache and not spellCacheBusy then
+    if onComplete then onComplete() end
+    return
+  end
+  if onComplete then
+    spellCacheCallbacks[#spellCacheCallbacks + 1] = onComplete
+  end
+  if spellCacheBusy then return end
+
+  spellCacheBusy = true
   playerSpellCache = {}
   local seen = {}
   local getName = C_Spell and C_Spell.GetSpellName
 
-  -- Primary source: all spells with mute data (includes talent overrides, procs, etc.)
-  if Resonance.SpellMuteData and getName then
-    for sid in pairs(Resonance.SpellMuteData) do
-      if not seen[sid] then
-        local ok, name = pcall(getName, sid)
-        if ok and name and name ~= "" then
-          seen[sid] = true
-          playerSpellCache[#playerSpellCache + 1] = { spellID = sid, name = name, known = IsPlayerSpell(sid) }
+  local co = coroutine.create(function()
+    -- Primary source: all spells with mute data
+    if Resonance.SpellMuteData and getName then
+      local count = 0
+      for sid in pairs(Resonance.SpellMuteData) do
+        if not seen[sid] then
+          local ok, name = pcall(getName, sid)
+          if ok and name and name ~= "" then
+            seen[sid] = true
+            playerSpellCache[#playerSpellCache + 1] = { spellID = sid, name = name, known = IsPlayerSpell(sid) }
+          end
         end
+        count = count + 1
+        if count % SPELL_CACHE_BATCH == 0 then coroutine.yield() end
       end
     end
-  end
 
-  -- Secondary source: spellbook (catches spells without mute data)
-  if C_SpellBook and C_SpellBook.GetNumSpellBookItems and Enum and Enum.SpellBookSpellBank then
-    local ok, numSpells = pcall(C_SpellBook.GetNumSpellBookItems, Enum.SpellBookSpellBank.Player)
-    if ok and numSpells then
-      for i = 1, numSpells do
-        local ok2, info = pcall(C_SpellBook.GetSpellBookItemInfo, i, Enum.SpellBookSpellBank.Player)
-        if ok2 and info then
-          local sid = info.spellID or info.actionID
-          if sid and not seen[sid] then
-            local name = (getName and getName(sid)) or info.name
-            if name and name ~= "" then
-              seen[sid] = true
-              playerSpellCache[#playerSpellCache + 1] = { spellID = sid, name = name }
+    -- Secondary source: spellbook (catches spells without mute data)
+    if C_SpellBook and C_SpellBook.GetNumSpellBookItems and Enum and Enum.SpellBookSpellBank then
+      local ok, numSpells = pcall(C_SpellBook.GetNumSpellBookItems, Enum.SpellBookSpellBank.Player)
+      if ok and numSpells then
+        for i = 1, numSpells do
+          local ok2, info = pcall(C_SpellBook.GetSpellBookItemInfo, i, Enum.SpellBookSpellBank.Player)
+          if ok2 and info then
+            local sid = info.spellID or info.actionID
+            if sid and not seen[sid] then
+              local name = (getName and getName(sid)) or info.name
+              if name and name ~= "" then
+                seen[sid] = true
+                playerSpellCache[#playerSpellCache + 1] = { spellID = sid, name = name }
+              end
             end
           end
         end
       end
     end
-  end
 
-  -- Tertiary source: talent-transformed spell overrides (e.g. Raging Blow → Crushing Blow)
-  local getOverride = C_Spell and C_Spell.GetOverrideSpell
-  if getOverride and getName then
-    local base = {}
-    for _, entry in ipairs(playerSpellCache) do
-      base[#base + 1] = entry.spellID
-    end
-    for _, sid in ipairs(base) do
-      local ok, overrideID = pcall(getOverride, sid)
-      if ok and overrideID and overrideID ~= sid and not seen[overrideID] then
-        local name = getName(overrideID)
-        if name and name ~= "" then
-          seen[overrideID] = true
-          playerSpellCache[#playerSpellCache + 1] = { spellID = overrideID, name = name }
+    -- Tertiary source: talent-transformed spell overrides (e.g. Raging Blow → Crushing Blow)
+    local getOverride = C_Spell and C_Spell.GetOverrideSpell
+    if getOverride and getName then
+      local base = {}
+      for _, entry in ipairs(playerSpellCache) do
+        base[#base + 1] = entry.spellID
+      end
+      for _, sid in ipairs(base) do
+        local ok, overrideID = pcall(getOverride, sid)
+        if ok and overrideID and overrideID ~= sid and not seen[overrideID] then
+          local name = getName(overrideID)
+          if name and name ~= "" then
+            seen[overrideID] = true
+            playerSpellCache[#playerSpellCache + 1] = { spellID = overrideID, name = name }
+          end
         end
       end
     end
+  end)
+
+  local function step()
+    local ok = coroutine.resume(co)
+    if not ok or coroutine.status(co) == "dead" then
+      if spellCacheTicker then spellCacheTicker:Cancel(); spellCacheTicker = nil end
+      spellCacheBusy = false
+      local pending = { unpack(spellCacheCallbacks) }
+      wipe(spellCacheCallbacks)
+      for _, cb in ipairs(pending) do cb() end
+    end
+  end
+
+  step()
+  if spellCacheBusy then
+    spellCacheTicker = C_Timer.NewTicker(0.01, step)
   end
 end
 
 local function invalidateSpellCache()
+  if spellCacheTicker then spellCacheTicker:Cancel(); spellCacheTicker = nil end
+  spellCacheBusy = false
+  wipe(spellCacheCallbacks)
   playerSpellCache = nil
   fidPathCache = nil
 end
 
 local function searchSpells(query)
-  buildPlayerSpellCache()
+  if not playerSpellCache or spellCacheBusy then return nil end
   local results = {}
   local terms = {}
   for word in query:lower():gmatch("%S+") do terms[#terms + 1] = word end
@@ -1074,6 +1126,12 @@ local function buildLayout()
     local q = edSpellSearchBox:GetText()
     if #q < 2 then edSpellSearchDD:SetData({}, ""); edSpellSearchDD:Hide(); return end
     local results = searchSpells(q)
+    if results == nil then
+      -- Cache still building in the background; show status and re-fire when ready
+      edSpellSearchDD:SetData({}, L["Loading spell data..."])
+      startBuildPlayerSpellCache(function() edDoSpellSearch() end)
+      return
+    end
     edSpellSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
   end
 
@@ -3122,7 +3180,11 @@ local function buildLayout()
   -------------------------------------------------------------------
   allDropdowns = { edBrowseDD, edSpellSearchDD, muteDD }
 
-  panel:SetScript("OnShow", function() invalidateSpellCache(); selectTab(1) end)
+  panel:SetScript("OnShow", function()
+    invalidateSpellCache()
+    startBuildPlayerSpellCache()  -- begin building in background immediately
+    selectTab(1)
+  end)
   panel:SetScript("OnHide", function()
     for _, dd in ipairs(allDropdowns) do dd:Hide() end
     invalidateSpellCache()  -- free cached tables while options panel is closed
