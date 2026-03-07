@@ -26,6 +26,22 @@
 
 Resonance = LibStub("AceAddon-3.0"):NewAddon("Resonance", "AceConsole-3.0", "AceEvent-3.0")
 
+-- Localize Lua built-ins to avoid per-call _G hash lookups.
+-- Standard WoW addon practice; each access through _G costs ~20-50 ns
+-- which adds up on rapid-fire spell casts and bulk mute operations.
+local type      = type
+local tostring  = tostring
+local tonumber  = tonumber
+local pairs     = pairs
+local ipairs    = ipairs
+local select    = select
+local pcall     = pcall
+local wipe      = wipe
+local math      = math
+local string    = string
+local table     = table
+local bit       = bit
+
 local L = Resonance_L
 local ADDON_ROOT = "Interface\\AddOns\\Resonance\\"
 
@@ -94,12 +110,11 @@ local function msg(s)
   DEFAULT_CHAT_FRAME:AddMessage("|cff00d1ff[Resonance]|r " .. tostring(s))
 end
 
+-- Resolve the spell name API once; C_Spell.GetSpellName is always
+-- available on retail 10.x+ and never changes during the session.
+local _GetSpellName = (C_Spell and C_Spell.GetSpellName) or GetSpellInfo
 local function getSpellName(spellID)
-  if C_Spell and C_Spell.GetSpellName then
-    return C_Spell.GetSpellName(spellID)
-  end
-  local name = GetSpellInfo(spellID)
-  return name
+  return _GetSpellName(spellID)
 end
 
 local function sanitizeFilename(name)
@@ -115,6 +130,9 @@ local function normalizePath(p)
   return ADDON_ROOT .. p
 end
 
+-- Pre-compute constant path prefix (avoids per-cast concatenation)
+local VANILLA_SOUND_BASE = ADDON_ROOT .. "sounds\\vanilla\\"
+
 local function resolveLocalFileForSpellName(spellName)
   if not spellName or spellName == "" then return nil end
 
@@ -124,9 +142,8 @@ local function resolveLocalFileForSpellName(spellName)
     return normalizePath(mapped)
   end
 
-  local safe = sanitizeFilename(spellName)
-  local base = ADDON_ROOT .. "sounds\\vanilla\\"
-  return base .. safe .. ".wav", base .. safe .. ".ogg"
+  local base = VANILLA_SOUND_BASE .. sanitizeFilename(spellName)
+  return base .. ".wav", base .. ".ogg"
 end
 
 local function getChannel()
@@ -152,13 +169,15 @@ end
 local activePlaybackFIDs = {}
 
 local function playOneSoundWithUnmute(snd, dbg)
-  local isMuted = type(snd) == "number" and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd])
+  local isNum = type(snd) == "number"
+  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd])
   if dbg then msg(("  Playing: %s (muted: %s)"):format(tostring(snd), tostring(isMuted and true or false))) end
   if isMuted then
     local fid = snd
+    local ch = db.soundChannel or "Master"
     for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     activePlaybackFIDs[fid] = (activePlaybackFIDs[fid] or 0) + 1
-    previewSound(fid)
+    PlaySoundFile(fid, ch)
     -- Re-mute symmetrically (same count as unmutes) to restore WoW's internal
     -- refcount, but only after the sound buffer has had time to start playing.
     C_Timer.After(0.5, function()
@@ -176,35 +195,53 @@ local function playOneSoundWithUnmute(snd, dbg)
         for _ = 1, MAX_MUTE_DEPTH do MuteSoundFile(fid) end
       end
     end)
+  elseif isNum then
+    -- Unmuted numeric FID: play directly (skip previewSound overhead)
+    PlaySoundFile(snd, db.soundChannel or "Master")
   else
     previewSound(snd)
   end
 end
 
-local function playResolvedSound(spellID, spellName)
-  local dbg = db.debug
+local function playResolvedSound(spellID, spellName, cfg, dbg)
+  -- Hot-path callers pass cfg and dbg to avoid redundant lookups;
+  -- other callers (e.g., /res testspell) can omit them.
+  if dbg == nil then dbg = db.debug end
 
   -- 0) spell_config: unified per-spell configuration
-  local cfg = db.spell_config and db.spell_config[spellID]
+  if cfg == nil then
+    cfg = db.spell_config and db.spell_config[spellID]
+  end
   if cfg and cfg.sound then
-    -- Support single sound, table of sounds, or table with random pool
-    local sounds = type(cfg.sound) == "table" and cfg.sound or { cfg.sound }
-    if dbg then msg(("  spell_config: %d sound(s), channel: %s"):format(#sounds, getChannel())) end
-    for _, snd in ipairs(sounds) do
-      playOneSoundWithUnmute(snd, dbg)
-    end
-    -- Random pool: pick one at random from cfg.sound.random
-    if type(cfg.sound) == "table" and cfg.sound.random and #cfg.sound.random > 0 then
-      local pool = cfg.sound.random
-      local pick = pool[math.random(1, #pool)]
-      if dbg then msg(("  Random pool (%d): picked %s"):format(#pool, tostring(pick))) end
-      playOneSoundWithUnmute(pick, dbg)
+    local sound = cfg.sound
+    if type(sound) == "table" then
+      -- Multiple sounds and/or random pool
+      if dbg then msg(("  spell_config: %d sound(s), channel: %s"):format(#sound, getChannel())) end
+      for _, snd in ipairs(sound) do
+        playOneSoundWithUnmute(snd, dbg)
+      end
+      if sound.random and #sound.random > 0 then
+        local pool = sound.random
+        local pick = pool[math.random(1, #pool)]
+        if dbg then msg(("  Random pool (%d): picked %s"):format(#pool, tostring(pick))) end
+        playOneSoundWithUnmute(pick, dbg)
+      end
+    else
+      -- Single sound (common case) — avoid creating a wrapper table
+      if dbg then msg(("  spell_config: 1 sound, channel: %s"):format(getChannel())) end
+      playOneSoundWithUnmute(sound, dbg)
     end
     -- User explicitly configured this sound; don't fall through
     -- (PlaySoundFile may return nil for valid FileDataIDs)
     return true
   elseif dbg then
     msg("  No spell_config sound for this spell.")
+  end
+
+  -- Fallback paths need spellName; resolve lazily (skipped on the
+  -- common path above where cfg.sound existed and returned early).
+  if spellName == nil then
+    spellName = _GetSpellName(spellID) or ""
   end
 
   -- 1) Prefer local extracted "vanilla" file by spell name
@@ -230,18 +267,9 @@ local function playResolvedSound(spellID, spellName)
   return false
 end
 
-local function shouldTriggerForSpell(spellID)
-  if not db.enabled then return false end
-  if not spellID then return false end
-
-  -- Always trigger for spells explicitly configured by the user
-  if db.spell_config and db.spell_config[spellID] then
-    return true
-  end
-
-  -- Trigger for spells in the player's spellbook
-  return IsPlayerSpell(spellID)
-end
+-- shouldTriggerForSpell is inlined into UNIT_SPELLCAST_SUCCEEDED for
+-- the hot path to eliminate function call overhead and allow the
+-- spell_config lookup to be passed through to playResolvedSound.
 
 ---------------------------------------------------------------------------
 -- Global vocalization mute
@@ -410,6 +438,9 @@ local function filterExclusions(fids, exclusions)
   return filtered
 end
 
+-- Cached at file scope — the player's class token never changes during a session.
+local _, playerClassToken = UnitClass("player")
+
 -- Should we auto-mute for this spell? Only mute FIDs for spells that belong
 -- to the player's own class (or custom / saved-preset spells). Spells from
 -- other class templates would just silence those sounds for nearby players
@@ -418,8 +449,7 @@ local function shouldAutoMuteSpell(spellID)
   local source = db.preset_spells and db.preset_spells[spellID]
   if not source then return true end                    -- custom spell, always mute
   if not (ClassTemplates and ClassTemplates[source]) then return true end  -- saved preset (not a class key)
-  local _, myClass = UnitClass("player")
-  return source == myClass
+  return source == playerClassToken
 end
 
 local function rebuildAutoMutes()
@@ -1180,16 +1210,26 @@ end
 
 function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   if unit ~= "player" then return end
-  if not spellID then return end
-  if not shouldTriggerForSpell(spellID) then return end
+  if not db.enabled or not spellID then return end
 
-  local spellName = getSpellName(spellID) or ""
+  -- Inlined shouldTriggerForSpell: check spell_config first (common
+  -- case for configured spells), fall back to IsPlayerSpell (WoW API).
+  -- Keeping the cfg reference avoids a redundant lookup in playResolvedSound.
+  local spell_config = db.spell_config
+  local cfg = spell_config and spell_config[spellID]
+  if not cfg and not IsPlayerSpell(spellID) then return end
 
-  if db.debug then
+  -- Defer GetSpellName: for the common case (configured sound), the name
+  -- is never used, so skip the C API call entirely unless debug is on or
+  -- we fall through to the vanilla-file / FID-mapping fallback paths.
+  local dbg = db.debug
+  local spellName
+  if dbg then
+    spellName = _GetSpellName(spellID) or ""
     msg(("Cast: %s (spellID %d)"):format(spellName ~= "" and spellName or "<?>", spellID))
   end
 
-  playResolvedSound(spellID, spellName)
+  playResolvedSound(spellID, spellName, cfg, dbg)
 end
 
 ---------------------------------------------------------------------------

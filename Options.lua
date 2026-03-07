@@ -1,8 +1,21 @@
 local Resonance = LibStub("AceAddon-3.0"):GetAddon("Resonance")
 local L = Resonance_L
 
--- Localize frequently-called WoW API functions to avoid repeated
--- global table lookups (same rationale as Core.lua).
+-- Localize Lua built-ins and WoW API functions to avoid per-call
+-- _G hash lookups (same rationale as Core.lua).
+local type       = type
+local tostring   = tostring
+local tonumber   = tonumber
+local pairs      = pairs
+local ipairs     = ipairs
+local pcall      = pcall
+local wipe       = wipe
+local unpack     = unpack
+local math       = math
+local string     = string
+local table      = table
+local coroutine  = coroutine
+
 local MuteSoundFile   = MuteSoundFile
 local UnmuteSoundFile = UnmuteSoundFile
 local PlaySoundFile   = PlaySoundFile
