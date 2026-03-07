@@ -46,6 +46,10 @@ local RaceCSD          = Resonance.RaceCSD
 local VoxFIDs          = Resonance.VoxFIDs
 local WeaponImpactFIDs = Resonance.WeaponImpactFIDs
 
+-- WoW's MuteSoundFile is refcounted; this ceiling covers the worst case of
+-- stale mute state accumulated across reloads/multiple spells sharing FIDs.
+local MAX_MUTE_DEPTH = 20
+
 local db          -- shortcut to self.db.profile, set in OnInitialize
 local autoMutedFIDs = {}  -- runtime-only refcounted mute table (not saved)
 local voxMutedFIDs = {}   -- runtime-only: FIDs muted by global vox toggle
@@ -140,12 +144,11 @@ local function playOneSoundWithUnmute(snd, dbg)
   if dbg then msg(("  Playing: %s (muted: %s)"):format(tostring(snd), tostring(isMuted and true or false))) end
   if isMuted then
     local fid = snd
-    -- WoW's MuteSoundFile is refcounted; unmute enough times to fully clear it
-    -- (stale mute state can accumulate across reloads when FIDs appear in many spells' mute data)
-    for _ = 1, 20 do UnmuteSoundFile(fid) end
+    for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     activePlaybackFIDs[fid] = (activePlaybackFIDs[fid] or 0) + 1
     previewSound(fid)
-    -- Re-mute after a delay so the sound has time to play
+    -- Re-mute symmetrically (same count as unmutes) to restore WoW's internal
+    -- refcount, but only after the sound buffer has had time to start playing.
     C_Timer.After(0.5, function()
       local count = (activePlaybackFIDs[fid] or 1) - 1
       if count > 0 then
@@ -153,14 +156,12 @@ local function playOneSoundWithUnmute(snd, dbg)
         return
       end
       activePlaybackFIDs[fid] = nil
-      if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then
-        MuteSoundFile(fid)
-      elseif db.mute_file_data_ids[fid] then
-        MuteSoundFile(fid)
-      elseif weaponMutedFIDs[fid] then
-        MuteSoundFile(fid)
-      elseif voxMutedFIDs[fid] then
-        MuteSoundFile(fid)
+      local shouldRemute = (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+        or db.mute_file_data_ids[fid]
+        or weaponMutedFIDs[fid]
+        or voxMutedFIDs[fid]
+      if shouldRemute then
+        for _ = 1, MAX_MUTE_DEPTH do MuteSoundFile(fid) end
       end
     end)
   else
@@ -343,8 +344,9 @@ local function clearWeaponMutes()
 end
 
 ---------------------------------------------------------------------------
--- SpellMuteData lazy accessor — values are compacted to strings after init
--- to reduce memory (~25 MB → ~6 MB). Parsed back to tables on demand.
+-- SpellMuteData accessor — values are compacted to strings after init
+-- to reduce memory (~25 MB → ~6 MB). Parsed to temp tables on demand
+-- without caching, so the compacted footprint is permanent.
 ---------------------------------------------------------------------------
 local function getSpellMuteFIDs(sid)
   local val = SpellMuteData and SpellMuteData[sid]
@@ -353,7 +355,6 @@ local function getSpellMuteFIDs(sid)
   -- Parse packed string: "fid,fid,..." -> { fid, fid, ... }
   local fids = {}
   for s in val:gmatch("%d+") do fids[#fids + 1] = tonumber(s) end
-  SpellMuteData[sid] = fids
   return fids
 end
 

@@ -1,6 +1,10 @@
 local Resonance = LibStub("AceAddon-3.0"):GetAddon("Resonance")
 local L = Resonance_L
 
+-- Must match Core.lua's MAX_MUTE_DEPTH — the ceiling for WoW's
+-- MuteSoundFile refcount that can accumulate across reloads.
+local MAX_MUTE_DEPTH = 20
+
 ---------------------------------------------------------------------------
 -- Sound database search (coroutine-based to avoid frame hitches on large DBs)
 ---------------------------------------------------------------------------
@@ -59,6 +63,9 @@ local function searchDB(sourceDB, query, key, callback)
     if not ok then
       activeSearches[key] = nil
       if ticker then ticker:Cancel() end
+      if Resonance.db and Resonance.db.profile.debug then
+        Resonance.msg("Search error (" .. key .. "): " .. tostring(results))
+      end
       callback({})
     elseif coroutine.status(co) == "dead" then
       activeSearches[key] = nil
@@ -146,12 +153,13 @@ local function safePlaySound(value)
   local fid = tonumber(value)
   local willPlay, handle
   if fid then
-    -- Aggressively unmute to handle stale mutes from previous sessions
-    for _ = 1, 20 do UnmuteSoundFile(fid) end
+    for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     willPlay, handle = PlaySoundFile(fid, "Master")
-    -- Re-mute after a delay if the FID should be muted
+    -- Re-mute symmetrically (same count as unmutes) to restore WoW's refcount
     if isFIDMuted(fid) then
-      C_Timer.After(0.5, function() MuteSoundFile(fid) end)
+      C_Timer.After(0.5, function()
+        for _ = 1, MAX_MUTE_DEPTH do MuteSoundFile(fid) end
+      end)
     end
   else
     willPlay, handle = PlaySoundFile(value, "Master")
@@ -289,6 +297,7 @@ end
 
 local function invalidateSpellCache()
   playerSpellCache = nil
+  fidPathCache = nil
 end
 
 local function searchSpells(query)
@@ -716,6 +725,9 @@ local function buildLayout()
   if built then return end
   built = true
 
+  -- AceDB can switch profiles mid-session, so `profile` captured here may go
+  -- stale. Callbacks that mutate profile data re-read `Resonance.db.profile`
+  -- at their start to ensure they operate on the active profile.
   local profile = Resonance.db.profile
   local _, playerClass = UnitClass("player")
 
@@ -1284,8 +1296,6 @@ local function buildLayout()
     if editorFrame:IsShown() and edResizeEditor then edResizeEditor() end
   end
 
-  -- Alias for openEditor compatibility
-  local function edUpdateCurrentSound() edRefreshSoundList() end
 
   edBrowseRadio = makeRadio(editorFrame)
   edBrowseRadio:SetPoint("TOPLEFT", edSoundListFrame, "BOTTOMLEFT", 0, -6)
@@ -1637,7 +1647,7 @@ local function buildLayout()
     end
 
     edUpdateSpellPreview()
-    edUpdateCurrentSound()
+    edRefreshSoundList()
     edSetSoundMode(hasSpellDB())
     refreshAutoMuteSection(spellID)
     edResizeEditor()
@@ -3115,6 +3125,7 @@ local function buildLayout()
   panel:SetScript("OnShow", function() invalidateSpellCache(); selectTab(1) end)
   panel:SetScript("OnHide", function()
     for _, dd in ipairs(allDropdowns) do dd:Hide() end
+    invalidateSpellCache()  -- free cached tables while options panel is closed
   end)
 
   editorFrame:HookScript("OnHide", function()
@@ -3125,7 +3136,7 @@ local function buildLayout()
   -- Click catcher to close dropdowns when clicking outside
   local clickCatcher = CreateFrame("Button", nil, UIParent)
   clickCatcher:SetAllPoints()
-  clickCatcher:SetFrameStrata("TOOLTIP")
+  clickCatcher:SetFrameStrata("FULLSCREEN_DIALOG")
   clickCatcher:SetFrameLevel(0)
   clickCatcher:Hide()
   clickCatcher:RegisterForClicks("AnyUp")
