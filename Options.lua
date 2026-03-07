@@ -164,6 +164,7 @@ local function isFIDMuted(fid)
   if Resonance.autoMutedFIDs and (Resonance.autoMutedFIDs[fid] or 0) > 0 then return true end
   if Resonance.voxMutedFIDs and Resonance.voxMutedFIDs[fid] then return true end
   if Resonance.weaponMutedFIDs and Resonance.weaponMutedFIDs[fid] then return true end
+  if Resonance.creatureMutedFIDs and Resonance.creatureMutedFIDs[fid] then return true end
   return false
 end
 
@@ -184,6 +185,7 @@ local function safePlaySound(value)
         if Resonance.autoMutedFIDs and (Resonance.autoMutedFIDs[fid] or 0) > 0 then MuteSoundFile(fid) end
         if Resonance.voxMutedFIDs and Resonance.voxMutedFIDs[fid] then MuteSoundFile(fid) end
         if Resonance.weaponMutedFIDs and Resonance.weaponMutedFIDs[fid] then MuteSoundFile(fid) end
+        if Resonance.creatureMutedFIDs and Resonance.creatureMutedFIDs[fid] then MuteSoundFile(fid) end
       end)
     end
   else
@@ -455,8 +457,26 @@ local function registerPanel()
   Settings.RegisterAddOnCategory(category)
 end
 
+-- Settings.OpenToCategory calls the protected OpenSettingsPanel(), which is
+-- blocked during combat lockdown.  Defer to PLAYER_REGEN_ENABLED so the
+-- panel opens automatically once combat ends.
+local pendingOpen = false
 Resonance.openOptions = function()
-  if category then Settings.OpenToCategory(category.ID) end
+  if not category then return end
+  if InCombatLockdown() then
+    if not pendingOpen then
+      pendingOpen = true
+      local f = CreateFrame("Frame")
+      f:RegisterEvent("PLAYER_REGEN_ENABLED")
+      f:SetScript("OnEvent", function(self)
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        pendingOpen = false
+        if category then Settings.OpenToCategory(category.ID) end
+      end)
+    end
+    return
+  end
+  Settings.OpenToCategory(category.ID)
 end
 
 ---------------------------------------------------------------------------
@@ -1769,6 +1789,7 @@ local function buildLayout()
       profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions }
       Resonance.applyAutoMutesForSpell(sid)
     end
+    Resonance.invalidateSpellNameIndex()
     closeEditor()
     refreshList()
   end)
@@ -1790,6 +1811,7 @@ local function buildLayout()
     end
     wipe(profile.spell_config)
     wipe(profile.preset_spells)
+    Resonance.invalidateSpellNameIndex()
     closeEditor()
     refreshList()
     Resonance.msg(L["Cleared all spell sound configurations."])
@@ -1995,6 +2017,7 @@ local function buildLayout()
             Resonance.removeAutoMutesForSpell(entry.spellID)
             Resonance.db.profile.spell_config[entry.spellID] = nil
             Resonance.db.profile.preset_spells[entry.spellID] = nil
+            Resonance.invalidateSpellNameIndex()
             closeEditor()
             refreshList()
           end)

@@ -22,7 +22,7 @@ if locale == "ptBR" then
   L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Mostrar botão no minimapa. Clique esquerdo abre opções, clique direito ativa/desativa, arraste para reposicionar."
   L["Mute weapon impact sounds"] = "Silenciar sons de impacto de arma"
   L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."] = "Silenciar todos os sons de impacto e golpe de arma (o som de acerto corpo a corpo). Aplica-se globalmente independente do tipo de arma."
-  L["Mute character vocalizations"] = "Silenciar vocalizações do personagem"
+  L["Mute character vocalizations"] = "Silenciar vocalizações"
   L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Silenciar grunhidos de combate, gritos e sons de esforço. 'Meu' silencia sua própria raça/gênero, 'Todas as raças' silencia todas as raças/gêneros do jogo."
   L["Off"] = "Desativado"
   L["Mine"] = "Meu"
@@ -188,6 +188,18 @@ if locale == "ptBR" then
   L["(none)"] = "(nenhum)"
   L["%d spells"] = "%d magias"
   L["(%d active)"] = "(%d ativas)"
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "Silenciar vocalizações de criaturas"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "Silenciar grunhidos de ataque, dano, morte e aggro de monstros por categoria de criatura."
+  L["Muted %d creature vocalization sounds."] = "Silenciados %d sons de vocalização de criaturas."
+  L["Cleared %d creature vocalization mutes."] = "%d silenciamentos de vocalização de criaturas removidos."
+  L["Beast"] = "Besta"
+  L["Dragonkin"] = "Draconiano"
+  L["Humanoid"] = "Humanoide"
+  L["Demon"] = "Demônio"
+  L["Undead"] = "Morto-vivo"
+  L["Elemental"] = "Elemental"
+  L["Mechanical"] = "Mecânico"
 
 ---------------------------------------------------------------------------
 -- German
@@ -201,7 +213,7 @@ elseif locale == "deDE" then
   L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Minikartenknopf anzeigen. Linksklick öffnet Optionen, Rechtsklick schaltet ein/aus, Ziehen zum Verschieben."
   L["Mute weapon impact sounds"] = "Waffenaufprallgeräusche stummschalten"
   L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."] = "Alle Waffenaufprall- und Schwunggeräusche stummschalten. Gilt global unabhängig vom Waffentyp."
-  L["Mute character vocalizations"] = "Charakter-Lautäußerungen stummschalten"
+  L["Mute character vocalizations"] = "Lautäußerungen stummschalten"
   L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Kampfgrunzen, Rufe und Anstrengungslaute stummschalten. 'Meine' schaltet eigene Rasse/Geschlecht stumm, 'Alle Völker' alle im Spiel."
   L["Off"] = "Aus"
   L["Mine"] = "Meine"
@@ -354,6 +366,18 @@ elseif locale == "deDE" then
   L["(none)"] = "(keine)"
   L["%d spells"] = "%d Zauber"
   L["(%d active)"] = "(%d aktiv)"
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "Kreaturenlaute stummschalten"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "Angriffsgeräusche, Verletzungslaute, Todesschreie und Aggro-Sounds von Monstern nach Kreaturenkategorie stummschalten."
+  L["Muted %d creature vocalization sounds."] = "%d Kreaturenlaute stummgeschaltet."
+  L["Cleared %d creature vocalization mutes."] = "%d Kreaturenlaut-Stummschaltungen entfernt."
+  L["Beast"] = "Wildtier"
+  L["Dragonkin"] = "Drachkin"
+  L["Humanoid"] = "Humanoid"
+  L["Demon"] = "Dämon"
+  L["Undead"] = "Untoter"
+  L["Elemental"] = "Elementar"
+  L["Mechanical"] = "Mechanisch"
 
 ---------------------------------------------------------------------------
 -- French
@@ -367,7 +391,7 @@ elseif locale == "frFR" then
   L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Afficher un bouton sur la minicarte. Clic gauche pour les options, clic droit pour activer/désactiver, glisser pour déplacer."
   L["Mute weapon impact sounds"] = "Couper les sons d'impact d'arme"
   L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."] = "Couper tous les sons d'impact et de frappe d'arme. S'applique globalement quel que soit le type d'arme."
-  L["Mute character vocalizations"] = "Couper les vocalisations du personnage"
+  L["Mute character vocalizations"] = "Couper les vocalisations"
   L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Couper les grognements, cris et sons d'effort. 'Les miennes' coupe votre race/genre, 'Toutes les races' coupe chaque race/genre du jeu."
   L["Off"] = "Désactivé"
   L["Mine"] = "Les miennes"
@@ -520,6 +544,18 @@ elseif locale == "frFR" then
   L["(none)"] = "(aucun)"
   L["%d spells"] = "%d sorts"
   L["(%d active)"] = "(%d actifs)"
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "Couper les vocalisations de créatures"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "Couper les grognements d'attaque, blessure, mort et aggro des monstres par catégorie de créature."
+  L["Muted %d creature vocalization sounds."] = "%d vocalisations de créatures coupées."
+  L["Cleared %d creature vocalization mutes."] = "%d sourdines de vocalisations de créatures supprimées."
+  L["Beast"] = "Bête"
+  L["Dragonkin"] = "Draconien"
+  L["Humanoid"] = "Humanoïde"
+  L["Demon"] = "Démon"
+  L["Undead"] = "Mort-vivant"
+  L["Elemental"] = "Élémentaire"
+  L["Mechanical"] = "Mécanique"
 
 ---------------------------------------------------------------------------
 -- Spanish (Spain & Latin America)
@@ -533,7 +569,7 @@ elseif locale == "esES" or locale == "esMX" then
   L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Mostrar botón en el minimapa. Clic izquierdo abre opciones, clic derecho activa/desactiva, arrastra para mover."
   L["Mute weapon impact sounds"] = "Silenciar sonidos de impacto de arma"
   L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."] = "Silenciar todos los sonidos de impacto y golpe de arma. Se aplica globalmente sin importar el tipo de arma."
-  L["Mute character vocalizations"] = "Silenciar vocalizaciones del personaje"
+  L["Mute character vocalizations"] = "Silenciar vocalizaciones"
   L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Silenciar gruñidos, gritos y sonidos de esfuerzo. 'Mías' silencia tu raza/género, 'Todas las razas' silencia todas las razas/géneros del juego."
   L["Off"] = "Desactivado"
   L["Mine"] = "Mías"
@@ -686,6 +722,18 @@ elseif locale == "esES" or locale == "esMX" then
   L["(none)"] = "(ninguno)"
   L["%d spells"] = "%d hechizos"
   L["(%d active)"] = "(%d activos)"
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "Silenciar vocalizaciones de criaturas"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "Silenciar gruñidos de ataque, herida, muerte y sonidos de aggro de monstruos por categoría de criatura."
+  L["Muted %d creature vocalization sounds."] = "Silenciadas %d vocalizaciones de criaturas."
+  L["Cleared %d creature vocalization mutes."] = "%d silenciamientos de vocalizaciones de criaturas eliminados."
+  L["Beast"] = "Bestia"
+  L["Dragonkin"] = "Dragón"
+  L["Humanoid"] = "Humanoide"
+  L["Demon"] = "Demonio"
+  L["Undead"] = "No-muerto"
+  L["Elemental"] = "Elemental"
+  L["Mechanical"] = "Mecánico"
 
 ---------------------------------------------------------------------------
 -- Italian
@@ -699,7 +747,7 @@ elseif locale == "itIT" then
   L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Mostra un pulsante sulla minimappa. Clic sinistro apre le opzioni, clic destro attiva/disattiva, trascina per spostare."
   L["Mute weapon impact sounds"] = "Silenzia suoni d'impatto delle armi"
   L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."] = "Silenzia tutti i suoni d'impatto e oscillazione delle armi. Si applica globalmente indipendentemente dal tipo di arma."
-  L["Mute character vocalizations"] = "Silenzia vocalizzazioni del personaggio"
+  L["Mute character vocalizations"] = "Silenzia vocalizzazioni"
   L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Silenzia grugniti, urla e suoni di sforzo. 'Mie' silenzia la tua razza/genere, 'Tutte le razze' silenzia ogni razza/genere nel gioco."
   L["Off"] = "Disattivato"
   L["Mine"] = "Mie"
@@ -852,6 +900,18 @@ elseif locale == "itIT" then
   L["Resonance options failed to load:\n\n"] = "Le opzioni di Resonance non sono state caricate:\n\n"
   L["Options UI error: "] = "Errore interfaccia opzioni: "
   L["Type /res diag for library diagnostics."] = "Digita /res diag per la diagnostica delle librerie."
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "Silenzia vocalizzazioni creature"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "Silenzia grugniti d'attacco, suoni di ferita, morte e aggro dei mostri per categoria di creatura."
+  L["Muted %d creature vocalization sounds."] = "Silenziate %d vocalizzazioni di creature."
+  L["Cleared %d creature vocalization mutes."] = "%d silenziamenti di vocalizzazioni creature rimossi."
+  L["Beast"] = "Bestia"
+  L["Dragonkin"] = "Dragoide"
+  L["Humanoid"] = "Umanoide"
+  L["Demon"] = "Demone"
+  L["Undead"] = "Non morto"
+  L["Elemental"] = "Elementale"
+  L["Mechanical"] = "Meccanico"
 
 ---------------------------------------------------------------------------
 -- Russian
@@ -865,7 +925,7 @@ elseif locale == "ruRU" then
   L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Показать кнопку на миникарте. ЛКМ — настройки, ПКМ — вкл/выкл, перетащить — переместить."
   L["Mute weapon impact sounds"] = "Приглушить звуки ударов оружия"
   L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."] = "Приглушить все звуки ударов и замахов оружия. Применяется глобально независимо от типа оружия."
-  L["Mute character vocalizations"] = "Приглушить вокализации персонажа"
+  L["Mute character vocalizations"] = "Заглушить вокализации"
   L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Приглушить боевые крики, стоны и звуки усилий. 'Мои' — ваша раса/пол, 'Все расы' — все расы/полы в игре."
   L["Off"] = "Выкл"
   L["Mine"] = "Мои"
@@ -1018,6 +1078,18 @@ elseif locale == "ruRU" then
   L["Resonance options failed to load:\n\n"] = "Настройки Resonance не удалось загрузить:\n\n"
   L["Options UI error: "] = "Ошибка интерфейса настроек: "
   L["Type /res diag for library diagnostics."] = "Введите /res diag для диагностики библиотек."
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "Заглушить звуки существ"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "Заглушить рычание атаки, звуки ранения, смерти и аггро монстров по категории существ."
+  L["Muted %d creature vocalization sounds."] = "Заглушено %d звуков существ."
+  L["Cleared %d creature vocalization mutes."] = "Снято %d заглушений звуков существ."
+  L["Beast"] = "Животное"
+  L["Dragonkin"] = "Дракончик"
+  L["Humanoid"] = "Гуманоид"
+  L["Demon"] = "Демон"
+  L["Undead"] = "Нежить"
+  L["Elemental"] = "Элементаль"
+  L["Mechanical"] = "Механизм"
 
 ---------------------------------------------------------------------------
 -- Korean
@@ -1184,6 +1256,18 @@ elseif locale == "koKR" then
   L["Resonance options failed to load:\n\n"] = "Resonance 옵션을 불러오지 못했습니다:\n\n"
   L["Options UI error: "] = "옵션 UI 오류: "
   L["Type /res diag for library diagnostics."] = "/res diag를 입력하여 라이브러리 진단을 실행하세요."
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "생물 소리 음소거"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "생물 유형별로 몬스터의 공격, 부상, 죽음, 어그로 소리를 음소거합니다."
+  L["Muted %d creature vocalization sounds."] = "생물 소리 %d개 음소거됨."
+  L["Cleared %d creature vocalization mutes."] = "생물 소리 음소거 %d개 해제됨."
+  L["Beast"] = "야수"
+  L["Dragonkin"] = "용족"
+  L["Humanoid"] = "인간형"
+  L["Demon"] = "악마"
+  L["Undead"] = "언데드"
+  L["Elemental"] = "정령"
+  L["Mechanical"] = "기계"
 
 ---------------------------------------------------------------------------
 -- Simplified Chinese
@@ -1350,6 +1434,18 @@ elseif locale == "zhCN" then
   L["Resonance options failed to load:\n\n"] = "Resonance 选项加载失败：\n\n"
   L["Options UI error: "] = "选项界面错误："
   L["Type /res diag for library diagnostics."] = "输入 /res diag 进行库诊断。"
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "静音生物叫声"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "按生物类别静音怪物的攻击、受伤、死亡和仇恨音效。"
+  L["Muted %d creature vocalization sounds."] = "已静音 %d 个生物叫声。"
+  L["Cleared %d creature vocalization mutes."] = "已取消 %d 个生物叫声静音。"
+  L["Beast"] = "野兽"
+  L["Dragonkin"] = "龙类"
+  L["Humanoid"] = "人型生物"
+  L["Demon"] = "恶魔"
+  L["Undead"] = "亡灵"
+  L["Elemental"] = "元素"
+  L["Mechanical"] = "机械"
 
 ---------------------------------------------------------------------------
 -- Traditional Chinese
@@ -1516,4 +1612,16 @@ elseif locale == "zhTW" then
   L["Resonance options failed to load:\n\n"] = "Resonance 選項載入失敗：\n\n"
   L["Options UI error: "] = "選項介面錯誤："
   L["Type /res diag for library diagnostics."] = "輸入 /res diag 進行程式庫診斷。"
+  -- Creature vocalizations
+  L["Mute creature vocalizations"] = "靜音生物叫聲"
+  L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."] = "按生物類別靜音怪物的攻擊、受傷、死亡和仇恨音效。"
+  L["Muted %d creature vocalization sounds."] = "已靜音 %d 個生物叫聲。"
+  L["Cleared %d creature vocalization mutes."] = "已取消 %d 個生物叫聲靜音。"
+  L["Beast"] = "野獸"
+  L["Dragonkin"] = "龍類"
+  L["Humanoid"] = "人型生物"
+  L["Demon"] = "惡魔"
+  L["Undead"] = "不死族"
+  L["Elemental"] = "元素"
+  L["Mechanical"] = "機械"
 end
