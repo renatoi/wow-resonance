@@ -19,7 +19,9 @@ Repetitive game sounds can be a real problem for players with sensory hypersensi
 
 ## Installation
 
-Download the latest `Resonance-x.x.x.zip` from [Releases](https://github.com/renatoi/resonance/releases), extract it into your `World of Warcraft/_retail_/Interface/AddOns/` folder, and restart the game.
+Install from [CurseForge](https://www.curseforge.com/wow/addons/resonance) or [Wago](https://addons.wago.io/addons/qGYZ9lNg) using your preferred addon manager (CurseForge app, WowUp, etc.).
+
+Manual install: download the latest zip from [GitHub Releases](https://github.com/renatoi/wow-resonance/releases), extract it into your `World of Warcraft/_retail_/Interface/AddOns/` folder, and restart the game.
 
 ## Usage
 
@@ -78,6 +80,7 @@ data/
   ClassTemplates.lua   -- Built-in class presets (spells across 11 classes)
   SpellMuteData.lua    -- Auto-generated: spell->FileDataID mute mappings,
                          vocalization data, weapon impact data
+  CreatureVoxData.lua  -- Auto-generated: creature vocalization mute mappings
   ClassicSpellSounds.lua -- Reference: spellID -> classic-era sound FIDs
                          (not loaded at runtime, used for template development)
 docs/
@@ -180,4 +183,4 @@ python build.py deploy
 python build.py package
 ```
 
-`build.py deploy` syncs only addon-relevant files (not `tools/`, `build.py`, etc.) to the WoW AddOns directory and removes stale files. `build.py package` reads the version from `Resonance.toc` and creates `Resonance-<version>.zip`.
+`build.py deploy` syncs only addon-relevant files (not `tools/`, `build.py`, etc.) to the WoW AddOns directory and removes stale files. `build.py package` creates a zip for local testing. For releases, the CI workflow handles packaging and version stamping automatically from the git tag.

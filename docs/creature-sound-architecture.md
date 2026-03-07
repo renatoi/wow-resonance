@@ -135,77 +135,48 @@ Most archetypes have 30-80 FIDs. A single archetype mute is nearly instantaneous
 
 Runtime (in-combat) cost is **zero** regardless of scope -- `MuteSoundFile` is fire-and-forget, the engine skips muted FIDs with no per-frame overhead.
 
-## Recommended architecture
+## Implementation
 
 ### Data generation (spell_sounds.py)
 
-New flag: `--generate-creature-mute-data`
+`--generate-creature-vox-data` walks all `CreatureSoundData` entries, resolves vocalization SoundKits to FileDataIDs, classifies each CSD into an archetype via the listfile path (`sound/creature/<archetype>/...`), groups archetypes into super-categories, and emits `data/CreatureVoxData.lua`.
 
-1. Walk all `CreatureSoundData` entries (not just player races)
-2. For each CSD, resolve all vocalization SoundKits to FileDataIDs
-3. Classify each CSD into an archetype name using the listfile path (`sound/creature/<archetype>/...`)
-4. Group archetypes into super-categories
-5. Emit a Lua data file (~300-500 KB estimated)
+Creature type classification is maintained as a keyword list per category in `CREATURE_CATEGORY_KEYWORDS`. This includes Midnight (12.0) creatures identified via CDI model paths (e.g. grovecrawler, devilsaptor, voidwraith, skardyn, automaton).
 
 ### Data format
 
 ```lua
--- Archetype -> {FID, FID, ...}
+-- Ordered category list for UI
+Resonance_CreatureVoxCategories = { "Beast", "Dragonkin", "Humanoid", ... }
+
+-- Category -> packed FID string (space-separated for compact storage)
 Resonance_CreatureVoxData = {
-    ["bear"] = {567001, 567002, 567003, ...},
-    ["spider"] = {568100, 568101, ...},
+    ["Beast"] = "567001 567002 567003 ...",
+    ["Dragonkin"] = "568100 568101 ...",
     ...
 }
 
--- Archetype -> category for UI grouping
-Resonance_CreatureVoxCategories = {
-    ["bear"] = "Beast",
-    ["spider"] = "Beast",
-    ["drakonid"] = "Dragon",
-    ...
-}
+-- FIDs excluded from muting to avoid collateral spell sound muting (space-separated)
+Resonance_CreatureVoxExcludedFIDs = "538907,538909,..."
 ```
+
+FIDs are packed as delimited strings rather than Lua tables to minimize file size and load-time memory allocation. The addon splits them on demand.
+
+### Excluded FIDs
+
+Some creature vocalization FIDs overlap with spell sound FIDs. These are removed from `CreatureVoxData` and listed in `CreatureVoxExcludedFIDs`. On login, the addon unconditionally unmutes these to repair any stale mutes from previous versions that included them.
 
 ### Addon side (Core.lua)
 
-A new mute layer (`creatureMutedFIDs`) parallel to the existing `voxMutedFIDs` and `weaponMutedFIDs`. The pattern is already established:
+A dedicated mute layer (`creatureMutedFIDs`) parallel to `voxMutedFIDs` and `weaponMutedFIDs`:
 
-- `applyCreatureVoxMutes()` / `clearCreatureVoxMutes()`
-- Saved variable: `muteCreatureVox` = `"off"` | `"all"` | category name | list of archetype names
-- Overlap-safe with existing mute layers (same refcount/guard pattern)
+- `applyCreatureVoxMutes()` / `clearCreatureVoxMutes()` / `refreshCreatureVoxMutes()`
+- Saved variable: `muteCreatureVox = { ["Beast"] = true, ["Demon"] = true, ... }`
+- Overlap-safe with all other mute layers (checks before unmuting)
 
 ### UI (Options.lua)
 
-```
-Creature Sounds
-  [dropdown] Scope: Off / All / By Category / By Creature Type
-  [category checkboxes if "By Category"]
-  [searchable archetype list if "By Creature Type"]
-```
-
-### Frame-staggering for large mute sets
-
-For "all" mode (~18K+ FIDs), stagger MuteSoundFile calls across frames:
-
-```lua
-local MUTE_BATCH_SIZE = 5000
-local function applyMutesBatched(fidList, callback)
-    local i = 1
-    local function batch()
-        local limit = math.min(i + MUTE_BATCH_SIZE - 1, #fidList)
-        for j = i, limit do
-            MuteSoundFile(fidList[j])
-        end
-        i = limit + 1
-        if i <= #fidList then
-            C_Timer.After(0, batch)
-        elseif callback then
-            callback()
-        end
-    end
-    batch()
-end
-```
+Per-category checkboxes in the General settings tab, one per entry in `CreatureVoxCategories`.
 
 ## File path conventions
 
