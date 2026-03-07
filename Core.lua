@@ -187,13 +187,14 @@ local function playOneSoundWithUnmute(snd, dbg)
         return
       end
       activePlaybackFIDs[fid] = nil
-      local shouldRemute = (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
-        or db.mute_file_data_ids[fid]
-        or weaponMutedFIDs[fid]
-        or voxMutedFIDs[fid]
-      if shouldRemute then
-        for _ = 1, MAX_MUTE_DEPTH do MuteSoundFile(fid) end
-      end
+      -- Re-mute once per active source to restore the correct refcount.
+      -- The MAX_MUTE_DEPTH unmutes above guaranteed clearing to 0;
+      -- re-muting per source restores only the depth the addon originally set,
+      -- preventing refcount inflation that would leave sounds permanently muted.
+      if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then MuteSoundFile(fid) end
+      if db.mute_file_data_ids[fid] then MuteSoundFile(fid) end
+      if weaponMutedFIDs[fid] then MuteSoundFile(fid) end
+      if voxMutedFIDs[fid] then MuteSoundFile(fid) end
     end)
   elseif isNum then
     -- Unmuted numeric FID: play directly (skip previewSound overhead)
@@ -845,6 +846,7 @@ end
 ---------------------------------------------------------------------------
 -- Public API (for Options.lua)
 ---------------------------------------------------------------------------
+Resonance.MAX_MUTE_DEPTH = MAX_MUTE_DEPTH
 Resonance.ADDON_ROOT = ADDON_ROOT
 Resonance.msg = msg
 Resonance.getSpellName = getSpellName
@@ -1359,16 +1361,16 @@ function Resonance:ChatCommand(input)
       "AceGUI-3.0",
       "LibDataBroker-1.1", "LibDBIcon-1.0",
     }
-    for _, name in ipairs(libs) do
-      if name == "LibStub" then
+    for _, libName in ipairs(libs) do
+      if libName == "LibStub" then
         local ok = _G.LibStub ~= nil
-        msg(("  %s: %s"):format(name, ok and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
+        msg(("  %s: %s"):format(libName, ok and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
       else
-        local lib, minor = LibStub:GetLibrary(name, true)
+        local lib, minor = LibStub:GetLibrary(libName, true)
         if lib then
-          msg(("  %s: |cff00ff00v%s|r"):format(name, tostring(minor or "?")))
+          msg(("  %s: |cff00ff00v%s|r"):format(libName, tostring(minor or "?")))
         else
-          msg(("  %s: |cffff0000NOT LOADED|r"):format(name))
+          msg(("  %s: |cffff0000NOT LOADED|r"):format(libName))
         end
       end
     end

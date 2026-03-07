@@ -22,9 +22,7 @@ local PlaySoundFile   = PlaySoundFile
 local IsPlayerSpell   = IsPlayerSpell
 local C_Timer         = C_Timer
 
--- Must match Core.lua's MAX_MUTE_DEPTH — the ceiling for WoW's
--- MuteSoundFile refcount that can accumulate across reloads.
-local MAX_MUTE_DEPTH = 20
+local MAX_MUTE_DEPTH = Resonance.MAX_MUTE_DEPTH
 
 ---------------------------------------------------------------------------
 -- Sound database search (coroutine-based to avoid frame hitches on large DBs)
@@ -176,10 +174,16 @@ local function safePlaySound(value)
   if fid then
     for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     willPlay, handle = PlaySoundFile(fid, "Master")
-    -- Re-mute symmetrically (same count as unmutes) to restore WoW's refcount
+    -- Re-mute once per active source instead of MAX_MUTE_DEPTH times
+    -- to avoid inflating WoW's internal refcount (which would leave
+    -- sounds permanently muted after the preview).
     if isFIDMuted(fid) then
       C_Timer.After(0.5, function()
-        for _ = 1, MAX_MUTE_DEPTH do MuteSoundFile(fid) end
+        local p = Resonance.db.profile
+        if p.mute_file_data_ids and p.mute_file_data_ids[fid] then MuteSoundFile(fid) end
+        if Resonance.autoMutedFIDs and (Resonance.autoMutedFIDs[fid] or 0) > 0 then MuteSoundFile(fid) end
+        if Resonance.voxMutedFIDs and Resonance.voxMutedFIDs[fid] then MuteSoundFile(fid) end
+        if Resonance.weaponMutedFIDs and Resonance.weaponMutedFIDs[fid] then MuteSoundFile(fid) end
       end)
     end
   else
@@ -341,8 +345,21 @@ local function startBuildPlayerSpellCache(onComplete)
   end)
 
   local function step()
-    local ok = coroutine.resume(co)
-    if not ok or coroutine.status(co) == "dead" then
+    local ok, err = coroutine.resume(co)
+    if not ok then
+      -- Coroutine errored: log in debug mode and reset the cache so
+      -- searchSpells returns nil (triggering the "Loading..." state)
+      -- rather than serving partial results.
+      if spellCacheTicker then spellCacheTicker:Cancel(); spellCacheTicker = nil end
+      spellCacheBusy = false
+      playerSpellCache = nil
+      if Resonance.db and Resonance.db.profile.debug then
+        Resonance.msg("Spell cache error: " .. tostring(err))
+      end
+      wipe(spellCacheCallbacks)
+      return
+    end
+    if coroutine.status(co) == "dead" then
       if spellCacheTicker then spellCacheTicker:Cancel(); spellCacheTicker = nil end
       spellCacheBusy = false
       local pending = { unpack(spellCacheCallbacks) }
@@ -1732,6 +1749,10 @@ local function buildLayout()
     profile = Resonance.db.profile
     local sid = tonumber(edSpellIDBox:GetText())
     if not sid or sid <= 0 then Resonance.msg(L["Enter a valid spell ID."]); return end
+    if editorSound == nil then
+      Resonance.msg(L["Select a replacement sound before saving."])
+      return
+    end
     local isNew = not profile.spell_config[sid]
     -- Build exclusions table (only save if non-empty)
     local exclusions = nil
@@ -2554,25 +2575,31 @@ local function buildLayout()
             row.muteToggle:SetScript("OnClick", function()
               profile = Resonance.db.profile
               if entry.excluded then
-                for sid in pairs(profile.spell_config or {}) do
-                  local excl = profile.spell_config[sid].muteExclusions
-                  if excl then excl[fid] = nil end
+                -- Re-mute: remove this FID from exclusions only for the
+                -- spells that actually reference it (avoids cross-preset
+                -- side effects from iterating all spell_config entries).
+                if entry.spellIDs then
+                  for _, sid in ipairs(entry.spellIDs) do
+                    local cfg = profile.spell_config[sid]
+                    if cfg and cfg.muteExclusions then
+                      cfg.muteExclusions[fid] = nil
+                    end
+                  end
                 end
                 Resonance.rebuildAutoMutes()
                 MuteSoundFile(fid)
                 Resonance.msg(L["Re-muted FID %d"]:format(fid))
               else
-                for sid in pairs(profile.spell_config or {}) do
-                  local spellFids = Resonance.getSpellMuteFIDs(sid)
-                  if spellFids then
-                    for _, sfid in ipairs(spellFids) do
-                      if sfid == fid then
-                        if not profile.spell_config[sid].muteExclusions then
-                          profile.spell_config[sid].muteExclusions = {}
-                        end
-                        profile.spell_config[sid].muteExclusions[fid] = true
-                        break
+                -- Unmute: add this FID to exclusions only for the spells
+                -- that reference it.
+                if entry.spellIDs then
+                  for _, sid in ipairs(entry.spellIDs) do
+                    local cfg = profile.spell_config[sid]
+                    if cfg then
+                      if not cfg.muteExclusions then
+                        cfg.muteExclusions = {}
                       end
+                      cfg.muteExclusions[fid] = true
                     end
                   end
                 end
