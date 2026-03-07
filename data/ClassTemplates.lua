@@ -180,6 +180,8 @@ Resonance_ClassTemplates = {
     { spellID = 20484,  name = "Rebirth",           sound = 568667 },  -- resurrection.ogg
     { spellID = 61336,  name = "Survival Instincts", sound = 569329 },  -- druid_survival_istincts.ogg
     { spellID = 22842,  name = "Frenzied Regeneration", sound = 568028 },  -- battleshouttarget.ogg
+    { spellID = 192081,  name = "Ironfur",              sound = 568503 },  -- defensivestance_impact_chest.ogg
+    { spellID = 1253799, name = "Sundering Roar",      sound = 544959 },  -- mBearAggroA.ogg
     { spellID = 5217,   name = "Tiger's Fury",      sound = 568524 },  -- cower.ogg
     { spellID = 1850,   name = "Dash",              sound = 568146 },  -- bullrush.ogg
     { spellID = 1126,   name = "Mark of the Wild",  sound = 568735 },  -- burningspirit.ogg

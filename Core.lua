@@ -57,6 +57,7 @@ Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories; Resonance_Cre
 Resonance.SpellSounds         = Resonance_SpellSounds;          Resonance_SpellSounds         = nil
 Resonance.CharacterSounds     = Resonance_CharacterSounds;      Resonance_CharacterSounds     = nil
 Resonance.ExcludedFIDs        = Resonance_ExcludedFIDs;          Resonance_ExcludedFIDs        = nil
+Resonance.CreatureVoxExcludedFIDs = Resonance_CreatureVoxExcludedFIDs; Resonance_CreatureVoxExcludedFIDs = nil
 
 -- Localize frequently-called WoW API functions.  Global lookups are
 -- measurably slower in Lua 5.1's interpreter and these are called on
@@ -78,6 +79,7 @@ local VoxFIDs          = Resonance.VoxFIDs
 local WeaponImpactFIDs = Resonance.WeaponImpactFIDs
 local CreatureVoxData  = Resonance.CreatureVoxData
 local CreatureVoxCategories = Resonance.CreatureVoxCategories
+local CreatureVoxExcludedFIDs = Resonance.CreatureVoxExcludedFIDs
 
 -- WoW's MuteSoundFile is refcounted; this ceiling covers the worst case of
 -- stale mute state accumulated across reloads/multiple spells sharing FIDs.
@@ -115,6 +117,7 @@ local defaults = {
     muteCreatureVox = {},  -- { ["Beast"] = true, ["Demon"] = true, ... }
     minimap = { hide = false },
     _lastAutoMutedFIDs = {},  -- persisted snapshot for stale-mute cleanup across /reload
+    _lastCreatureMutedFIDs = {},  -- same for creature vox mutes
   },
 }
 
@@ -462,6 +465,43 @@ local function applyCreatureVoxMutes()
       end
     end
   end
+  -- Unmute stale creature vox FIDs from previous session that are no longer
+  -- in CreatureVoxData (e.g. FIDs removed to avoid collateral spell muting).
+  -- MuteSoundFile persists across /reload but creatureMutedFIDs does not;
+  -- each reload with creature vox enabled added another MuteSoundFile call,
+  -- so we must call UnmuteSoundFile MAX_MUTE_DEPTH times to drain the
+  -- engine's internal refcount.
+  local stale = db._lastCreatureMutedFIDs
+  if stale then
+    for fid in pairs(stale) do
+      if not creatureMutedFIDs[fid]
+         and not db.mute_file_data_ids[fid]
+         and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+         and not voxMutedFIDs[fid]
+         and not weaponMutedFIDs[fid] then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+  end
+  -- Unconditionally unmute FIDs that were removed from CreatureVoxData to
+  -- avoid collateral spell muting.  Clears stale MuteSoundFile state from
+  -- sessions before _lastCreatureMutedFIDs tracking was added.
+  if CreatureVoxExcludedFIDs then
+    for s in CreatureVoxExcludedFIDs:gmatch("%d+") do
+      local fid = tonumber(s)
+      if fid and not creatureMutedFIDs[fid]
+         and not db.mute_file_data_ids[fid]
+         and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+         and not voxMutedFIDs[fid]
+         and not weaponMutedFIDs[fid] then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+  end
+  -- Persist snapshot for next session's stale cleanup
+  local snapshot = {}
+  for fid in pairs(creatureMutedFIDs) do snapshot[fid] = true end
+  db._lastCreatureMutedFIDs = snapshot
   if count > 0 then
     msg(L["Muted %d creature vocalization sounds."]:format(count))
   end
@@ -477,6 +517,19 @@ local function clearCreatureVoxMutes()
       UnmuteSoundFile(fid)
     end
     count = count + 1
+  end
+  -- Also unmute stale FIDs from previous session snapshot — drain refcount
+  if db and db._lastCreatureMutedFIDs then
+    for fid in pairs(db._lastCreatureMutedFIDs) do
+      if not creatureMutedFIDs[fid]
+         and not db.mute_file_data_ids[fid]
+         and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+         and not voxMutedFIDs[fid]
+         and not weaponMutedFIDs[fid] then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+    wipe(db._lastCreatureMutedFIDs)
   end
   wipe(creatureMutedFIDs)
   if count > 0 then
@@ -591,11 +644,11 @@ local function rebuildAutoMutes()
       end
     end
   end
-  -- Unmute stale FIDs from the previous session snapshot
+  -- Unmute stale FIDs from the previous session snapshot — drain refcount
   for fid in pairs(stale) do
     if not autoMutedFIDs[fid] or autoMutedFIDs[fid] <= 0 then
       if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] then
-        UnmuteSoundFile(fid)
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
   end
@@ -607,7 +660,7 @@ local function rebuildAutoMutes()
     for s in ExcludedFIDs:gmatch("%d+") do
       local fid = tonumber(s)
       if fid and not db.mute_file_data_ids[fid] then
-        UnmuteSoundFile(fid)
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
   end
@@ -1223,7 +1276,7 @@ local function getGeneralOptions()
       },
       creatureVoxDesc = {
         type = "description",
-        name = L["Mute monster attack grunts, injury, death, and aggro sounds by creature category."],
+        name = L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."],
         order = 8,
       },
     },
@@ -1379,7 +1432,21 @@ function Resonance:OnEnable()
   if db.enabled then applyMutes() end
   if getVoxMode() ~= "off" then applyVoxMutes() end
   if db.muteWeaponImpacts then applyWeaponMutes() end
-  if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
+  if hasAnyCreatureVoxEnabled() then
+    applyCreatureVoxMutes()
+  elseif CreatureVoxExcludedFIDs then
+    -- Creature vox is off but stale MuteSoundFile state from previous
+    -- sessions (before FIDs were excluded) still needs clearing.
+    for s in CreatureVoxExcludedFIDs:gmatch("%d+") do
+      local fid = tonumber(s)
+      if fid and not db.mute_file_data_ids[fid]
+         and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+         and not voxMutedFIDs[fid]
+         and not weaponMutedFIDs[fid] then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+  end
   msg(L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."])
 end
 
