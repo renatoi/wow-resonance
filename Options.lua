@@ -2,34 +2,81 @@ local Resonance = LibStub("AceAddon-3.0"):GetAddon("Resonance")
 local L = Resonance_L
 
 ---------------------------------------------------------------------------
--- Sound database search
+-- Sound database search (coroutine-based to avoid frame hitches on large DBs)
 ---------------------------------------------------------------------------
-local function searchDB(db, query)
-  if not db then return {} end
-  local results = {}
+local SEARCH_BATCH_SIZE = 2000  -- entries per frame before yielding
+
+local activeSearches = {}  -- key -> { co, ticker, callback, id }
+local searchGeneration = {}  -- key -> monotonic counter to detect stale results
+
+local function cancelSearch(key)
+  local s = activeSearches[key]
+  if s then
+    if s.ticker then s.ticker:Cancel() end
+    activeSearches[key] = nil
+  end
+end
+
+local function searchDB(sourceDB, query, key, callback)
+  cancelSearch(key)
+  if not sourceDB then callback({}); return end
   local terms = {}
   for word in query:lower():gmatch("%S+") do
     terms[#terms + 1] = word
   end
-  if #terms == 0 then return results end
-  for _, entry in ipairs(db) do
-    local path, fid = entry:match("([^#]+)#([^#]+)")
-    if path and fid then
-      local lp = path:lower()
-      local match = true
-      for _, t in ipairs(terms) do
-        if not lp:find(t, 1, true) then match = false; break end
+  if #terms == 0 then callback({}); return end
+
+  searchGeneration[key] = (searchGeneration[key] or 0) + 1
+  local gen = searchGeneration[key]
+
+  local co = coroutine.create(function()
+    local results = {}
+    for i, entry in ipairs(sourceDB) do
+      local path, fid = entry:match("([^#]+)#([^#]+)")
+      if path and fid then
+        local lp = path:lower()
+        local match = true
+        for _, t in ipairs(terms) do
+          if not lp:find(t, 1, true) then match = false; break end
+        end
+        if match then
+          results[#results + 1] = { path = path, fileDataID = tonumber(fid) }
+        end
       end
-      if match then
-        results[#results + 1] = { path = path, fileDataID = tonumber(fid) }
-      end
+      if i % SEARCH_BATCH_SIZE == 0 then coroutine.yield() end
+    end
+    return results
+  end)
+
+  local ticker
+  local function step()
+    if searchGeneration[key] ~= gen then
+      if ticker then ticker:Cancel() end
+      activeSearches[key] = nil
+      return
+    end
+    local ok, results = coroutine.resume(co)
+    if not ok then
+      activeSearches[key] = nil
+      if ticker then ticker:Cancel() end
+      callback({})
+    elseif coroutine.status(co) == "dead" then
+      activeSearches[key] = nil
+      if ticker then ticker:Cancel() end
+      callback(results or {})
     end
   end
-  return results
+
+  -- Run the first batch immediately for responsiveness
+  step()
+  if coroutine.status(co) ~= "dead" then
+    ticker = C_Timer.NewTicker(0.01, step)
+    activeSearches[key] = { co = co, ticker = ticker, gen = gen }
+  end
 end
 
-local function hasSpellDB() return Resonance_SpellSounds and #Resonance_SpellSounds > 0 end
-local function hasCharDB() return Resonance_CharacterSounds and #Resonance_CharacterSounds > 0 end
+local function hasSpellDB() return Resonance.SpellSounds and #Resonance.SpellSounds > 0 end
+local function hasCharDB() return Resonance.CharacterSounds and #Resonance.CharacterSounds > 0 end
 
 local function formatSoundDisplay(path, fid)
   local filename = path:match("([^/\\]+)$") or path
@@ -45,7 +92,7 @@ local fidPathCache
 local function lookupFIDPath(fid)
   if not fidPathCache then
     fidPathCache = {}
-    for _, db in ipairs({ Resonance_SpellSounds, Resonance_CharacterSounds }) do
+    for _, db in ipairs({ Resonance.SpellSounds, Resonance.CharacterSounds }) do
       if db then
         for _, entry in ipairs(db) do
           local path, id = entry:match("([^#]+)#([^#]+)")
@@ -100,7 +147,7 @@ local function safePlaySound(value)
   local willPlay, handle
   if fid then
     -- Aggressively unmute to handle stale mutes from previous sessions
-    for _ = 1, 5 do UnmuteSoundFile(fid) end
+    for _ = 1, 20 do UnmuteSoundFile(fid) end
     willPlay, handle = PlaySoundFile(fid, "Master")
     -- Re-mute after a delay if the FID should be muted
     if isFIDMuted(fid) then
@@ -153,7 +200,7 @@ local function wirePlayStop(btn, getSoundFn)
         local h = safePlaySound(s)
         if h then activePreviewHandles[#activePreviewHandles + 1] = h end
       end
-      if snd.random then
+      if snd.random and #snd.random > 0 then
         local pick = snd.random[math.random(1, #snd.random)]
         local h = safePlaySound(pick)
         if h then activePreviewHandles[#activePreviewHandles + 1] = h end
@@ -188,8 +235,8 @@ local function buildPlayerSpellCache()
   local getName = C_Spell and C_Spell.GetSpellName
 
   -- Primary source: all spells with mute data (includes talent overrides, procs, etc.)
-  if Resonance_SpellMuteData and getName then
-    for sid in pairs(Resonance_SpellMuteData) do
+  if Resonance.SpellMuteData and getName then
+    for sid in pairs(Resonance.SpellMuteData) do
       if not seen[sid] then
         local ok, name = pcall(getName, sid)
         if ok and name and name ~= "" then
@@ -1197,7 +1244,7 @@ local function buildLayout()
         row.playBtn:Hide()
         row.removeBtn:Hide()
       elseif entry.kind == "empty" then
-        row.text:SetText("|cff888888(none)|r")
+        row.text:SetText("|cff888888" .. L["(none)"] .. "|r")
         row.text:SetPoint("RIGHT", row, "RIGHT", -4, 0)
         row.playBtn:Hide()
         row.removeBtn:Hide()
@@ -1278,11 +1325,12 @@ local function buildLayout()
     if not edBrowseBox:HasFocus() then return end
     local q = edBrowseBox:GetText()
     if #q < 3 then edBrowseDD:SetData({}, ""); edBrowseDD:Hide(); return end
-    local results = searchDB(Resonance_SpellSounds, q)
-    for _, r in ipairs(results) do
-      r.display = formatSoundDisplay(r.path, r.fileDataID)
-    end
-    edBrowseDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+    searchDB(Resonance.SpellSounds, q, "edBrowse", function(results)
+      for _, r in ipairs(results) do
+        r.display = formatSoundDisplay(r.path, r.fileDataID)
+      end
+      edBrowseDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+    end)
   end
 
   local edBrowseClear = makeClearButton(edBrowseBox, function() edBrowseDD:Hide() end)
@@ -1375,7 +1423,7 @@ local function buildLayout()
     local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
     local baseH = 360 + extraSoundH
     local sid = tonumber(edSpellIDBox:GetText())
-    local hasMuteData = sid and Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+    local hasMuteData = sid and Resonance.getSpellMuteFIDs(sid)
     if hasMuteData then
       editorFrame:SetHeight(baseH + 30 + AUTO_MUTE_SCROLL_H + 14)
     else
@@ -1424,7 +1472,7 @@ local function buildLayout()
       return
     end
 
-    local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[spellID]
+    local fids = Resonance.getSpellMuteFIDs(spellID)
     if not fids or #fids == 0 then
       autoMuteInfo:SetText("|cff888888" .. L["No auto-mute data for this spell."] .. "|r")
       autoMuteScroll:Hide()
@@ -1947,16 +1995,17 @@ local function buildLayout()
     if not muteSearchBox:HasFocus() then return end
     local q = muteSearchBox:GetText()
     if #q < 3 then muteDD:SetData({}, ""); muteDD:Hide(); return end
-    local searchTarget = (muteMode == "character") and Resonance_CharacterSounds or Resonance_SpellSounds
-    local results = searchDB(searchTarget, q)
-    for _, r in ipairs(results) do
-      local display = formatSoundDisplay(r.path, r.fileDataID)
-      if isFIDMuted(r.fileDataID) then
-        display = "|cff666666[muted]|r " .. display
+    local searchTarget = (muteMode == "character") and Resonance.CharacterSounds or Resonance.SpellSounds
+    searchDB(searchTarget, q, "muteSearch", function(results)
+      for _, r in ipairs(results) do
+        local display = formatSoundDisplay(r.path, r.fileDataID)
+        if isFIDMuted(r.fileDataID) then
+          display = "|cff666666[muted]|r " .. display
+        end
+        r.display = display
       end
-      r.display = display
-    end
-    muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+      muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+    end)
   end
 
   local muteSearchClear = makeClearButton(muteSearchBox, function() muteDD:Hide() end)
@@ -1996,12 +2045,16 @@ local function buildLayout()
   -- Muted sounds list
   local clearAllBtn = makeButton(muteTab, L["Clear All Manual"], 120, function()
     local p = Resonance.db.profile
+    local manualFids = {}
     for fid, enabled in pairs(p.mute_file_data_ids) do
-      if enabled and not (Resonance.autoMutedFIDs[fid] and Resonance.autoMutedFIDs[fid] > 0) then
+      if enabled then manualFids[#manualFids + 1] = fid end
+    end
+    wipe(p.mute_file_data_ids)
+    for _, fid in ipairs(manualFids) do
+      if not isFIDMuted(fid) then
         UnmuteSoundFile(fid)
       end
     end
-    wipe(p.mute_file_data_ids)
     refreshMuteList()
   end)
 
@@ -2110,7 +2163,7 @@ local function buildLayout()
     local autoFidInfo = {}
     for sid in pairs(profile.spell_config or {}) do
       if Resonance.shouldAutoMuteSpell(sid) then
-        local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+        local fids = Resonance.getSpellMuteFIDs(sid)
         if fids then
           local excl = profile.spell_config[sid].muteExclusions
           for _, fid in ipairs(fids) do
@@ -2277,7 +2330,9 @@ local function buildLayout()
         row.removeBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
         row.removeBtn:SetScript("OnClick", function()
           profile.mute_file_data_ids[fid] = nil
-          UnmuteSoundFile(fid)
+          if not isFIDMuted(fid) then
+            UnmuteSoundFile(fid)
+          end
           refreshMuteList()
         end)
 
@@ -2427,7 +2482,7 @@ local function buildLayout()
                 Resonance.msg(L["Re-muted FID %d"]:format(fid))
               else
                 for sid in pairs(profile.spell_config or {}) do
-                  local spellFids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+                  local spellFids = Resonance.getSpellMuteFIDs(sid)
                   if spellFids then
                     for _, sfid in ipairs(spellFids) do
                       if sfid == fid then
@@ -2441,7 +2496,9 @@ local function buildLayout()
                   end
                 end
                 Resonance.rebuildAutoMutes()
-                UnmuteSoundFile(fid)
+                if not isFIDMuted(fid) then
+                  UnmuteSoundFile(fid)
+                end
                 Resonance.msg(L["Unmuted FID %d"]:format(fid))
               end
               refreshMuteList()
@@ -2662,7 +2719,7 @@ local function buildLayout()
 
     -- Helper to build a class preset entry
     local function makeClassPresetEntry(classKey)
-      local tpl = Resonance_ClassTemplates[classKey]
+      local tpl = Resonance.ClassTemplates[classKey]
       local spellCount = #tpl
       local activeCount = 0
       for _, entry in ipairs(tpl) do
@@ -2681,7 +2738,7 @@ local function buildLayout()
     end
 
     -- Player's class preset first
-    if Resonance_ClassTemplates and Resonance_ClassTemplates[playerClass] then
+    if Resonance.ClassTemplates and Resonance.ClassTemplates[playerClass] then
       presets[#presets + 1] = makeClassPresetEntry(playerClass)
     end
 
@@ -2712,9 +2769,9 @@ local function buildLayout()
     end
 
     -- Other class presets (de-emphasized, for alt setup)
-    if Resonance_ClassTemplates then
+    if Resonance.ClassTemplates then
       local otherClasses = {}
-      for classKey in pairs(Resonance_ClassTemplates) do
+      for classKey in pairs(Resonance.ClassTemplates) do
         if classKey ~= playerClass then
           otherClasses[#otherClasses + 1] = classKey
         end
@@ -2802,19 +2859,21 @@ local function buildLayout()
       row.nameText:SetText(nameDisplay)
 
       -- Info
-      local info = preset.spellCount .. " spells"
+      local info
       if preset.muteCount > 0 then
-        info = info .. ", " .. preset.muteCount .. " mutes"
+        info = L["%d spells, %d mutes."]:format(preset.spellCount, preset.muteCount)
+      else
+        info = L["%d spells"]:format(preset.spellCount)
       end
       if preset.activeCount > 0 then
-        info = info .. "  |cff00ff00(" .. preset.activeCount .. " active)|r"
+        info = info .. "  |cff00ff00" .. L["(%d active)"]:format(preset.activeCount) .. "|r"
       end
       row.infoText:SetText(info)
 
       -- Build spell list for tooltip preview
       local spellList = {}
       if preset.source == "class" then
-        local tpl = Resonance_ClassTemplates[preset.key]
+        local tpl = Resonance.ClassTemplates[preset.key]
         if tpl then
           for _, tplEntry in ipairs(tpl) do
             local sname = Resonance.getSpellName(tplEntry.spellID) or tplEntry.name

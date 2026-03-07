@@ -29,6 +29,23 @@ Resonance = LibStub("AceAddon-3.0"):NewAddon("Resonance", "AceConsole-3.0", "Ace
 local L = Resonance_L
 local ADDON_ROOT = "Interface\\AddOns\\Resonance\\"
 
+-- Capture data globals into addon namespace, then release them from _G.
+-- Data files load before Core.lua (see .toc order) so these are guaranteed set.
+Resonance.SpellMuteData       = Resonance_SpellMuteData;       Resonance_SpellMuteData       = nil
+Resonance.ClassTemplates      = Resonance_ClassTemplates;       Resonance_ClassTemplates      = nil
+Resonance.RaceCSD             = Resonance_RaceCSD;              Resonance_RaceCSD             = nil
+Resonance.VoxFIDs             = Resonance_VoxFIDs;              Resonance_VoxFIDs             = nil
+Resonance.WeaponImpactFIDs    = Resonance_WeaponImpactFIDs;    Resonance_WeaponImpactFIDs    = nil
+Resonance.SpellSounds         = Resonance_SpellSounds;          Resonance_SpellSounds         = nil
+Resonance.CharacterSounds     = Resonance_CharacterSounds;      Resonance_CharacterSounds     = nil
+
+-- Local aliases for hot-path access
+local SpellMuteData    = Resonance.SpellMuteData
+local ClassTemplates   = Resonance.ClassTemplates
+local RaceCSD          = Resonance.RaceCSD
+local VoxFIDs          = Resonance.VoxFIDs
+local WeaponImpactFIDs = Resonance.WeaponImpactFIDs
+
 local db          -- shortcut to self.db.profile, set in OnInitialize
 local autoMutedFIDs = {}  -- runtime-only refcounted mute table (not saved)
 local voxMutedFIDs = {}   -- runtime-only: FIDs muted by global vox toggle
@@ -113,6 +130,11 @@ local function previewSound(value)
   return false
 end
 
+-- Ref-counted tracker for FIDs with in-flight playback.
+-- Prevents the first timer from re-muting a FID that still has active sounds
+-- (e.g., rapid casts of the same spell like Whirlwind in a proc window).
+local activePlaybackFIDs = {}
+
 local function playOneSoundWithUnmute(snd, dbg)
   local isMuted = type(snd) == "number" and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd])
   if dbg then msg(("  Playing: %s (muted: %s)"):format(tostring(snd), tostring(isMuted and true or false))) end
@@ -121,9 +143,16 @@ local function playOneSoundWithUnmute(snd, dbg)
     -- WoW's MuteSoundFile is refcounted; unmute enough times to fully clear it
     -- (stale mute state can accumulate across reloads when FIDs appear in many spells' mute data)
     for _ = 1, 20 do UnmuteSoundFile(fid) end
+    activePlaybackFIDs[fid] = (activePlaybackFIDs[fid] or 0) + 1
     previewSound(fid)
-    -- Re-mute after a delay so the sound has time to play, but only if still supposed to be muted
+    -- Re-mute after a delay so the sound has time to play
     C_Timer.After(0.5, function()
+      local count = (activePlaybackFIDs[fid] or 1) - 1
+      if count > 0 then
+        activePlaybackFIDs[fid] = count
+        return
+      end
+      activePlaybackFIDs[fid] = nil
       if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then
         MuteSoundFile(fid)
       elseif db.mute_file_data_ids[fid] then
@@ -152,7 +181,7 @@ local function playResolvedSound(spellID, spellName)
       playOneSoundWithUnmute(snd, dbg)
     end
     -- Random pool: pick one at random from cfg.sound.random
-    if type(cfg.sound) == "table" and cfg.sound.random then
+    if type(cfg.sound) == "table" and cfg.sound.random and #cfg.sound.random > 0 then
       local pool = cfg.sound.random
       local pick = pool[math.random(1, #pool)]
       if dbg then msg(("  Random pool (%d): picked %s"):format(#pool, tostring(pick))) end
@@ -205,12 +234,12 @@ end
 -- Global vocalization mute
 ---------------------------------------------------------------------------
 local function getPlayerCSDEntry()
-  if not Resonance_RaceCSD or not Resonance_VoxFIDs then return nil end
+  if not RaceCSD or not VoxFIDs then return nil end
   local raceID = select(3, UnitRace("player"))
   local sex = (UnitSex("player") == 3) and "1" or "0"
-  local csdID = Resonance_RaceCSD[tostring(raceID) .. ":" .. sex]
+  local csdID = RaceCSD[tostring(raceID) .. ":" .. sex]
   if not csdID then return nil end
-  return Resonance_VoxFIDs[csdID]
+  return VoxFIDs[csdID]
 end
 
 local function getVoxMode()
@@ -244,8 +273,8 @@ local function applyVoxMutes()
       count = muteVoxEntry(voxEntry)
     end
   elseif mode == "all" then
-    if Resonance_VoxFIDs then
-      for _, voxEntry in pairs(Resonance_VoxFIDs) do
+    if VoxFIDs then
+      for _, voxEntry in pairs(VoxFIDs) do
         count = count + muteVoxEntry(voxEntry)
       end
     end
@@ -282,9 +311,9 @@ end
 -- Global weapon impact mute
 ---------------------------------------------------------------------------
 local function applyWeaponMutes()
-  if not Resonance_WeaponImpactFIDs then return end
+  if not WeaponImpactFIDs then return end
   local count = 0
-  for _, fid in ipairs(Resonance_WeaponImpactFIDs) do
+  for _, fid in ipairs(WeaponImpactFIDs) do
     if not weaponMutedFIDs[fid] then
       weaponMutedFIDs[fid] = true
       MuteSoundFile(fid)
@@ -310,6 +339,32 @@ local function clearWeaponMutes()
   wipe(weaponMutedFIDs)
   if count > 0 then
     msg(L["Cleared %d weapon impact mutes."]:format(count))
+  end
+end
+
+---------------------------------------------------------------------------
+-- SpellMuteData lazy accessor — values are compacted to strings after init
+-- to reduce memory (~25 MB → ~6 MB). Parsed back to tables on demand.
+---------------------------------------------------------------------------
+local function getSpellMuteFIDs(sid)
+  local val = SpellMuteData and SpellMuteData[sid]
+  if not val then return nil end
+  if type(val) == "table" then return val end
+  -- Parse packed string: "fid,fid,..." -> { fid, fid, ... }
+  local fids = {}
+  for s in val:gmatch("%d+") do fids[#fids + 1] = tonumber(s) end
+  SpellMuteData[sid] = fids
+  return fids
+end
+
+local function compactSpellMuteData()
+  if not SpellMuteData then return end
+  for sid, fids in pairs(SpellMuteData) do
+    if type(fids) == "table" then
+      local parts = {}
+      for i, f in ipairs(fids) do parts[i] = tostring(f) end
+      SpellMuteData[sid] = table.concat(parts, ",")
+    end
   end
 end
 
@@ -361,7 +416,7 @@ end
 local function shouldAutoMuteSpell(spellID)
   local source = db.preset_spells and db.preset_spells[spellID]
   if not source then return true end                    -- custom spell, always mute
-  if not (Resonance_ClassTemplates and Resonance_ClassTemplates[source]) then return true end  -- saved preset (not a class key)
+  if not (ClassTemplates and ClassTemplates[source]) then return true end  -- saved preset (not a class key)
   local _, myClass = UnitClass("player")
   return source == myClass
 end
@@ -379,7 +434,7 @@ local function rebuildAutoMutes()
   wipe(autoMutedFIDs)
   for sid, _ in pairs(db.spell_config or {}) do
     if shouldAutoMuteSpell(sid) then
-      local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[sid]
+      local fids = getSpellMuteFIDs(sid)
       if fids then
         addAutoMuteFIDs(filterExclusions(fids, getExclusions(sid)))
       end
@@ -389,7 +444,7 @@ end
 
 local function applyAutoMutesForSpell(spellID)
   if not shouldAutoMuteSpell(spellID) then return end
-  local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[spellID]
+  local fids = getSpellMuteFIDs(spellID)
   if not fids then return end
   fids = filterExclusions(fids, getExclusions(spellID))
   -- Only call MuteSoundFile for FIDs not already muted (avoid inflating WoW's internal refcount)
@@ -408,7 +463,7 @@ local function applyAutoMutesForSpell(spellID)
 end
 
 local function removeAutoMutesForSpell(spellID)
-  local fids = Resonance_SpellMuteData and Resonance_SpellMuteData[spellID]
+  local fids = getSpellMuteFIDs(spellID)
   if not fids then return end
   removeAutoMuteFIDs(filterExclusions(fids, getExclusions(spellID)))
 end
@@ -584,6 +639,7 @@ local function decodePresetString(str)
                 if n then sound[#sound + 1] = n end
               end
             end
+            if sound.random and #sound.random == 0 then sound.random = nil end
             if #sound == 1 and not sound.random then sound = sound[1] end
             if #sound == 0 and not sound.random then sound = nil end
           else
@@ -739,7 +795,7 @@ function Resonance:ExportPresetData(name, presetData)
 end
 
 function Resonance:ClassPresetToData(classKey)
-  local template = Resonance_ClassTemplates and Resonance_ClassTemplates[classKey]
+  local template = ClassTemplates and ClassTemplates[classKey]
   if not template then return nil end
   local data = { spells = {}, mutes = {} }
   for _, entry in ipairs(template) do
@@ -769,12 +825,13 @@ Resonance.applyAutoMutesForSpell = applyAutoMutesForSpell
 Resonance.removeAutoMutesForSpell = removeAutoMutesForSpell
 Resonance.rebuildAutoMutes = rebuildAutoMutes
 Resonance.shouldAutoMuteSpell = shouldAutoMuteSpell
+Resonance.getSpellMuteFIDs = getSpellMuteFIDs
 Resonance.autoMutedFIDs = autoMutedFIDs
 Resonance.voxMutedFIDs = voxMutedFIDs
 Resonance.weaponMutedFIDs = weaponMutedFIDs
 
 function Resonance:ApplyClassTemplate(classKey)
-  local template = Resonance_ClassTemplates and Resonance_ClassTemplates[classKey]
+  local template = ClassTemplates and ClassTemplates[classKey]
   if not template then return 0, 0 end
   local added, skipped = 0, 0
   for _, entry in ipairs(template) do
@@ -802,7 +859,7 @@ end
 -- Updates sound and muteExclusions from template; preserves user's additional unmutes
 -- Also auto-adds new template spells for classes the user has already loaded
 local function refreshPresetsFromTemplates()
-  if not Resonance_ClassTemplates then return end
+  if not ClassTemplates then return end
   local updated, added = 0, 0
 
   -- Collect which class templates the user has loaded
@@ -813,7 +870,7 @@ local function refreshPresetsFromTemplates()
 
   -- Update existing preset spells
   for sid, source in pairs(db.preset_spells) do
-    local template = Resonance_ClassTemplates[source]
+    local template = ClassTemplates[source]
     if template then
       for _, entry in ipairs(template) do
         if entry.spellID == sid then
@@ -839,7 +896,7 @@ local function refreshPresetsFromTemplates()
 
   -- Auto-add new template spells for classes already loaded
   for classKey in pairs(loadedClasses) do
-    local template = Resonance_ClassTemplates[classKey]
+    local template = ClassTemplates[classKey]
     if template then
       for _, entry in ipairs(template) do
         local sid = entry.spellID
@@ -1105,6 +1162,9 @@ function Resonance:OnEnable()
   if db.enabled then applyMutes() end
   if getVoxMode() ~= "off" then applyVoxMutes() end
   if db.muteWeaponImpacts then applyWeaponMutes() end
+  -- Compact SpellMuteData: convert in-memory arrays to packed strings,
+  -- reducing footprint from ~25 MB to ~6 MB. Entries are parsed back on demand.
+  compactSpellMuteData()
   msg(L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."])
 end
 
@@ -1164,7 +1224,7 @@ function Resonance:ChatCommand(input)
   elseif cmd == "debug" then
     rest = (rest or ""):lower()
     db.debug = (rest == "on" or rest == "1" or rest == "true")
-    msg("Debug " .. (db.debug and "ON" or "OFF") .. ".")
+    msg("Debug: " .. (db.debug and L["Enabled."] or L["Disabled."]))
   elseif cmd == "applymutes" then
     applyMutes()
   elseif cmd == "clearmutes" then
@@ -1185,7 +1245,9 @@ function Resonance:ChatCommand(input)
       return
     end
     db.mute_file_data_ids[fid] = nil
-    if not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0) then
+    if not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+       and not voxMutedFIDs[fid]
+       and not weaponMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     msg(L["Unmuted fileDataID %d."]:format(fid))
@@ -1288,8 +1350,10 @@ function Resonance:ChatCommand(input)
       end
     end
     msg("  Settings API: " .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
-    msg("  Spell mute data: " .. (Resonance_SpellMuteData and ("|cff00ff00" .. tostring(#(Resonance_SpellMuteData or {})) .. " (table)|r") or "|cffff0000NOT LOADED|r"))
-    msg("  Vox data: " .. (Resonance_VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
+    local smdCount = 0
+    if SpellMuteData then for _ in pairs(SpellMuteData) do smdCount = smdCount + 1 end end
+    msg("  Spell mute data: " .. (SpellMuteData and ("|cff00ff00" .. smdCount .. " spells (table)|r") or "|cffff0000NOT LOADED|r"))
+    msg("  Vox data: " .. (VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
     msg(L["=== End Diagnostics ==="])
   elseif cmd == "sfx" then
     rest = (rest or ""):lower()

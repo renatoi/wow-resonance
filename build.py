@@ -15,6 +15,7 @@ WOW_ADDON_DIR = Path("/mnt/ssd1/games/World of Warcraft/_retail_/Interface/AddOn
 ADDON_INCLUDES = [
     "Resonance.toc",
     "embeds.xml",
+    "Locales.lua",
     "Core.lua",
     "Options.lua",
     "data",
