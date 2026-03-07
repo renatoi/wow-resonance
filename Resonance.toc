@@ -12,8 +12,11 @@
 ## Notes-zhCN: 静音现代法术音效，播放经典（香草/TBC/巫妖王）音效。适用于所有职业。
 ## Notes-zhTW: 靜音現代法術音效，播放經典（香草/TBC/巫妖王）音效。適用於所有職業。
 ## Author: Renato
-## Version: 1.0.0
+## Version: @project-version@
 ## Category: Audio & Video
+## X-License: MIT
+## X-Curse-Project-ID: 1480189
+## X-Wago-ID: qGYZ9lNg
 ## IconTexture: Interface\Icons\INV_Misc_Drum_06
 ## SavedVariables: ResonanceDB
 

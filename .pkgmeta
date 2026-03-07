@@ -1,0 +1,14 @@
+package-as: Resonance
+
+ignore:
+  - .github
+  - tools
+  - docs
+  - build.py
+  - "*.zip"
+  - __pycache__
+  - .gitignore
+  - README.md
+  - LISTING.md
+  - LICENSE
+  - assets
