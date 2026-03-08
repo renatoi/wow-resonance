@@ -543,17 +543,28 @@ local function refreshCreatureVoxMutes()
 end
 
 ---------------------------------------------------------------------------
--- SpellMuteData accessor — values are stored as comma-separated strings
--- directly in the data file to avoid the ~19 MB transient table spike
--- that Lua table literals would create at parse time.
--- Parsed to temp tables on demand without caching.
+-- Spell FID resolution: combines explicit muteFIDs (from spell_config,
+-- for spells whose FIDs were excluded from SpellMuteData as over-shared)
+-- with SpellMuteData entries (comma-separated strings parsed on demand).
 ---------------------------------------------------------------------------
 local function getSpellMuteFIDs(sid)
+  local cfg = db and db.spell_config and db.spell_config[sid]
+  local explicit = cfg and cfg.muteFIDs
   local val = SpellMuteData and SpellMuteData[sid]
-  if not val then return nil end
-  local fids = {}
-  for s in val:gmatch("%d+") do fids[#fids + 1] = tonumber(s) end
-  return fids
+  if not explicit and not val then return nil end
+  local fids, seen = {}, {}
+  if explicit then
+    for _, fid in ipairs(explicit) do
+      if not seen[fid] then fids[#fids + 1] = fid; seen[fid] = true end
+    end
+  end
+  if val then
+    for s in val:gmatch("%d+") do
+      local fid = tonumber(s)
+      if not seen[fid] then fids[#fids + 1] = fid; seen[fid] = true end
+    end
+  end
+  return #fids > 0 and fids or nil
 end
 
 ---------------------------------------------------------------------------
@@ -808,6 +819,13 @@ local function encodePresetData(name, spells, mutes)
         lines[#lines + 1] = "X" .. sid .. ":" .. table.concat(excl, ",")
       end
     end
+    if cfg.muteFIDs then
+      local parts = {}
+      for _, fid in ipairs(cfg.muteFIDs) do parts[#parts + 1] = tostring(fid) end
+      if #parts > 0 then
+        lines[#lines + 1] = "F" .. sid .. ":" .. table.concat(parts, ",")
+      end
+    end
   end
   for fid in pairs(mutes or {}) do
     lines[#lines + 1] = "M" .. fid
@@ -885,6 +903,16 @@ local function decodePresetString(str)
         end
         spells[sid].muteExclusions = exclusions
       end
+    elseif tag == "F" then
+      local sid, fidList = line:match("^F(%d+):(.+)$")
+      sid = tonumber(sid)
+      if sid and fidList and spells[sid] then
+        local mfids = {}
+        for fidStr in fidList:gmatch("(%d+)") do
+          mfids[#mfids + 1] = tonumber(fidStr)
+        end
+        if #mfids > 0 then spells[sid].muteFIDs = mfids end
+      end
     elseif tag == "M" then
       local fid = tonumber(line:sub(2))
       if fid then mutes[fid] = true end
@@ -902,6 +930,9 @@ function Resonance:ExportConfig(name)
       for fid in pairs(cfg.muteExclusions) do
         entry.muteExclusions[fid] = true
       end
+    end
+    if cfg.muteFIDs then
+      entry.muteFIDs = cfg.muteFIDs
     end
     spells[sid] = entry
   end
@@ -925,7 +956,7 @@ function Resonance:ImportConfig(str)
     if db.spell_config[sid] then
       skipped = skipped + 1
     else
-      db.spell_config[sid] = { sound = cfg.sound, muteExclusions = cfg.muteExclusions }
+      db.spell_config[sid] = { sound = cfg.sound, muteExclusions = cfg.muteExclusions, muteFIDs = cfg.muteFIDs }
       applyAutoMutesForSpell(sid)
       added = added + 1
     end
@@ -973,6 +1004,9 @@ function Resonance:SaveCurrentAsPreset(name)
         entry.muteExclusions[fid] = true
       end
     end
+    if cfg.muteFIDs then
+      entry.muteFIDs = cfg.muteFIDs
+    end
     preset.spells[sid] = entry
   end
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
@@ -996,6 +1030,9 @@ function Resonance:ApplySavedPreset(name)
         for fid in pairs(cfg.muteExclusions) do
           newCfg.muteExclusions[fid] = true
         end
+      end
+      if cfg.muteFIDs then
+        newCfg.muteFIDs = cfg.muteFIDs
       end
       db.spell_config[sid] = newCfg
       db.preset_spells[sid] = name
@@ -1034,6 +1071,9 @@ function Resonance:ClassPresetToData(classKey)
       for _, fid in ipairs(entry.muteExclusions) do
         spell.muteExclusions[fid] = true
       end
+    end
+    if entry.muteFIDs then
+      spell.muteFIDs = {unpack(entry.muteFIDs)}
     end
     data.spells[entry.spellID] = spell
   end
@@ -1078,6 +1118,9 @@ function Resonance:ApplyClassTemplate(classKey)
           cfg.muteExclusions[fid] = true
         end
       end
+      if entry.muteFIDs then
+        cfg.muteFIDs = {unpack(entry.muteFIDs)}
+      end
       db.spell_config[sid] = cfg
       db.preset_spells[sid] = classKey
       applyAutoMutesForSpell(sid)
@@ -1109,7 +1152,7 @@ local function refreshPresetsFromTemplates()
         if entry.spellID == sid then
           local cfg = db.spell_config[sid]
           if cfg then
-            -- Update sound and muteExclusions from template (template is source of truth)
+            -- Update sound, muteExclusions, and muteFIDs from template (template is source of truth)
             cfg.sound = entry.sound
             if entry.muteExclusions then
               cfg.muteExclusions = {}
@@ -1118,6 +1161,11 @@ local function refreshPresetsFromTemplates()
               end
             else
               cfg.muteExclusions = nil
+            end
+            if entry.muteFIDs then
+              cfg.muteFIDs = {unpack(entry.muteFIDs)}
+            else
+              cfg.muteFIDs = nil
             end
             updated = updated + 1
           end
@@ -1140,6 +1188,9 @@ local function refreshPresetsFromTemplates()
             for _, fid in ipairs(entry.muteExclusions) do
               cfg.muteExclusions[fid] = true
             end
+          end
+          if entry.muteFIDs then
+            cfg.muteFIDs = {unpack(entry.muteFIDs)}
           end
           db.spell_config[sid] = cfg
           db.preset_spells[sid] = classKey
