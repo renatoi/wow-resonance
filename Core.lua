@@ -45,6 +45,9 @@ local bit       = bit
 local L = Resonance_L
 local ADDON_ROOT = "Interface\\AddOns\\Resonance\\"
 
+local ADDON_VERSION = C_AddOns and C_AddOns.GetAddOnMetadata("Resonance", "Version") or "unknown"
+if ADDON_VERSION:find("@") then ADDON_VERSION = "dev" end
+
 -- Capture data globals into addon namespace, then release them from _G.
 -- Data files load before Core.lua (see .toc order) so these are guaranteed set.
 Resonance.SpellMuteData       = Resonance_SpellMuteData;       Resonance_SpellMuteData       = nil
@@ -90,6 +93,35 @@ local autoMutedFIDs = {}      -- runtime-only refcounted mute table (not saved)
 local voxMutedFIDs = {}       -- runtime-only: FIDs muted by global vox toggle
 local weaponMutedFIDs = {}    -- runtime-only: FIDs muted by weapon impact toggle
 local creatureMutedFIDs = {}  -- runtime-only: FIDs muted by creature vox toggle
+local autoShotMutedFIDs = {}  -- runtime-only: FIDs muted by classic auto-shot toggle
+
+---------------------------------------------------------------------------
+-- Classic auto-shot data
+---------------------------------------------------------------------------
+local AUTO_SHOT_SPELL_ID = 75
+
+-- Modern auto-shot FIDs to mute (bow + gun combined).
+-- Bow: bowpullback, bowrelease, bow_cast_oneshot (TWW)
+-- Gun: blunderbuss, shoot_cast_oneshot (TWW), shoot_cast_oneshot alt (TWW)
+local AUTO_SHOT_MUTE_FIDS = {
+  -- spell_hu_bowpullback_01-08
+  925291, 925293, 925295, 925297, 925299, 925301, 925303, 925305,
+  -- spell_hu_bowrelease_01-05
+  922086, 922088, 922090, 922092, 922094,
+  -- bow_cast_oneshot (TWW)
+  5913903, 5913905, 5913907, 5913909, 5913911, 5913913, 5913915,
+  -- spell_hu_blunderbuss_weaponfire_01-06
+  921248, 921250, 921252, 921254, 921256, 921258,
+  -- shoot_cast_oneshot (TWW)
+  5923734, 5923860, 5923862, 5923864, 5923866,
+  -- shoot_cast_oneshot alt (TWW)
+  6256085, 6256087, 6256089, 6256091, 6256093, 6256095, 6256097,
+  6256099, 6256101, 6256103, 6256105, 6256107, 6256109,
+}
+
+-- Classic replacement sounds (random pool per weapon type)
+local CLASSIC_BOW_FIDS = { 567674, 567673, 567682 }   -- bowrelease 1-3
+local CLASSIC_GUN_FIDS = { 567721, 567718, 567722 }   -- gunfire 1-3
 
 -- Name-based index: lowercase spell name -> spell_config entry.
 -- Handles variant spell IDs (e.g., Balance Moonfire 155625 vs base 8921)
@@ -115,6 +147,7 @@ local defaults = {
     muteVocalizations = "off",
     muteWeaponImpacts = false,
     muteCreatureVox = {},  -- { ["Beast"] = true, ["Demon"] = true, ... }
+    classicAutoShot = false,
     minimap = { hide = false },
     _lastAutoMutedFIDs = {},  -- persisted snapshot for stale-mute cleanup across /reload
     _lastCreatureMutedFIDs = {},  -- same for creature vox mutes
@@ -207,7 +240,7 @@ local activePlaybackFIDs = {}
 
 local function playOneSoundWithUnmute(snd, dbg)
   local isNum = type(snd) == "number"
-  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd])
+  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd] or autoShotMutedFIDs[snd])
   if dbg then msg(("  Playing: %s (muted: %s)"):format(tostring(snd), tostring(isMuted and true or false))) end
   if isMuted then
     local fid = snd
@@ -233,6 +266,7 @@ local function playOneSoundWithUnmute(snd, dbg)
       if weaponMutedFIDs[fid] then MuteSoundFile(fid) end
       if voxMutedFIDs[fid] then MuteSoundFile(fid) end
       if creatureMutedFIDs[fid] then MuteSoundFile(fid) end
+      if autoShotMutedFIDs[fid] then MuteSoundFile(fid) end
     end)
   elseif isNum then
     -- Unmuted numeric FID: play directly (skip previewSound overhead)
@@ -386,7 +420,7 @@ local function clearVoxMutes()
     if not db.mute_file_data_ids[fid]
        and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
        and not weaponMutedFIDs[fid]
-       and not creatureMutedFIDs[fid] then
+       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -427,7 +461,7 @@ local function clearWeaponMutes()
     if not db.mute_file_data_ids[fid]
        and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
        and not voxMutedFIDs[fid]
-       and not creatureMutedFIDs[fid] then
+       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -456,7 +490,7 @@ local function applyCreatureVoxMutes()
       if packed then
         for s in packed:gmatch("%d+") do
           local fid = tonumber(s)
-          if fid and not creatureMutedFIDs[fid] then
+          if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
             creatureMutedFIDs[fid] = true
             MuteSoundFile(fid)
             count = count + 1
@@ -543,6 +577,54 @@ local function refreshCreatureVoxMutes()
 end
 
 ---------------------------------------------------------------------------
+-- Classic auto-shot mute
+---------------------------------------------------------------------------
+local function applyAutoShotMutes()
+  local count = 0
+  for _, fid in ipairs(AUTO_SHOT_MUTE_FIDS) do
+    if not autoShotMutedFIDs[fid] then
+      autoShotMutedFIDs[fid] = true
+      MuteSoundFile(fid)
+      count = count + 1
+    end
+  end
+  if count > 0 then
+    msg(L["Muted %d auto-shot sounds."]:format(count))
+  end
+end
+
+local function clearAutoShotMutes()
+  local count = 0
+  for fid in pairs(autoShotMutedFIDs) do
+    if not db.mute_file_data_ids[fid]
+       and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+       and not voxMutedFIDs[fid]
+       and not weaponMutedFIDs[fid]
+       and not creatureMutedFIDs[fid] then
+      UnmuteSoundFile(fid)
+    end
+    count = count + 1
+  end
+  wipe(autoShotMutedFIDs)
+  if count > 0 then
+    msg(L["Cleared %d auto-shot mutes."]:format(count))
+  end
+end
+
+-- Detect equipped ranged weapon type from main hand (slot 16).
+-- Returns "bow" (bows + crossbows) or "gun", or nil if unknown.
+local C_Item_GetItemInfoInstant = C_Item and C_Item.GetItemInfoInstant
+local function getEquippedRangedType()
+  local itemID = GetInventoryItemID("player", 16)
+  if not itemID or not C_Item_GetItemInfoInstant then return nil end
+  local _, _, _, _, _, classID, subclassID = C_Item_GetItemInfoInstant(itemID)
+  if classID ~= 2 then return nil end   -- not a weapon
+  if subclassID == 2 or subclassID == 18 then return "bow" end  -- Bows / Crossbows
+  if subclassID == 3 then return "gun" end                       -- Guns
+  return nil
+end
+
+---------------------------------------------------------------------------
 -- Spell FID resolution: combines explicit muteFIDs (from spell_config,
 -- for spells whose FIDs were excluded from SpellMuteData as over-shared)
 -- with SpellMuteData entries (comma-separated strings parsed on demand).
@@ -583,7 +665,7 @@ local function removeAutoMuteFIDs(fids)
     local count = (autoMutedFIDs[fid] or 0) - 1
     if count <= 0 then
       autoMutedFIDs[fid] = nil
-      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] then
+      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
         UnmuteSoundFile(fid)
       end
     else
@@ -642,7 +724,7 @@ local function rebuildAutoMutes()
   -- sounds) would stay muted until a full client restart.
   local stale = db and db._lastAutoMutedFIDs or {}
   for fid, refcount in pairs(autoMutedFIDs) do
-    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] then
+    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
   end
@@ -658,7 +740,7 @@ local function rebuildAutoMutes()
   -- Unmute stale FIDs from the previous session snapshot — drain refcount
   for fid in pairs(stale) do
     if not autoMutedFIDs[fid] or autoMutedFIDs[fid] <= 0 then
-      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] then
+      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -728,13 +810,13 @@ end
 local function clearMutes()
   local count = 0
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
-    if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] then
+    if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
       UnmuteSoundFile(fid)
       count = count + 1
     end
   end
   for fid, refcount in pairs(autoMutedFIDs) do
-    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] then
+    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
       UnmuteSoundFile(fid)
       count = count + 1
     end
@@ -1100,6 +1182,7 @@ Resonance.autoMutedFIDs = autoMutedFIDs
 Resonance.voxMutedFIDs = voxMutedFIDs
 Resonance.weaponMutedFIDs = weaponMutedFIDs
 Resonance.creatureMutedFIDs = creatureMutedFIDs
+Resonance.autoShotMutedFIDs = autoShotMutedFIDs
 Resonance.invalidateSpellNameIndex = invalidateSpellNameIndex
 
 function Resonance:ApplyClassTemplate(classKey)
@@ -1249,7 +1332,14 @@ local function getGeneralOptions()
             if getVoxMode() ~= "off" then applyVoxMutes() end
             if db.muteWeaponImpacts then applyWeaponMutes() end
             if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
+            if db.classicAutoShot then applyAutoShotMutes() end
           else
+            -- Revert weapon impact and vocalization settings before clearing
+            db.muteWeaponImpacts = false
+            db.muteVocalizations = "off"
+            db.classicAutoShot = false
+            if db.muteCreatureVox then wipe(db.muteCreatureVox) end
+            clearAutoShotMutes()
             clearCreatureVoxMutes()
             clearVoxMutes()
             clearWeaponMutes()
@@ -1263,6 +1353,7 @@ local function getGeneralOptions()
         desc = L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."],
         order = 2,
         width = "full",
+        disabled = function() return not db.enabled end,
         get = function() return db.debug end,
         set = function(_, v) db.debug = v end,
       },
@@ -1272,6 +1363,7 @@ local function getGeneralOptions()
         desc = L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."],
         order = 3,
         width = "full",
+        disabled = function() return not db.enabled end,
         get = function() return not db.minimap.hide end,
         set = function(_, v) Resonance.toggleMinimapButton(v) end,
       },
@@ -1280,6 +1372,7 @@ local function getGeneralOptions()
         name = L["Replacement sound channel"],
         desc = L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."],
         order = 4,
+        disabled = function() return not db.enabled end,
         values = {
           Master = "Master",
           SFX = "SFX",
@@ -1297,10 +1390,25 @@ local function getGeneralOptions()
         desc = L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type."],
         order = 5,
         width = "full",
+        disabled = function() return not db.enabled end,
         get = function() return db.muteWeaponImpacts end,
         set = function(_, v)
           db.muteWeaponImpacts = v
           if v then if db.enabled then applyWeaponMutes() end else clearWeaponMutes() end
+        end,
+      },
+      classicAutoShot = {
+        type = "toggle",
+        name = L["Classic auto-shot sounds (Hunter)"],
+        desc = L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."],
+        order = 5.5,
+        width = "full",
+        hidden = function() return playerClassToken ~= "HUNTER" end,
+        disabled = function() return not db.enabled end,
+        get = function() return db.classicAutoShot end,
+        set = function(_, v)
+          db.classicAutoShot = v
+          if v then if db.enabled then applyAutoShotMutes() end else clearAutoShotMutes() end
         end,
       },
       muteVocalizations = {
@@ -1308,6 +1416,7 @@ local function getGeneralOptions()
         name = L["Mute character vocalizations"],
         desc = L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."],
         order = 6,
+        disabled = function() return not db.enabled end,
         values = {
           off = L["Off"],
           mine = L["Mine"],
@@ -1340,6 +1449,7 @@ local function getGeneralOptions()
         type = "toggle",
         name = L[cat] or cat,
         order = 8 + i,
+        disabled = function() return not db.enabled end,
         get = function() return db.muteCreatureVox and db.muteCreatureVox[cat] or false end,
         set = function(_, v)
           if not db.muteCreatureVox then db.muteCreatureVox = {} end
@@ -1370,7 +1480,13 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         if getVoxMode() ~= "off" then applyVoxMutes() end
         if db.muteWeaponImpacts then applyWeaponMutes() end
         if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
+        if db.classicAutoShot then applyAutoShotMutes() end
       else
+        db.muteWeaponImpacts = false
+        db.muteVocalizations = "off"
+        db.classicAutoShot = false
+        if db.muteCreatureVox then wipe(db.muteCreatureVox) end
+        clearAutoShotMutes()
         clearCreatureVoxMutes()
         clearVoxMutes()
         clearWeaponMutes()
@@ -1382,7 +1498,7 @@ local ldbObj = LDB:NewDataObject("Resonance", {
     end
   end,
   OnTooltipShow = function(tt)
-    tt:AddLine("Resonance")
+    tt:AddLine("Resonance |cff888888" .. ADDON_VERSION .. "|r")
     tt:AddLine(L["Left-click: Open options"], 1, 1, 1)
     tt:AddLine(L["Right-click: Toggle on/off"], 1, 1, 1)
     tt:AddLine(L["Drag: Move button"], 0.7, 0.7, 0.7)
@@ -1443,6 +1559,7 @@ function Resonance:OnInitialize()
 
   -- Profile change callbacks
   local function onProfileChanged()
+    clearAutoShotMutes()
     clearCreatureVoxMutes()
     clearWeaponMutes()
     clearVoxMutes()
@@ -1454,6 +1571,7 @@ function Resonance:OnInitialize()
     if getVoxMode() ~= "off" then applyVoxMutes() end
     if db.muteWeaponImpacts then applyWeaponMutes() end
     if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
+    if db.classicAutoShot then applyAutoShotMutes() end
   end
   self.db.RegisterCallback(self, "OnProfileChanged", onProfileChanged)
   self.db.RegisterCallback(self, "OnProfileCopied", onProfileChanged)
@@ -1483,6 +1601,7 @@ function Resonance:OnEnable()
   if db.enabled then applyMutes() end
   if getVoxMode() ~= "off" then applyVoxMutes() end
   if db.muteWeaponImpacts then applyWeaponMutes() end
+  if db.classicAutoShot then applyAutoShotMutes() end
   if hasAnyCreatureVoxEnabled() then
     applyCreatureVoxMutes()
   elseif CreatureVoxExcludedFIDs then
@@ -1516,6 +1635,18 @@ end
 function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   if unit ~= "player" then return end
   if not db.enabled or not spellID then return end
+
+  -- Classic auto-shot: intercept spell 75 before the normal path
+  if spellID == AUTO_SHOT_SPELL_ID and db.classicAutoShot and playerClassToken == "HUNTER" then
+    local weaponType = getEquippedRangedType()
+    local pool = weaponType == "gun" and CLASSIC_GUN_FIDS or CLASSIC_BOW_FIDS
+    local pick = pool[math.random(1, #pool)]
+    if db.debug then
+      msg(("Auto Shot: playing classic %s sound %d"):format(weaponType or "bow", pick))
+    end
+    PlaySoundFile(pick, db.soundChannel or "Master")
+    return
+  end
 
   -- Inlined shouldTriggerForSpell: check spell_config first (common
   -- case for configured spells), fall back to IsPlayerSpell (WoW API).
@@ -1558,9 +1689,15 @@ function Resonance:ChatCommand(input)
     if getVoxMode() ~= "off" then applyVoxMutes() end
     if db.muteWeaponImpacts then applyWeaponMutes() end
     if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
+    if db.classicAutoShot then applyAutoShotMutes() end
     msg(L["Enabled."])
   elseif cmd == "off" then
     db.enabled = false
+    db.muteWeaponImpacts = false
+    db.muteVocalizations = "off"
+    db.classicAutoShot = false
+    if db.muteCreatureVox then wipe(db.muteCreatureVox) end
+    clearAutoShotMutes()
     clearVoxMutes()
     clearWeaponMutes()
     clearCreatureVoxMutes()
@@ -1593,7 +1730,7 @@ function Resonance:ChatCommand(input)
     if not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
        and not voxMutedFIDs[fid]
        and not weaponMutedFIDs[fid]
-       and not creatureMutedFIDs[fid] then
+       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     msg(L["Unmuted fileDataID %d."]:format(fid))

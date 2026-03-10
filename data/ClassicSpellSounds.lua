@@ -28,8 +28,8 @@ Resonance_ClassicSpellSounds = {
   [12294] = { 569098, 569827, 569828, 569829, 569830, 569831 },
   -- Shield Slam
   [23922] = { 567879 },
-  -- Revenge
-  [6572] = { 569098, 569827, 569828, 569829, 569830, 569831 },
+  -- Revenge (DB2 chain gives DecisiveStrike; actual classic sounds are warrior_revenge 1-4)
+  [6572] = { 569120, 569726, 569247, 569186 },
   -- Victory Rush (retail: 34428, name-matched to 402927 — verify!)
   [402927] = { 568003, 569827, 569828, 569829, 569830, 569831 },
   -- Pummel
@@ -43,8 +43,8 @@ Resonance_ClassicSpellSounds = {
   -- Shield Block
   [2565] = { 569473 },
   -- Colossus Smash (167105): no sounds found
-  -- Bladestorm (retail: 46924, name-matched to 9632 — verify!)
-  [9632] = { 568214, 568519, 569098 },
+  -- Bladestorm (DB2 chain gives Whirlwind sounds; actual classic sound is warrior_bladestorm)
+  [9632] = { 568202 },
   -- Devastate
   [20243] = { 568703, 568983, 569362, 569367, 569491, 569524, 569535, 569563, 569827, 569828, 569829, 569830, 569831 },
   -- Shockwave (retail: 46968, name-matched to 1698 — verify!)
@@ -391,8 +391,8 @@ Resonance_ClassicSpellSounds = {
   [50304] = { 568208, 569708 },
   -- Death Strike
   [49998] = { 568003, 568162, 568267, 569047, 569219 },
-  -- Heart Strike (retail: 206930, name-matched to 55050 — verify!)
-  [55050] = { 568459, 568568, 569410 },
+  -- Heart Strike (DB2 chain gives Blood Strike sounds; actual classic sounds are deathknight_heartstrike 1-6)
+  [55050] = { 569261, 569365, 569370, 569580, 568143, 569458 },
   -- Blood Boil
   [50842] = { 568208, 569766 },
   -- Dancing Rune Weapon

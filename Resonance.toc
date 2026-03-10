@@ -17,7 +17,7 @@
 ## X-License: MIT
 ## X-Curse-Project-ID: 1480189
 ## X-Wago-ID: qGYZ9lNg
-## IconTexture: Interface\Icons\INV_Misc_Drum_06
+## IconTexture: 6383545
 ## SavedVariables: ResonanceDB
 
 embeds.xml

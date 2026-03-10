@@ -28,7 +28,7 @@ Resonance_ClassTemplates = {
     { spellID = 845,    name = "Cleave",            sound = 568227 },  -- CleaveTarget.ogg
     { spellID = 12294,  name = "Mortal Strike",     sound = 569098 },  -- DecisiveStrike.ogg
     { spellID = 23922,  name = "Shield Slam",       sound = 567879 },  -- m1hSwordHitMetalShieldCrit.ogg
-    { spellID = 6572,   name = "Revenge",           sound = 569098 },  -- DecisiveStrike.ogg
+    { spellID = 6572,   name = "Revenge",           sound = {random = {569120, 569726, 569247, 569186}} },  -- warrior_revenge 1-4.ogg
     -- Heroic Leap removed: sound plays on cast, not on landing (WoW API limitation)
     { spellID = 34428,  name = "Victory Rush",      sound = 568003 },  -- RendTarget.ogg
     { spellID = 6552,   name = "Pummel",            sound = 567944 },  -- mWooshMediumCrit.ogg
@@ -36,7 +36,7 @@ Resonance_ClassTemplates = {
     { spellID = 1160,   name = "Demoralizing Shout", sound = 568028 }, -- BattleShoutTarget.ogg
     { spellID = 2565,   name = "Shield Block",      sound = 569473 },  -- ShieldWallTarget.ogg
     { spellID = 167105, name = "Colossus Smash",    sound = 568664 },  -- colossussmash_impact_01.ogg
-    { spellID = 46924,  name = "Bladestorm",         sound = 568519 },  -- WhirlwindShort.ogg
+    { spellID = 46924,  name = "Bladestorm",         sound = 568202 },  -- warrior_bladestorm.ogg
     { spellID = 20243,  name = "Devastate",          sound = 568983 },  -- warrior_devastate1.ogg
     { spellID = 23881,  name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg
     { spellID = 335096, name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg (talent variant)
@@ -309,7 +309,7 @@ Resonance_ClassTemplates = {
     { spellID = 77575,  name = "Outbreak",           sound = 569184 },  -- spell_dk_outbreak_01.ogg
     -- Blood
     { spellID = 49998,  name = "Death Strike",       sound = 568267 },  -- deathknight_deathstrike1.ogg
-    { spellID = 206930, name = "Heart Strike",       sound = 568459 },  -- deathknight_bloodstrike3.ogg
+    { spellID = 206930, name = "Heart Strike",       sound = {random = {569261, 569365, 569370, 569580, 568143, 569458}} },  -- deathknight_heartstrike 1-6.ogg
     { spellID = 50842,  name = "Blood Boil",         sound = 568473 },  -- deathknight_bloodboil.ogg
     { spellID = 49028,  name = "Dancing Rune Weapon", sound = 568356 }, -- deathknight_frozenruneweapon_impact.ogg
     -- Shared

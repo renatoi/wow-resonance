@@ -1034,6 +1034,9 @@ CREATURE_VOX_COLS = [
     "BattleShoutSoundID", "BattleShoutCriticalSoundID",
     "WindupSoundID", "WindupCriticalSoundID",
     "ChargeSoundID", "TauntSoundID",
+    "SoundAlertID",
+    "SoundFidget_0", "SoundFidget_1", "SoundFidget_2", "SoundFidget_3",
+    "SoundJumpStartID", "SoundJumpEndID",
 ]
 
 
@@ -1349,16 +1352,25 @@ def main():
         ske_rows = load_csv(ske_path)
         ske_idx = build_index(ske_rows, "SoundKitID")
         output_path = Path(__file__).parent.parent / "data" / "CreatureVoxData.lua"
-        # Load spell FIDs to exclude from creature vox (prevents collateral
-        # muting of player spells that reuse creature audio files)
+        # Only exclude creature vox FIDs that overlap with player spells in
+        # ClassTemplates.  The old approach excluded ALL SpellMuteData FIDs,
+        # which removed creature sounds shared with NPC-only abilities (e.g.
+        # a berserker's own "Noxious Breath" reusing its vox audio).
+        templates_path = Path(__file__).parent.parent / "data" / "ClassTemplates.lua"
         mute_data_path = Path(__file__).parent.parent / "data" / "SpellMuteData.lua"
+        player_spell_ids: set[str] = set()
+        if templates_path.exists():
+            with open(templates_path, "r", encoding="utf-8") as tf:
+                for m in re.finditer(r"spellID\s*=\s*(\d+)", tf.read()):
+                    player_spell_ids.add(m.group(1))
+            print(f"  Loaded {len(player_spell_ids)} player spell IDs from ClassTemplates")
         spell_fids: set[int] = set()
-        if mute_data_path.exists():
+        if mute_data_path.exists() and player_spell_ids:
             with open(mute_data_path, "r", encoding="utf-8") as mf:
                 for line in mf:
-                    m = re.match(r'\s*\[\d+\]\s*=\s*"([\d,]+)"', line)
-                    if m:
-                        for fid_s in m.group(1).split(","):
+                    m = re.match(r'\s*\[(\d+)\]\s*=\s*"([\d,]+)"', line)
+                    if m and m.group(1) in player_spell_ids:
+                        for fid_s in m.group(2).split(","):
                             spell_fids.add(int(fid_s))
             print(f"  Loaded {len(spell_fids)} spell FIDs to exclude from creature vox")
         generate_creature_vox_data(ske_idx, output_path, build=build,
