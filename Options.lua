@@ -165,6 +165,7 @@ local function isFIDMuted(fid)
   if Resonance.voxMutedFIDs and Resonance.voxMutedFIDs[fid] then return true end
   if Resonance.weaponMutedFIDs and Resonance.weaponMutedFIDs[fid] then return true end
   if Resonance.creatureMutedFIDs and Resonance.creatureMutedFIDs[fid] then return true end
+  if Resonance.professionMutedFIDs and Resonance.professionMutedFIDs[fid] then return true end
   return false
 end
 
@@ -186,6 +187,7 @@ local function safePlaySound(value)
         if Resonance.voxMutedFIDs and Resonance.voxMutedFIDs[fid] then MuteSoundFile(fid) end
         if Resonance.weaponMutedFIDs and Resonance.weaponMutedFIDs[fid] then MuteSoundFile(fid) end
         if Resonance.creatureMutedFIDs and Resonance.creatureMutedFIDs[fid] then MuteSoundFile(fid) end
+        if Resonance.professionMutedFIDs and Resonance.professionMutedFIDs[fid] then MuteSoundFile(fid) end
       end)
     end
   else
@@ -1127,6 +1129,7 @@ local function buildLayout()
 
   local refreshAutoMuteSection  -- forward declaration
   local edResizeEditor          -- forward declaration
+  local autoMuteAnchor          -- forward declaration (used by edSetMuteOnly)
 
   local function edUpdateSpellPreview()
     local sid = tonumber(edSpellIDBox:GetText())
@@ -1210,8 +1213,14 @@ local function buildLayout()
   repAnchor:SetSize(CONTENT_WIDTH - 20, 1)
   repAnchor:SetPoint("TOPLEFT", edSpellSearchBox, "BOTTOMLEFT", 4, -12)
 
+  local edMuteOnlyCheck = CreateFrame("CheckButton", nil, editorFrame, "UICheckButtonTemplate")
+  edMuteOnlyCheck:SetSize(22, 22)
+  edMuteOnlyCheck:SetPoint("TOPLEFT", repAnchor, "TOPLEFT", 0, 2)
+  edMuteOnlyCheck.text:SetFontObject("GameFontNormal")
+  edMuteOnlyCheck.text:SetText(L["Mute only (no replacement sound)"])
+
   local repHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  repHeader:SetPoint("TOPLEFT", repAnchor, "TOPLEFT", 0, 0)
+  repHeader:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -6)
   repHeader:SetText(L["Replacement Sound"])
 
   local function formatSoundBrief(snd)
@@ -1532,14 +1541,55 @@ local function buildLayout()
   edBrowseRadio:SetScript("OnClick", function() edSetSoundMode(true) end)
   edFileRadio:SetScript("OnClick", function() edSetSoundMode(false) end)
 
+  local function edSetMuteOnly(muteOnly)
+    edMuteOnlyCheck:SetChecked(muteOnly)
+    -- Hide/show the entire replacement sound section
+    repHeader:SetShown(not muteOnly)
+    edSoundListFrame:SetShown(not muteOnly)
+    edPlayAllBtn:SetShown(not muteOnly)
+    edClearAllBtn:SetShown(not muteOnly)
+    edBrowseRadio:SetShown(not muteOnly)
+    edFileRadio:SetShown(not muteOnly)
+    edBrowseBox:SetShown(not muteOnly and edBrowseRadio:GetChecked())
+    if edBrowseBox.clearBtn then edBrowseBox.clearBtn:SetShown(not muteOnly and edBrowseRadio:GetChecked() and edBrowseBox:GetText() ~= "") end
+    edFileFrame:SetShown(not muteOnly and not edBrowseRadio:GetChecked())
+    if muteOnly then edBrowseDD:Hide() end
+    -- Re-anchor auto-mute section: attach to checkbox when mute-only, browse box otherwise
+    if muteOnly then
+      autoMuteAnchor:ClearAllPoints()
+      autoMuteAnchor:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -12)
+    else
+      autoMuteAnchor:ClearAllPoints()
+      autoMuteAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -12)
+    end
+    if edResizeEditor and editorFrame:IsShown() then edResizeEditor() end
+  end
+  edMuteOnlyCheck:SetScript("OnClick", function(self)
+    local checked = self:GetChecked()
+    if checked then
+      editorSound = false
+    else
+      editorSound = nil
+    end
+    edSetMuteOnly(checked)
+    edRefreshSoundList()
+  end)
+
   -- Auto-Muted Sounds section
   local AUTO_MUTE_VISIBLE_ROWS = 8
   local AUTO_MUTE_SCROLL_H = AUTO_MUTE_VISIBLE_ROWS * ROW_HEIGHT
 
   edResizeEditor = function()
-    local soundListH = edSoundListFrame:GetHeight()
-    local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
-    local baseH = 360 + extraSoundH
+    local muteOnly = edMuteOnlyCheck:GetChecked()
+    local baseH
+    if muteOnly then
+      -- No replacement sound section — just checkbox + auto-mute area
+      baseH = 180
+    else
+      local soundListH = edSoundListFrame:GetHeight()
+      local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
+      baseH = 360 + extraSoundH
+    end
     local sid = tonumber(edSpellIDBox:GetText())
     local hasMuteData = sid and Resonance.getSpellMuteFIDs(sid)
     if hasMuteData then
@@ -1549,7 +1599,7 @@ local function buildLayout()
     end
   end
 
-  local autoMuteAnchor = CreateFrame("Frame", nil, editorFrame)
+  autoMuteAnchor = CreateFrame("Frame", nil, editorFrame)
   autoMuteAnchor:SetSize(CONTENT_WIDTH - 20, 1)
   autoMuteAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -12)
 
@@ -1757,6 +1807,7 @@ local function buildLayout()
     edUpdateSpellPreview()
     edRefreshSoundList()
     edSetSoundMode(hasSpellDB())
+    edSetMuteOnly(editorSound == false)
     refreshAutoMuteSection(spellID)
     edResizeEditor()
 
@@ -1770,7 +1821,7 @@ local function buildLayout()
     local sid = tonumber(edSpellIDBox:GetText())
     if not sid or sid <= 0 then Resonance.msg(L["Enter a valid spell ID."]); return end
     if editorSound == nil then
-      Resonance.msg(L["Select a replacement sound before saving."])
+      Resonance.msg(L["Select a replacement sound or enable 'Mute only'."])
       return
     end
     local isNew = not profile.spell_config[sid]
@@ -1990,13 +2041,19 @@ local function buildLayout()
 
           local cfg = entry.cfg
           local sound = cfg.sound
-          if type(sound) == "table" then
+          if sound == false then
+            row.soundText:SetText("|cffff8800" .. L["Muted (no replacement)"] .. "|r")
+            row.playBtn:SetEnabled(false)
+          elseif type(sound) == "table" then
             local parts = {}
             for _, s in ipairs(sound) do parts[#parts + 1] = formatSoundBrief(s) end
             if sound.random then
               parts[#parts + 1] = L["+1 random from %d"]:format(#sound.random)
             end
             row.soundText:SetText("|cff00ff00" .. table.concat(parts, ", ") .. "|r")
+            row.playBtn:SetEnabled(true)
+            local cfgSound = cfg.sound
+            wirePlayStop(row.playBtn, function() return cfgSound end)
           elseif type(sound) == "number" then
             local path = lookupFIDPath(sound)
             if path then
@@ -2004,14 +2061,16 @@ local function buildLayout()
             else
               row.soundText:SetText("|cff00ff00FID:" .. sound .. "|r")
             end
+            row.playBtn:SetEnabled(true)
+            local cfgSound = cfg.sound
+            wirePlayStop(row.playBtn, function() return cfgSound end)
           else
             local filename = tostring(sound):match("[^/\\]+$") or tostring(sound)
             row.soundText:SetText("|cff00ff00" .. filename .. "|r")
+            row.playBtn:SetEnabled(true)
+            local cfgSound = cfg.sound
+            wirePlayStop(row.playBtn, function() return cfgSound end)
           end
-
-          row.playBtn:SetEnabled(true)
-          local cfgSound = cfg.sound
-          wirePlayStop(row.playBtn, function() return cfgSound end)
           row.editBtn:SetScript("OnClick", function() openEditor(entry.spellID) end)
           row.delBtn:SetScript("OnClick", function()
             Resonance.removeAutoMutesForSpell(entry.spellID)

@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.0
+
+### New Features
+- **Mute-only mode:** Mute all sounds from a spell without selecting a replacement. Enable "Mute only" in the spell editor to silence original sounds with nothing playing in their place.
+- **Profession sound muting:** Per-profession checkboxes (Alchemy, Blacksmithing, Cooking, etc.) to mute crafting, gathering, and other profession-related sounds. 13 professions, 168 unique sound files.
+- **Shared-sounds disclaimer:** General tab now shows a note explaining that some sounds are shared across multiple spells/effects, so muting for one feature may silence them elsewhere.
+
+### Tooling
+- `tools/spell_sounds.py --generate-profession-data` generates `data/ProfessionSoundData.lua` from DB2 SkillLine/SkillLineAbility data.
+
 ## v1.1.0
 
 ### New Features
