@@ -1,0 +1,14 @@
+## Interface: 120001
+## Title: Resonance Data
+## Notes: Search databases and configuration data for Resonance. Can be disabled to save memory when not configuring the addon.
+## Author: Renato
+## Version: @project-version@
+## Dependencies: Resonance
+## LoadOnDemand: 1
+## DefaultState: enabled
+
+data/SpellMuteData.lua
+data/SpellSounds.lua
+data/CharacterSounds.lua
+data/AmbientSoundData.lua
+data/ClassicSpellSounds.lua

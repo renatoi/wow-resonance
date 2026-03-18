@@ -469,6 +469,17 @@ end
 local pendingOpen = false
 Resonance.openOptions = function()
   if not category then return end
+  -- Ensure Resonance_Data (LoadOnDemand) is loaded before showing the UI
+  local loaded, reason = Resonance.loadDataAddon()
+  if not loaded then
+    if reason == "DISABLED" then
+      Resonance.msg(L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."])
+    elseif reason == "MISSING" or reason == "NOT_INSTALLED" then
+      Resonance.msg(L["Resonance Data module not found. Reinstall Resonance to restore full functionality."])
+    else
+      Resonance.msg((L["Could not load Resonance Data: %s"]):format(reason or "unknown"))
+    end
+  end
   if InCombatLockdown() then
     if not pendingOpen then
       pendingOpen = true
@@ -3719,6 +3730,9 @@ end
 ---------------------------------------------------------------------------
 function Resonance:SetupOptions()
   registerPanel()
+  -- Attempt to load Resonance_Data so search databases are available for buildLayout.
+  -- This is a best-effort load; if it fails the UI degrades gracefully.
+  Resonance.loadDataAddon()
   local ok, err = pcall(buildLayout)
   if not ok then
     local errStr = tostring(err)
