@@ -534,6 +534,20 @@ local function makeEditBox(parent, width, anchorTo, offX, offY, placeholder)
   return eb
 end
 
+local function wireNumericEditBox(eb, onChange)
+  eb:SetScript("OnTextChanged", function(self)
+    if self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus()) end
+    local val = tonumber(self:GetText())
+    onChange((val and val > 0) and val or nil)
+  end)
+  eb:SetScript("OnEditFocusGained", function(self) if self.placeholder then self.placeholder:Hide() end end)
+  eb:SetScript("OnEditFocusLost", function(self)
+    if self.placeholder then self.placeholder:SetShown(self:GetText() == "") end
+  end)
+  eb:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+  eb:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+end
+
 local function makeIconButton(parent, icon, size, tooltip, onClick)
   local btn = CreateFrame("Button", nil, parent)
   btn:SetSize(size, size)
@@ -1130,6 +1144,7 @@ local function buildLayout()
 
   local editorSound = nil
   local editorDuration = nil   -- optional: stop sound after this many seconds
+  local editorLoop = nil       -- optional: loop sound (true or number of iterations)
   local editorTrigger = "cast" -- "cast", "precast", or "precast_and_cast"
   local editorPrecastSound = nil
   local editorPrecastDuration = nil
@@ -1343,17 +1358,7 @@ local function buildLayout()
 
   edPrecastDurBox = makeEditBox(edPrecastSection, 60, edPrecastSection, 0, 0, "e.g. 1.5")
   edPrecastDurBox:SetPoint("LEFT", edPrecastDurLabel, "RIGHT", 6, 0)
-  edPrecastDurBox:SetScript("OnTextChanged", function(self)
-    if self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus()) end
-    local val = tonumber(self:GetText())
-    editorPrecastDuration = (val and val > 0) and val or nil
-  end)
-  edPrecastDurBox:SetScript("OnEditFocusGained", function(self) if self.placeholder then self.placeholder:Hide() end end)
-  edPrecastDurBox:SetScript("OnEditFocusLost", function(self)
-    if self.placeholder then self.placeholder:SetShown(self:GetText() == "") end
-  end)
-  edPrecastDurBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
-  edPrecastDurBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  wireNumericEditBox(edPrecastDurBox, function(val) editorPrecastDuration = val end)
 
   local repHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   repHeader:SetPoint("TOPLEFT", edTriggerCast, "BOTTOMLEFT", 0, -6)
@@ -1690,21 +1695,7 @@ local function buildLayout()
 
   local edDurationBox = makeEditBox(edDurationFrame, 60, edDurationFrame, 0, 0, "e.g. 1.5")
   edDurationBox:SetPoint("LEFT", edDurationLabel, "RIGHT", 6, 0)
-  edDurationBox:SetScript("OnTextChanged", function(self)
-    if self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus()) end
-    local val = tonumber(self:GetText())
-    if val and val > 0 then
-      editorDuration = val
-    else
-      editorDuration = nil
-    end
-  end)
-  edDurationBox:SetScript("OnEditFocusGained", function(self) if self.placeholder then self.placeholder:Hide() end end)
-  edDurationBox:SetScript("OnEditFocusLost", function(self)
-    if self.placeholder then self.placeholder:SetShown(self:GetText() == "") end
-  end)
-  edDurationBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
-  edDurationBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  wireNumericEditBox(edDurationBox, function(val) editorDuration = val end)
 
   local edDurationClearBtn = makeButton(edDurationFrame, L["Clear"], 42, function()
     edDurationBox:SetText("")
@@ -1715,6 +1706,21 @@ local function buildLayout()
   local edDurationHelp = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   edDurationHelp:SetPoint("LEFT", edDurationClearBtn, "RIGHT", 6, 0)
   edDurationHelp:SetText(L["Cuts long sounds short"])
+
+  local edLoopCheck = CreateFrame("CheckButton", nil, edDurationFrame, "UICheckButtonTemplate")
+  edLoopCheck:SetSize(22, 22)
+  edLoopCheck:SetPoint("LEFT", edDurationHelp, "RIGHT", 8, 0)
+  edLoopCheck.text:SetFontObject("GameFontNormalSmall")
+  edLoopCheck.text:SetText(L["Loop"])
+  edLoopCheck:SetScript("OnClick", function(self)
+    editorLoop = self:GetChecked() and true or nil
+  end)
+  edLoopCheck:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:AddLine(L["Repeat the sound until the next cast. Requires a duration to be set."], 1, 1, 1, true)
+    GameTooltip:Show()
+  end)
+  edLoopCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   local function edSetMuteOnly(muteOnly)
     edMuteOnlyCheck:SetChecked(muteOnly)
@@ -1943,6 +1949,7 @@ local function buildLayout()
     profile = Resonance.db.profile
     editorSound = nil
     editorDuration = nil
+    editorLoop = nil
     editorTrigger = "cast"
     editorPrecastSound = nil
     editorPrecastDuration = nil
@@ -1953,6 +1960,7 @@ local function buildLayout()
     edSpellSearchDD:Hide()
     edFileBox:SetText("")
     edDurationBox:SetText("")
+    edLoopCheck:SetChecked(false)
     edPrecastFileBox:SetText("")
     edPrecastDurBox:SetText("")
 
@@ -1979,6 +1987,10 @@ local function buildLayout()
         if cfg.duration then
           editorDuration = cfg.duration
           edDurationBox:SetText(tostring(cfg.duration))
+        end
+        if cfg.loop then
+          editorLoop = cfg.loop
+          edLoopCheck:SetChecked(true)
         end
         if cfg.trigger then
           editorTrigger = cfg.trigger
@@ -2048,12 +2060,12 @@ local function buildLayout()
     local precastSound = (editorTrigger == "precast_and_cast") and editorPrecastSound or nil
     local precastDuration = (editorTrigger == "precast_and_cast") and editorPrecastDuration or nil
     if isNew then
-      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions, duration = editorDuration, trigger = trigger, precastSound = precastSound, precastDuration = precastDuration }
+      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions, duration = editorDuration, loop = editorLoop, trigger = trigger, precastSound = precastSound, precastDuration = precastDuration }
       Resonance.applyAutoMutesForSpell(sid)
     else
       -- Remove old mutes (using old exclusions), update config, re-apply with new exclusions
       Resonance.removeAutoMutesForSpell(sid)
-      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions, duration = editorDuration, trigger = trigger, precastSound = precastSound, precastDuration = precastDuration }
+      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions, duration = editorDuration, loop = editorLoop, trigger = trigger, precastSound = precastSound, precastDuration = precastDuration }
       Resonance.applyAutoMutesForSpell(sid)
     end
     Resonance.invalidateSpellNameIndex()
@@ -2291,6 +2303,9 @@ local function buildLayout()
           local indicators = ""
           if cfg.duration then
             indicators = indicators .. ("%.1fs"):format(cfg.duration)
+          end
+          if cfg.loop then
+            indicators = indicators .. (indicators ~= "" and ", " or "") .. "loop"
           end
           if cfg.trigger == "precast" then
             indicators = indicators .. (indicators ~= "" and ", " or "") .. "precast"
