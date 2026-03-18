@@ -842,12 +842,13 @@ local function buildLayout()
   local refreshList
   local refreshMuteList
   local refreshPresetList
+  local refreshAmbientTab
   local allDropdowns = {}
 
   -------------------------------------------------------------------
   -- Tab system
   -------------------------------------------------------------------
-  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Presets"], L["Profiles"] }
+  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Presets"], L["Ambient"], L["Profiles"] }
   local TAB_HEIGHT = 28
   local TAB_OVERLAP = 4
   local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
@@ -986,6 +987,7 @@ local function buildLayout()
     if id == 2 and refreshList then refreshList() end
     if id == 3 and refreshMuteList then refreshMuteList() end
     if id == 4 and refreshPresetList then refreshPresetList() end
+    if id == 5 and refreshAmbientTab then refreshAmbientTab() end
   end
 
   for i, btn in ipairs(tabButtons) do
@@ -3441,9 +3443,133 @@ local function buildLayout()
   end)
 
   -------------------------------------------------------------------
-  -- Tab 5: Profiles (AceDBOptions)
+  -- Tab 5: Ambient Sounds
   -------------------------------------------------------------------
-  local profTab = tabFrames[5].content
+  refreshAmbientTab = (function()
+    local ambTab = tabFrames[5].content
+    local ASD = Resonance.AmbientSoundData
+    if not ASD then
+      local noData = ambTab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+      noData:SetPoint("TOPLEFT", 16, -16)
+      noData:SetText(L["No ambient sound data available."])
+      return function() end
+    end
+
+    local hdr = ambTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    hdr:SetPoint("TOPLEFT", 16, -16)
+    hdr:SetText(L["Mute ambient sounds by zone"])
+
+    local desc = ambTab:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    desc:SetPoint("TOPLEFT", hdr, "BOTTOMLEFT", 0, -6)
+    desc:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
+    desc:SetJustifyH("LEFT")
+    desc:SetText(L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."])
+
+    local EXP_ORDER = { "Midnight", "The War Within", "Dragonflight", "Shadowlands", "Battle for Azeroth", "Legion", "General" }
+    local allRows = {}
+    local expanded = {}
+
+    local function countFIDs(packed)
+      local n = 0
+      for _ in packed:gmatch("%d+") do n = n + 1 end
+      return n
+    end
+
+    local function buildZoneRow(parent, anchor, isFirst, zone, key, fidCount)
+      local row = CreateFrame("Frame", nil, parent)
+      row:SetHeight(ROW_HEIGHT)
+      row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", isFirst and 20 or 0, -2)
+      row:SetPoint("RIGHT", parent, "RIGHT", -16, 0)
+      local cb = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+      cb:SetPoint("LEFT", 0, 0)
+      local t = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+      t:SetPoint("LEFT", cb, "RIGHT", 4, 0)
+      t:SetText(zone)
+      local b = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+      b:SetPoint("LEFT", t, "RIGHT", 6, 0)
+      b:SetText("|cff888888(" .. fidCount .. ")|r")
+      cb:SetScript("OnClick", function(self)
+        local p = Resonance.db.profile
+        if not p.muteAmbientSounds then p.muteAmbientSounds = {} end
+        p.muteAmbientSounds[key] = self:GetChecked() or nil
+        Resonance.refreshAmbientMutes()
+      end)
+      row.cb = cb
+      row.key = key
+      return row
+    end
+
+    local function buildExpansion(exp, anchor, offY)
+      local data = ASD[exp]
+      if not data then return nil, anchor, offY end
+
+      local ehdr = CreateFrame("Button", nil, ambTab)
+      ehdr:SetHeight(ROW_HEIGHT + 4)
+      ehdr:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, offY)
+      ehdr:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
+      local bg = ehdr:CreateTexture(nil, "BACKGROUND")
+      bg:SetAllPoints()
+      bg:SetColorTexture(0.18, 0.18, 0.18, 0.8)
+      local arrow = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+      arrow:SetPoint("LEFT", 8, 0)
+      local title = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+      title:SetPoint("LEFT", arrow, "RIGHT", 4, 0)
+      title:SetText(L[exp] or exp)
+
+      local zc, fc = 0, 0
+      for _, packed in pairs(data) do zc = zc + 1; fc = fc + countFIDs(packed) end
+      local info = ehdr:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+      info:SetPoint("LEFT", title, "RIGHT", 8, 0)
+      info:SetText("(" .. zc .. " zones, " .. fc .. " sounds)")
+
+      local sorted = {}
+      for z in pairs(data) do sorted[#sorted + 1] = z end
+      table.sort(sorted)
+
+      local zoneRows = {}
+      local prev = ehdr
+      for i, z in ipairs(sorted) do
+        local row = buildZoneRow(ambTab, prev, (i == 1), z, exp .. "|" .. z, countFIDs(data[z]))
+        zoneRows[#zoneRows + 1] = row
+        allRows[#allRows + 1] = row
+        prev = row
+      end
+
+      expanded[exp] = false
+      local function toggle()
+        expanded[exp] = not expanded[exp]
+        arrow:SetText(expanded[exp] and "v" or ">")
+        for _, r in ipairs(zoneRows) do r:SetShown(expanded[exp]) end
+        recalcContentHeight(5)
+      end
+      arrow:SetText(">")
+      for _, r in ipairs(zoneRows) do r:Hide() end
+      ehdr:SetScript("OnClick", toggle)
+      ehdr:SetScript("OnEnter", function() bg:SetColorTexture(0.25, 0.25, 0.25, 0.8) end)
+      ehdr:SetScript("OnLeave", function() bg:SetColorTexture(0.18, 0.18, 0.18, 0.8) end)
+
+      return ehdr, zoneRows[#zoneRows] or ehdr, -6
+    end
+
+    local curAnchor, curOffY = desc, -12
+    for _, exp in ipairs(EXP_ORDER) do
+      local _, newAnchor, newOffY = buildExpansion(exp, curAnchor, curOffY)
+      if newAnchor then curAnchor, curOffY = newAnchor, newOffY end
+    end
+
+    return function()
+      local p = Resonance.db.profile
+      for _, row in ipairs(allRows) do
+        row.cb:SetChecked(p.muteAmbientSounds and p.muteAmbientSounds[row.key] or false)
+      end
+      recalcContentHeight(5)
+    end
+  end)()
+
+  -------------------------------------------------------------------
+  -- Tab 6: Profiles (AceDBOptions)
+  -------------------------------------------------------------------
+  local profTab = tabFrames[6].content
 
   local profContainer = CreateFrame("Frame", nil, profTab)
   profContainer:SetPoint("TOPLEFT", 16, -16)

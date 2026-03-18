@@ -59,6 +59,7 @@ Resonance.CreatureVoxData     = Resonance_CreatureVoxData;      Resonance_Creatu
 Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories; Resonance_CreatureVoxCategories = nil
 Resonance.ProfessionSoundData  = Resonance_ProfessionSoundData;  Resonance_ProfessionSoundData  = nil
 Resonance.ProfessionCategories = Resonance_ProfessionCategories;  Resonance_ProfessionCategories = nil
+Resonance.AmbientSoundData    = Resonance_AmbientSoundData;      Resonance_AmbientSoundData    = nil
 Resonance.SpellSounds         = Resonance_SpellSounds;          Resonance_SpellSounds         = nil
 Resonance.CharacterSounds     = Resonance_CharacterSounds;      Resonance_CharacterSounds     = nil
 Resonance.ExcludedFIDs        = Resonance_ExcludedFIDs;          Resonance_ExcludedFIDs        = nil
@@ -96,6 +97,7 @@ local NPCToCSD             = Resonance.NPCToCSD
 local NPCSoundCSD          = Resonance.NPCSoundCSD
 local NPCVoiceData         = Resonance.NPCVoiceData
 local NPCRepCSDs           = Resonance.NPCRepCSDs
+local AmbientSoundData     = Resonance.AmbientSoundData
 
 -- WoW's MuteSoundFile is refcounted; this ceiling covers the worst case of
 -- stale mute state accumulated across reloads/multiple spells sharing FIDs.
@@ -110,6 +112,7 @@ local autoShotMutedFIDs = {}  -- runtime-only: FIDs muted by classic auto-shot t
 local professionMutedFIDs = {} -- runtime-only: FIDs muted by profession sound toggle
 local fishingMutedFIDs = {}    -- runtime-only: FIDs muted by classic fishing sounds toggle
 local npcMutedFIDs = {}        -- runtime-only: FIDs muted by NPC sound muting
+local ambientMutedFIDs = {}   -- runtime-only: FIDs muted by ambient sound toggles
 
 ---------------------------------------------------------------------------
 -- Classic auto-shot data
@@ -169,6 +172,7 @@ local defaults = {
     muteWeaponImpacts = false,
     muteCreatureVox = {},  -- { ["Beast"] = true, ["Demon"] = true, ... }
     muteProfessionSounds = {},  -- { ["Blacksmithing"] = true, ... }
+    muteAmbientSounds = {},  -- { ["Midnight|Silvermoon City"] = true, ... }
     classicAutoShot = false,
     classicFishingSounds = false,
     fishingBobberSound = nil,  -- nil = classic default (569816); number = FileDataID; string = file path
@@ -177,6 +181,7 @@ local defaults = {
     _lastAutoMutedFIDs = {},  -- persisted snapshot for stale-mute cleanup across /reload
     _lastCreatureMutedFIDs = {},  -- same for creature vox mutes
     _lastProfessionMutedFIDs = {},  -- same for profession sound mutes
+    _lastAmbientMutedFIDs = {},  -- same for ambient sound mutes
   },
 }
 
@@ -266,7 +271,7 @@ local activePlaybackFIDs = {}
 
 local function playOneSoundWithUnmute(snd, dbg)
   local isNum = type(snd) == "number"
-  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd] or autoShotMutedFIDs[snd] or professionMutedFIDs[snd] or fishingMutedFIDs[snd] or npcMutedFIDs[snd])
+  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd] or autoShotMutedFIDs[snd] or professionMutedFIDs[snd] or fishingMutedFIDs[snd] or npcMutedFIDs[snd] or ambientMutedFIDs[snd])
   if dbg then msg(("  Playing: %s (muted: %s)"):format(tostring(snd), tostring(isMuted and true or false))) end
   if isMuted then
     local fid = snd
@@ -296,6 +301,7 @@ local function playOneSoundWithUnmute(snd, dbg)
       if professionMutedFIDs[fid] then MuteSoundFile(fid) end
       if fishingMutedFIDs[fid] then MuteSoundFile(fid) end
       if npcMutedFIDs[fid] then MuteSoundFile(fid) end
+      if ambientMutedFIDs[fid] then MuteSoundFile(fid) end
     end)
   elseif isNum then
     -- Unmuted numeric FID: play directly (skip previewSound overhead)
@@ -453,7 +459,7 @@ local function clearVoxMutes()
     if not db.mute_file_data_ids[fid]
        and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
        and not weaponMutedFIDs[fid]
-       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -494,7 +500,7 @@ local function clearWeaponMutes()
     if not db.mute_file_data_ids[fid]
        and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
        and not voxMutedFIDs[fid]
-       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -523,7 +529,7 @@ local function applyCreatureVoxMutes()
       if packed then
         for s in packed:gmatch("%d+") do
           local fid = tonumber(s)
-          if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+          if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
             creatureMutedFIDs[fid] = true
             MuteSoundFile(fid)
             count = count + 1
@@ -548,7 +554,7 @@ local function applyCreatureVoxMutes()
          and not weaponMutedFIDs[fid]
          and not autoShotMutedFIDs[fid]
          and not professionMutedFIDs[fid]
-         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -566,7 +572,7 @@ local function applyCreatureVoxMutes()
          and not weaponMutedFIDs[fid]
          and not autoShotMutedFIDs[fid]
          and not professionMutedFIDs[fid]
-         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -589,7 +595,7 @@ local function clearCreatureVoxMutes()
        and not weaponMutedFIDs[fid]
        and not autoShotMutedFIDs[fid]
        and not professionMutedFIDs[fid]
-       and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+       and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -604,7 +610,7 @@ local function clearCreatureVoxMutes()
          and not weaponMutedFIDs[fid]
          and not autoShotMutedFIDs[fid]
          and not professionMutedFIDs[fid]
-         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -659,7 +665,7 @@ local function applyProfessionMutes()
          and not weaponMutedFIDs[fid]
          and not creatureMutedFIDs[fid]
          and not autoShotMutedFIDs[fid]
-         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -682,7 +688,7 @@ local function clearProfessionMutes()
        and not weaponMutedFIDs[fid]
        and not creatureMutedFIDs[fid]
        and not autoShotMutedFIDs[fid]
-       and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+       and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -696,7 +702,7 @@ local function clearProfessionMutes()
          and not weaponMutedFIDs[fid]
          and not creatureMutedFIDs[fid]
          and not autoShotMutedFIDs[fid]
-         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -711,6 +717,104 @@ end
 local function refreshProfessionMutes()
   clearProfessionMutes()
   if db.enabled and hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
+end
+
+---------------------------------------------------------------------------
+-- Ambient sound mute
+---------------------------------------------------------------------------
+local function hasAnyAmbientMuteEnabled()
+  if not db.muteAmbientSounds then return false end
+  for _, v in pairs(db.muteAmbientSounds) do
+    if v then return true end
+  end
+  return false
+end
+
+local function applyAmbientMutes()
+  if not AmbientSoundData or not db.muteAmbientSounds then return end
+  local count = 0
+  for key, enabled in pairs(db.muteAmbientSounds) do
+    if enabled then
+      local exp, zone = key:match("^(.+)|(.+)$")
+      if exp and zone and AmbientSoundData[exp] and AmbientSoundData[exp][zone] then
+        local packed = AmbientSoundData[exp][zone]
+        for s in packed:gmatch("%d+") do
+          local fid = tonumber(s)
+          if fid and not ambientMutedFIDs[fid] then
+            ambientMutedFIDs[fid] = true
+            MuteSoundFile(fid)
+            count = count + 1
+          end
+        end
+      end
+    end
+  end
+  -- Unmute stale ambient FIDs from previous session
+  local stale = db._lastAmbientMutedFIDs
+  if stale then
+    for fid in pairs(stale) do
+      if not ambientMutedFIDs[fid]
+         and not db.mute_file_data_ids[fid]
+         and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+         and not voxMutedFIDs[fid]
+         and not weaponMutedFIDs[fid]
+         and not creatureMutedFIDs[fid]
+         and not autoShotMutedFIDs[fid]
+         and not professionMutedFIDs[fid]
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+  end
+  -- Persist snapshot for next session
+  local snapshot = {}
+  for fid in pairs(ambientMutedFIDs) do snapshot[fid] = true end
+  db._lastAmbientMutedFIDs = snapshot
+  if count > 0 then
+    msg(L["Muted %d ambient sounds."]:format(count))
+  end
+end
+
+local function clearAmbientMutes()
+  local count = 0
+  for fid in pairs(ambientMutedFIDs) do
+    if not db.mute_file_data_ids[fid]
+       and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+       and not voxMutedFIDs[fid]
+       and not weaponMutedFIDs[fid]
+       and not creatureMutedFIDs[fid]
+       and not autoShotMutedFIDs[fid]
+       and not professionMutedFIDs[fid]
+       and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+      UnmuteSoundFile(fid)
+    end
+    count = count + 1
+  end
+  if db and db._lastAmbientMutedFIDs then
+    for fid in pairs(db._lastAmbientMutedFIDs) do
+      if not ambientMutedFIDs[fid]
+         and not db.mute_file_data_ids[fid]
+         and not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
+         and not voxMutedFIDs[fid]
+         and not weaponMutedFIDs[fid]
+         and not creatureMutedFIDs[fid]
+         and not autoShotMutedFIDs[fid]
+         and not professionMutedFIDs[fid]
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+    wipe(db._lastAmbientMutedFIDs)
+  end
+  wipe(ambientMutedFIDs)
+  if count > 0 then
+    msg(L["Cleared %d ambient sound mutes."]:format(count))
+  end
+end
+
+local function refreshAmbientMutes()
+  clearAmbientMutes()
+  if db.enabled and hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
 end
 
 ---------------------------------------------------------------------------
@@ -739,7 +843,7 @@ local function clearAutoShotMutes()
        and not weaponMutedFIDs[fid]
        and not creatureMutedFIDs[fid]
        and not professionMutedFIDs[fid]
-       and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+       and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -790,7 +894,7 @@ local function clearFishingMutes()
        and not creatureMutedFIDs[fid]
        and not autoShotMutedFIDs[fid]
        and not professionMutedFIDs[fid]
-       and not npcMutedFIDs[fid] then
+       and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -882,7 +986,7 @@ local function clearNPCMutes()
        and not creatureMutedFIDs[fid]
        and not autoShotMutedFIDs[fid]
        and not professionMutedFIDs[fid]
-       and not fishingMutedFIDs[fid] then
+       and not fishingMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     count = count + 1
@@ -942,7 +1046,7 @@ local function removeAutoMuteFIDs(fids)
     local count = (autoMutedFIDs[fid] or 0) - 1
     if count <= 0 then
       autoMutedFIDs[fid] = nil
-      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         UnmuteSoundFile(fid)
       end
     else
@@ -1001,7 +1105,7 @@ local function rebuildAutoMutes()
   -- sounds) would stay muted until a full client restart.
   local stale = db and db._lastAutoMutedFIDs or {}
   for fid, refcount in pairs(autoMutedFIDs) do
-    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
   end
@@ -1017,7 +1121,7 @@ local function rebuildAutoMutes()
   -- Unmute stale FIDs from the previous session snapshot — drain refcount
   for fid in pairs(stale) do
     if not autoMutedFIDs[fid] or autoMutedFIDs[fid] <= 0 then
-      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+      if not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -1087,13 +1191,13 @@ end
 local function clearMutes()
   local count = 0
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
-    if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+    if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
       count = count + 1
     end
   end
   for fid, refcount in pairs(autoMutedFIDs) do
-    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+    if refcount > 0 and not db.mute_file_data_ids[fid] and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
       count = count + 1
     end
@@ -1467,6 +1571,8 @@ Resonance.autoShotMutedFIDs = autoShotMutedFIDs
 Resonance.professionMutedFIDs = professionMutedFIDs
 Resonance.fishingMutedFIDs = fishingMutedFIDs
 Resonance.npcMutedFIDs = npcMutedFIDs
+Resonance.ambientMutedFIDs = ambientMutedFIDs
+Resonance.refreshAmbientMutes = refreshAmbientMutes
 Resonance.invalidateSpellNameIndex = invalidateSpellNameIndex
 
 function Resonance:ApplyClassTemplate(classKey)
@@ -1618,6 +1724,7 @@ local function getGeneralOptions()
             if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
             if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
             if hasAnyNPCMuteEnabled() then applyNPCMutes() end
+            if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
             if db.classicAutoShot then applyAutoShotMutes() end
             if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
           else
@@ -1629,9 +1736,11 @@ local function getGeneralOptions()
             if db.muteCreatureVox then wipe(db.muteCreatureVox) end
             if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
             if db.mutedNPCs then wipe(db.mutedNPCs) end
+            if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
             clearAutoShotMutes()
             clearFishingMutes()
             clearNPCMutes()
+            clearAmbientMutes()
             Resonance:UnregisterEvent("LOOT_READY")
             clearProfessionMutes()
             clearCreatureVoxMutes()
@@ -1886,6 +1995,7 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
         if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
         if hasAnyNPCMuteEnabled() then applyNPCMutes() end
+        if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
         if db.classicAutoShot then applyAutoShotMutes() end
         if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
       else
@@ -1896,9 +2006,11 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         if db.muteCreatureVox then wipe(db.muteCreatureVox) end
         if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
         if db.mutedNPCs then wipe(db.mutedNPCs) end
+        if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
         clearAutoShotMutes()
         clearFishingMutes()
         clearNPCMutes()
+        clearAmbientMutes()
         Resonance:UnregisterEvent("LOOT_READY")
         clearProfessionMutes()
         clearCreatureVoxMutes()
@@ -1976,6 +2088,7 @@ function Resonance:OnInitialize()
     clearAutoShotMutes()
     clearFishingMutes()
     clearNPCMutes()
+    clearAmbientMutes()
     clearProfessionMutes()
     clearCreatureVoxMutes()
     clearWeaponMutes()
@@ -1990,6 +2103,7 @@ function Resonance:OnInitialize()
     if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
     if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
     if hasAnyNPCMuteEnabled() then applyNPCMutes() end
+    if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
     if db.classicAutoShot then applyAutoShotMutes() end
     if db.classicFishingSounds then
       applyFishingMutes()
@@ -2033,6 +2147,7 @@ function Resonance:OnEnable()
   end
   if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
   if hasAnyNPCMuteEnabled() then applyNPCMutes() end
+  if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
   if hasAnyCreatureVoxEnabled() then
     applyCreatureVoxMutes()
   elseif CreatureVoxExcludedFIDs then
@@ -2046,7 +2161,7 @@ function Resonance:OnEnable()
          and not weaponMutedFIDs[fid]
          and not autoShotMutedFIDs[fid]
          and not professionMutedFIDs[fid]
-         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+         and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       end
     end
@@ -2133,6 +2248,7 @@ function Resonance:ChatCommand(input)
     if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
     if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
     if hasAnyNPCMuteEnabled() then applyNPCMutes() end
+    if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
     if db.classicAutoShot then applyAutoShotMutes() end
     if db.classicFishingSounds then applyFishingMutes(); self:RegisterEvent("LOOT_READY") end
     msg(L["Enabled."])
@@ -2145,10 +2261,12 @@ function Resonance:ChatCommand(input)
     if db.muteCreatureVox then wipe(db.muteCreatureVox) end
     if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
     if db.mutedNPCs then wipe(db.mutedNPCs) end
+    if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
     clearAutoShotMutes()
     clearFishingMutes()
     self:UnregisterEvent("LOOT_READY")
     clearNPCMutes()
+    clearAmbientMutes()
     clearProfessionMutes()
     clearVoxMutes()
     clearWeaponMutes()
@@ -2182,7 +2300,7 @@ function Resonance:ChatCommand(input)
     if not (autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0)
        and not voxMutedFIDs[fid]
        and not weaponMutedFIDs[fid]
-       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] then
+       and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
     end
     msg(L["Unmuted fileDataID %d."]:format(fid))
