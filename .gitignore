@@ -2,3 +2,4 @@ tools/.db2_cache/
 tools/__pycache__/
 *.pyc
 *.zip
+.claude/
