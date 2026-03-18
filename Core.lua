@@ -1849,15 +1849,8 @@ local function getGeneralOptions()
         func = function()
           local sound = db.interruptAlertSound
           if not sound then return end
-          local ch = getChannel()
-          local ok, handle
-          if type(sound) == "number" then
-            ok, handle = PlaySoundFile(sound, ch)
-          else
-            local path = normalizePath(tostring(sound))
-            if path then ok, handle = PlaySoundFile(path, ch) end
-          end
-          if ok and db.interruptAlertDuration then
+          local ok, handle = previewSound(sound)
+          if ok then
             scheduleStopSound(handle, db.interruptAlertDuration)
           end
         end,
@@ -2164,15 +2157,8 @@ function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
     local name = _GetSpellName(spellID) or ""
     msg(("Interrupted: %s (spellID %d)"):format(name ~= "" and name or "<?>", spellID))
   end
-  local ch = getChannel()
-  local ok, handle
-  if type(sound) == "number" then
-    ok, handle = PlaySoundFile(sound, ch)
-  else
-    local path = normalizePath(tostring(sound))
-    if path then ok, handle = PlaySoundFile(path, ch) end
-  end
-  if ok and db.interruptAlertDuration then
+  local ok, handle = previewSound(sound)
+  if ok then
     scheduleStopSound(handle, db.interruptAlertDuration)
   end
 end
