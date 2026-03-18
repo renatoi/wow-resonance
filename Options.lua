@@ -1129,6 +1129,10 @@ local function buildLayout()
   edSpellPreview:SetPoint("LEFT", edSpellIDBox, "RIGHT", 8, 0)
 
   local editorSound = nil
+  local editorDuration = nil   -- optional: stop sound after this many seconds
+  local editorTrigger = "cast" -- "cast", "precast", or "precast_and_cast"
+  local editorPrecastSound = nil
+  local editorPrecastDuration = nil
   local editorExclusions = {}  -- local copy of muteExclusions during editing
 
   local refreshAutoMuteSection  -- forward declaration
@@ -1223,8 +1227,136 @@ local function buildLayout()
   edMuteOnlyCheck.text:SetFontObject("GameFontNormal")
   edMuteOnlyCheck.text:SetText(L["Mute only (no replacement sound)"])
 
+  ---------------------------------------------------------------------------
+  -- Trigger phase controls
+  ---------------------------------------------------------------------------
+  local edTriggerLabel = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  edTriggerLabel:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -6)
+  edTriggerLabel:SetText(L["Play sound on:"])
+
+  local edTriggerCast = makeRadio(editorFrame)
+  edTriggerCast:SetPoint("TOPLEFT", edTriggerLabel, "BOTTOMLEFT", 0, -2)
+  edTriggerCast.label:SetText(L["Cast complete"])
+
+  local edTriggerPrecast = makeRadio(editorFrame)
+  edTriggerPrecast:SetPoint("LEFT", edTriggerCast.label, "RIGHT", 12, 0)
+  edTriggerPrecast.label:SetText(L["Precast (cast bar start)"])
+
+  local edTriggerBoth = makeRadio(editorFrame)
+  edTriggerBoth:SetPoint("LEFT", edTriggerPrecast.label, "RIGHT", 12, 0)
+  edTriggerBoth.label:SetText(L["Both"])
+
+  local edPrecastSection  -- forward declaration
+  local edRefreshPrecastList  -- forward declaration
+
+  local function edSetTriggerMode(mode)
+    editorTrigger = mode
+    edTriggerCast:SetChecked(mode == "cast")
+    edTriggerPrecast:SetChecked(mode == "precast")
+    edTriggerBoth:SetChecked(mode == "precast_and_cast")
+    if edPrecastSection then
+      edPrecastSection:SetShown(mode == "precast_and_cast")
+    end
+    -- Re-anchor repHeader below precast section or trigger radios
+    if repHeader then
+      repHeader:ClearAllPoints()
+      if mode == "precast_and_cast" then
+        repHeader:SetPoint("TOPLEFT", edPrecastSection, "BOTTOMLEFT", 0, -6)
+        repHeader:SetText(L["Cast Complete Sound"])
+      else
+        repHeader:SetPoint("TOPLEFT", edTriggerCast, "BOTTOMLEFT", 0, -6)
+        repHeader:SetText(L["Replacement Sound"])
+      end
+    end
+    if edResizeEditor and editorFrame:IsShown() then edResizeEditor() end
+  end
+  edTriggerCast:SetScript("OnClick", function() edSetTriggerMode("cast") end)
+  edTriggerPrecast:SetScript("OnClick", function() edSetTriggerMode("precast") end)
+  edTriggerBoth:SetScript("OnClick", function() edSetTriggerMode("precast_and_cast") end)
+
+  -- Precast sound section (only shown when trigger = "precast_and_cast")
+  edPrecastSection = CreateFrame("Frame", nil, editorFrame)
+  edPrecastSection:SetPoint("TOPLEFT", edTriggerCast, "BOTTOMLEFT", 0, -6)
+  edPrecastSection:SetSize(CONTENT_WIDTH - 20, 56)
+  edPrecastSection:Hide()
+
+  local precastHeader = edPrecastSection:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  precastHeader:SetPoint("TOPLEFT", 0, 0)
+  precastHeader:SetText(L["Precast Sound"])
+
+  local edPrecastFileBox = makeEditBox(edPrecastSection, CONTENT_WIDTH - 240, edPrecastSection, 0, 0, "FID or path")
+  edPrecastFileBox:SetPoint("TOPLEFT", precastHeader, "BOTTOMLEFT", 0, -4)
+
+  local edPrecastPlayBtn = makeIconButton(edPrecastSection, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
+  wirePlayStop(edPrecastPlayBtn, function()
+    local v = edPrecastFileBox:GetText()
+    return tonumber(v) or (v ~= "" and v or nil)
+  end)
+  edPrecastPlayBtn:SetPoint("LEFT", edPrecastFileBox, "RIGHT", 4, 0)
+
+  local edPrecastSetBtn = makeButton(edPrecastSection, L["Set"], 36, function()
+    local v = edPrecastFileBox:GetText()
+    local snd = tonumber(v) or (v ~= "" and v or nil)
+    if snd then editorPrecastSound = snd end
+    if edRefreshPrecastList then edRefreshPrecastList() end
+  end)
+  edPrecastSetBtn:SetPoint("LEFT", edPrecastPlayBtn, "RIGHT", 2, 0)
+
+  local edPrecastClearBtn = makeButton(edPrecastSection, L["Clear"], 42, function()
+    editorPrecastSound = nil
+    edPrecastFileBox:SetText("")
+    if edRefreshPrecastList then edRefreshPrecastList() end
+  end)
+  edPrecastClearBtn:SetPoint("LEFT", edPrecastSetBtn, "RIGHT", 2, 0)
+
+  local edPrecastDisplay = edPrecastSection:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  edPrecastDisplay:SetPoint("TOPLEFT", edPrecastFileBox, "BOTTOMLEFT", 0, -4)
+  edPrecastDisplay:SetJustifyH("LEFT")
+
+  -- Precast duration
+  local edPrecastDurLabel = edPrecastSection:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  edPrecastDurLabel:SetPoint("LEFT", edPrecastDisplay, "LEFT", 0, 0)
+
+  local edPrecastDurBox  -- will position after display text
+
+  edRefreshPrecastList = function()
+    if editorPrecastSound then
+      local display
+      if type(editorPrecastSound) == "number" then
+        local path = lookupFIDPath(editorPrecastSound)
+        display = path and (path:match("([^/\\]+)$") or path) or ("FID:" .. editorPrecastSound)
+      else
+        display = tostring(editorPrecastSound):match("[^/\\]+$") or tostring(editorPrecastSound)
+      end
+      edPrecastDisplay:SetText(L["Current: "] .. "|cff00ff00" .. display .. "|r")
+    else
+      edPrecastDisplay:SetText("|cff888888" .. L["(none)"] .. "|r")
+    end
+    -- Reposition duration label below the display
+    edPrecastDurLabel:ClearAllPoints()
+    edPrecastDurLabel:SetPoint("TOPLEFT", edPrecastDisplay, "BOTTOMLEFT", 0, -4)
+    edPrecastDurLabel:SetText(L["Stop sound after (seconds):"])
+    -- Resize section height
+    edPrecastSection:SetHeight(76)
+    if edResizeEditor and editorFrame:IsShown() then edResizeEditor() end
+  end
+
+  edPrecastDurBox = makeEditBox(edPrecastSection, 60, edPrecastSection, 0, 0, "e.g. 1.5")
+  edPrecastDurBox:SetPoint("LEFT", edPrecastDurLabel, "RIGHT", 6, 0)
+  edPrecastDurBox:SetScript("OnTextChanged", function(self)
+    if self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus()) end
+    local val = tonumber(self:GetText())
+    editorPrecastDuration = (val and val > 0) and val or nil
+  end)
+  edPrecastDurBox:SetScript("OnEditFocusGained", function(self) if self.placeholder then self.placeholder:Hide() end end)
+  edPrecastDurBox:SetScript("OnEditFocusLost", function(self)
+    if self.placeholder then self.placeholder:SetShown(self:GetText() == "") end
+  end)
+  edPrecastDurBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+  edPrecastDurBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
   local repHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  repHeader:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -6)
+  repHeader:SetPoint("TOPLEFT", edTriggerCast, "BOTTOMLEFT", 0, -6)
   repHeader:SetText(L["Replacement Sound"])
 
   local function formatSoundBrief(snd)
@@ -1545,9 +1677,53 @@ local function buildLayout()
   edBrowseRadio:SetScript("OnClick", function() edSetSoundMode(true) end)
   edFileRadio:SetScript("OnClick", function() edSetSoundMode(false) end)
 
+  ---------------------------------------------------------------------------
+  -- Duration control (stop sound after N seconds)
+  ---------------------------------------------------------------------------
+  local edDurationFrame = CreateFrame("Frame", nil, editorFrame)
+  edDurationFrame:SetSize(CONTENT_WIDTH - 20, 24)
+  edDurationFrame:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -8)
+
+  local edDurationLabel = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  edDurationLabel:SetPoint("LEFT", edDurationFrame, "LEFT", 0, 0)
+  edDurationLabel:SetText(L["Stop sound after (seconds):"])
+
+  local edDurationBox = makeEditBox(edDurationFrame, 60, edDurationFrame, 0, 0, "e.g. 1.5")
+  edDurationBox:SetPoint("LEFT", edDurationLabel, "RIGHT", 6, 0)
+  edDurationBox:SetScript("OnTextChanged", function(self)
+    if self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus()) end
+    local val = tonumber(self:GetText())
+    if val and val > 0 then
+      editorDuration = val
+    else
+      editorDuration = nil
+    end
+  end)
+  edDurationBox:SetScript("OnEditFocusGained", function(self) if self.placeholder then self.placeholder:Hide() end end)
+  edDurationBox:SetScript("OnEditFocusLost", function(self)
+    if self.placeholder then self.placeholder:SetShown(self:GetText() == "") end
+  end)
+  edDurationBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+  edDurationBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
+  local edDurationClearBtn = makeButton(edDurationFrame, L["Clear"], 42, function()
+    edDurationBox:SetText("")
+    editorDuration = nil
+  end)
+  edDurationClearBtn:SetPoint("LEFT", edDurationBox, "RIGHT", 4, 0)
+
+  local edDurationHelp = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  edDurationHelp:SetPoint("LEFT", edDurationClearBtn, "RIGHT", 6, 0)
+  edDurationHelp:SetText(L["Cuts long sounds short"])
+
   local function edSetMuteOnly(muteOnly)
     edMuteOnlyCheck:SetChecked(muteOnly)
-    -- Hide/show the entire replacement sound section
+    -- Hide/show the trigger and replacement sound sections
+    edTriggerLabel:SetShown(not muteOnly)
+    edTriggerCast:SetShown(not muteOnly)
+    edTriggerPrecast:SetShown(not muteOnly)
+    edTriggerBoth:SetShown(not muteOnly)
+    edPrecastSection:SetShown(not muteOnly and editorTrigger == "precast_and_cast")
     repHeader:SetShown(not muteOnly)
     edSoundListFrame:SetShown(not muteOnly)
     edPlayAllBtn:SetShown(not muteOnly)
@@ -1557,14 +1733,15 @@ local function buildLayout()
     edBrowseBox:SetShown(not muteOnly and edBrowseRadio:GetChecked())
     if edBrowseBox.clearBtn then edBrowseBox.clearBtn:SetShown(not muteOnly and edBrowseRadio:GetChecked() and edBrowseBox:GetText() ~= "") end
     edFileFrame:SetShown(not muteOnly and not edBrowseRadio:GetChecked())
+    edDurationFrame:SetShown(not muteOnly)
     if muteOnly then edBrowseDD:Hide() end
-    -- Re-anchor auto-mute section: attach to checkbox when mute-only, browse box otherwise
+    -- Re-anchor auto-mute section: attach to checkbox when mute-only, duration frame otherwise
     if muteOnly then
       autoMuteAnchor:ClearAllPoints()
       autoMuteAnchor:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -12)
     else
       autoMuteAnchor:ClearAllPoints()
-      autoMuteAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -12)
+      autoMuteAnchor:SetPoint("TOPLEFT", edDurationFrame, "BOTTOMLEFT", 0, -8)
     end
     if edResizeEditor and editorFrame:IsShown() then edResizeEditor() end
   end
@@ -1592,7 +1769,10 @@ local function buildLayout()
     else
       local soundListH = edSoundListFrame:GetHeight()
       local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
-      baseH = 360 + extraSoundH
+      baseH = 420 + extraSoundH  -- includes trigger radios
+      if editorTrigger == "precast_and_cast" then
+        baseH = baseH + (edPrecastSection:GetHeight() or 76) + 6
+      end
     end
     local sid = tonumber(edSpellIDBox:GetText())
     local hasMuteData = sid and Resonance.getSpellMuteFIDs(sid)
@@ -1762,12 +1942,19 @@ local function buildLayout()
   local function openEditor(spellID)
     profile = Resonance.db.profile
     editorSound = nil
+    editorDuration = nil
+    editorTrigger = "cast"
+    editorPrecastSound = nil
+    editorPrecastDuration = nil
     wipe(editorExclusions)
     edBrowseBox:SetText("")
     edBrowseDD:Hide()
     edSpellSearchBox:SetText("")
     edSpellSearchDD:Hide()
     edFileBox:SetText("")
+    edDurationBox:SetText("")
+    edPrecastFileBox:SetText("")
+    edPrecastDurBox:SetText("")
 
     local isNew = not spellID
     if spellID then
@@ -1788,6 +1975,25 @@ local function buildLayout()
         end
         if cfg.muteExclusions then
           for fid in pairs(cfg.muteExclusions) do editorExclusions[fid] = true end
+        end
+        if cfg.duration then
+          editorDuration = cfg.duration
+          edDurationBox:SetText(tostring(cfg.duration))
+        end
+        if cfg.trigger then
+          editorTrigger = cfg.trigger
+        end
+        if cfg.precastSound then
+          editorPrecastSound = cfg.precastSound
+          if type(cfg.precastSound) == "number" then
+            edPrecastFileBox:SetText(tostring(cfg.precastSound))
+          elseif type(cfg.precastSound) == "string" then
+            edPrecastFileBox:SetText(cfg.precastSound)
+          end
+        end
+        if cfg.precastDuration then
+          editorPrecastDuration = cfg.precastDuration
+          edPrecastDurBox:SetText(tostring(cfg.precastDuration))
         end
       end
       local name = Resonance.getSpellName(spellID)
@@ -1811,6 +2017,8 @@ local function buildLayout()
     edUpdateSpellPreview()
     edRefreshSoundList()
     edSetSoundMode(hasSpellDB())
+    edSetTriggerMode(editorTrigger)
+    edRefreshPrecastList()
     edSetMuteOnly(editorSound == false)
     refreshAutoMuteSection(spellID)
     edResizeEditor()
@@ -1835,13 +2043,17 @@ local function buildLayout()
       if not exclusions then exclusions = {} end
       exclusions[fid] = true
     end
+    -- Only save trigger/precast fields if non-default
+    local trigger = editorTrigger ~= "cast" and editorTrigger or nil
+    local precastSound = (editorTrigger == "precast_and_cast") and editorPrecastSound or nil
+    local precastDuration = (editorTrigger == "precast_and_cast") and editorPrecastDuration or nil
     if isNew then
-      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions }
+      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions, duration = editorDuration, trigger = trigger, precastSound = precastSound, precastDuration = precastDuration }
       Resonance.applyAutoMutesForSpell(sid)
     else
       -- Remove old mutes (using old exclusions), update config, re-apply with new exclusions
       Resonance.removeAutoMutesForSpell(sid)
-      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions }
+      profile.spell_config[sid] = { sound = editorSound, muteExclusions = exclusions, duration = editorDuration, trigger = trigger, precastSound = precastSound, precastDuration = precastDuration }
       Resonance.applyAutoMutesForSpell(sid)
     end
     Resonance.invalidateSpellNameIndex()
@@ -2074,6 +2286,20 @@ local function buildLayout()
             row.playBtn:SetEnabled(true)
             local cfgSound = cfg.sound
             wirePlayStop(row.playBtn, function() return cfgSound end)
+          end
+          -- Append duration and trigger indicators if configured
+          local indicators = ""
+          if cfg.duration then
+            indicators = indicators .. ("%.1fs"):format(cfg.duration)
+          end
+          if cfg.trigger == "precast" then
+            indicators = indicators .. (indicators ~= "" and ", " or "") .. "precast"
+          elseif cfg.trigger == "precast_and_cast" then
+            indicators = indicators .. (indicators ~= "" and ", " or "") .. "precast+cast"
+          end
+          if indicators ~= "" then
+            local cur = row.soundText:GetText() or ""
+            row.soundText:SetText(cur .. " |cffaaaaaa(" .. indicators .. ")|r")
           end
           row.editBtn:SetScript("OnClick", function() openEditor(entry.spellID) end)
           row.delBtn:SetScript("OnClick", function()
