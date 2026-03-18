@@ -79,6 +79,7 @@ local IsPlayerSpell   = IsPlayerSpell
 local UnitRace        = UnitRace
 local UnitSex         = UnitSex
 local UnitClass       = UnitClass
+local StopSound       = StopSound
 local C_Timer         = C_Timer
 
 -- Local aliases for hot-path access
@@ -173,6 +174,9 @@ local defaults = {
     classicFishingSounds = false,
     fishingBobberSound = nil,  -- nil = classic default (569816); number = FileDataID; string = file path
     mutedNPCs = {},  -- { [npcID] = true } NPCs whose sounds are muted
+    interruptAlert = false,
+    interruptAlertSound = nil,
+    interruptAlertDuration = nil,
     minimap = { hide = false },
     _lastAutoMutedFIDs = {},  -- persisted snapshot for stale-mute cleanup across /reload
     _lastCreatureMutedFIDs = {},  -- same for creature vox mutes
@@ -257,6 +261,12 @@ local function previewSound(value)
     return PlaySoundFile(path, ch)
   end
   return false
+end
+
+local function scheduleStopSound(handle, duration)
+  if handle and duration and duration > 0 then
+    C_Timer.After(duration, function() StopSound(handle) end)
+  end
 end
 
 -- Ref-counted tracker for FIDs with in-flight playback.
@@ -1782,6 +1792,76 @@ local function getGeneralOptions()
           playOneSoundWithUnmute(snd, db.debug)
         end,
       },
+      interruptAlertHeader = {
+        type = "header",
+        name = L["Interrupt alert"],
+        order = 5.85,
+      },
+      interruptAlert = {
+        type = "toggle",
+        name = L["Play sound when interrupted"],
+        desc = L["Play a custom alert sound when your cast is interrupted by another player or NPC."],
+        order = 5.86,
+        width = "full",
+        disabled = function() return not db.enabled end,
+        get = function() return db.interruptAlert end,
+        set = function(_, v) db.interruptAlert = v end,
+      },
+      interruptAlertSound = {
+        type = "input",
+        name = L["Alert sound (FID or file path)"],
+        desc = L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"],
+        order = 5.87,
+        width = "double",
+        disabled = function() return not db.enabled or not db.interruptAlert end,
+        get = function() return db.interruptAlertSound and tostring(db.interruptAlertSound) or "" end,
+        set = function(_, v)
+          if v == "" then
+            db.interruptAlertSound = nil
+          else
+            local n = tonumber(v)
+            db.interruptAlertSound = n or v
+          end
+        end,
+      },
+      interruptAlertDuration = {
+        type = "input",
+        name = L["Duration cutoff (seconds)"],
+        desc = L["Stop the alert sound after this many seconds. Leave blank to let it play fully."],
+        order = 5.88,
+        disabled = function() return not db.enabled or not db.interruptAlert end,
+        get = function() return db.interruptAlertDuration and tostring(db.interruptAlertDuration) or "" end,
+        set = function(_, v)
+          if v == "" then
+            db.interruptAlertDuration = nil
+          else
+            local n = tonumber(v)
+            if n and n > 0 then db.interruptAlertDuration = n end
+          end
+        end,
+      },
+      interruptAlertTest = {
+        type = "execute",
+        name = L["Test"],
+        desc = L["Play the configured interrupt alert sound."],
+        order = 5.89,
+        disabled = function() return not db.enabled or not db.interruptAlert or not db.interruptAlertSound end,
+        func = function()
+          local sound = db.interruptAlertSound
+          if not sound then return end
+          local ch = getChannel()
+          local ok, handle
+          if type(sound) == "number" then
+            ok, handle = PlaySoundFile(sound, ch)
+          else
+            local path = normalizePath(tostring(sound))
+            if path then ok, handle = PlaySoundFile(path, ch) end
+          end
+          if ok and db.interruptAlertDuration then
+            scheduleStopSound(handle, db.interruptAlertDuration)
+          end
+        end,
+      },
       muteVocalizations = {
         type = "select",
         name = L["Mute character vocalizations"],
@@ -2020,6 +2100,7 @@ end
 
 function Resonance:OnEnable()
   self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+  self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
   self:RegisterEvent("UNIT_MODEL_CHANGED")
   refreshPresetsFromTemplates()
   rebuildAutoMutes()
@@ -2071,6 +2152,28 @@ function Resonance:UNIT_MODEL_CHANGED(_, unit)
   -- Only relevant for "mine" mode; "all" already covers everything
   if getVoxMode() == "mine" then
     refreshVoxMutes()
+  end
+end
+
+function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
+  if unit ~= "player" then return end
+  if not db.enabled or not db.interruptAlert then return end
+  local sound = db.interruptAlertSound
+  if not sound then return end
+  if db.debug then
+    local name = _GetSpellName(spellID) or ""
+    msg(("Interrupted: %s (spellID %d)"):format(name ~= "" and name or "<?>", spellID))
+  end
+  local ch = getChannel()
+  local ok, handle
+  if type(sound) == "number" then
+    ok, handle = PlaySoundFile(sound, ch)
+  else
+    local path = normalizePath(tostring(sound))
+    if path then ok, handle = PlaySoundFile(path, ch) end
+  end
+  if ok and db.interruptAlertDuration then
+    scheduleStopSound(handle, db.interruptAlertDuration)
   end
 end
 
