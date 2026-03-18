@@ -3465,6 +3465,85 @@ local function buildLayout()
     desc:SetJustifyH("LEFT")
     desc:SetText(L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."])
 
+    -- Search box for individual ambient sounds
+    local doAmbSearch  -- forward declaration
+    local ambSearchLabel = ambTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ambSearchLabel:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -12)
+    ambSearchLabel:SetText(L["Search individual sounds:"])
+
+    local ambSearchBox = makeEditBox(ambTab, CONTENT_WIDTH - 60, ambSearchLabel, 0, -4, L["e.g. silvermoon, maw, beam, wind..."])
+    ambSearchBox:SetPoint("TOPLEFT", ambSearchLabel, "BOTTOMLEFT", 0, -4)
+
+    local ambSearchDD
+    ambSearchDD = createAutocomplete(ambSearchBox,
+      function(e) if e then return e.fileDataID end end,
+      function(e)
+        if e then
+          local p = Resonance.db.profile
+          if p.mute_file_data_ids[e.fileDataID] then
+            p.mute_file_data_ids[e.fileDataID] = nil
+            UnmuteSoundFile(e.fileDataID)
+          else
+            p.mute_file_data_ids[e.fileDataID] = true
+            MuteSoundFile(e.fileDataID)
+          end
+          doAmbSearch()
+        end
+      end,
+      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH
+    )
+    allDropdowns[#allDropdowns + 1] = ambSearchDD
+
+    function ambSearchDD:onRowRefresh(row, entry)
+      local muted = Resonance.db.profile.mute_file_data_ids[entry.fileDataID]
+      if muted then
+        row.actionBtn:SetText(L["Unmute"])
+      else
+        row.actionBtn:SetText(L["Mute"])
+      end
+    end
+
+    doAmbSearch = function()
+      if not ambSearchBox:HasFocus() then return end
+      local q = ambSearchBox:GetText()
+      if #q < 3 then ambSearchDD:SetData({}, ""); ambSearchDD:Hide(); return end
+      searchDB(Resonance.AmbientSounds, q, "ambSearch", function(results)
+        for _, r in ipairs(results) do
+          local display = formatSoundDisplay(r.path, r.fileDataID)
+          if Resonance.db.profile.mute_file_data_ids[r.fileDataID] then
+            display = "|cff666666[muted]|r " .. display
+          end
+          r.display = display
+        end
+        ambSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+      end)
+    end
+
+    local ambSearchClear = makeClearButton(ambSearchBox, function() ambSearchDD:Hide() end)
+
+    ambSearchBox:SetScript("OnTextChanged", function(self)
+      if self.placeholder then self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus()) end
+      ambSearchClear:SetShown(self:GetText() ~= "")
+      debounce("ambSearch", 0.3, doAmbSearch)
+    end)
+    ambSearchBox:SetScript("OnEditFocusGained", function(self)
+      if self.placeholder then self.placeholder:Hide() end
+      doAmbSearch()
+    end)
+    ambSearchBox:SetScript("OnEditFocusLost", function(self)
+      if self.placeholder then self.placeholder:SetShown(self:GetText() == "") end
+      C_Timer.After(0.2, function()
+        if not ambSearchBox:HasFocus() and not ambSearchDD:IsMouseOver() then ambSearchDD:Hide() end
+      end)
+    end)
+    ambSearchBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    ambSearchBox:SetScript("OnEscapePressed", function(self) ambSearchDD:Hide(); self:ClearFocus() end)
+
+    -- Zone-based bulk muting
+    local zoneHeader = ambTab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    zoneHeader:SetPoint("TOPLEFT", ambSearchBox, "BOTTOMLEFT", 0, -16)
+    zoneHeader:SetText(L["Mute by zone:"])
+
     local EXP_ORDER = { "Midnight", "The War Within", "Dragonflight", "Shadowlands", "Battle for Azeroth", "Legion", "General" }
     local allRows = {}
     local expanded = {}
@@ -3551,7 +3630,7 @@ local function buildLayout()
       return ehdr, zoneRows[#zoneRows] or ehdr, -6
     end
 
-    local curAnchor, curOffY = desc, -12
+    local curAnchor, curOffY = zoneHeader, -8
     for _, exp in ipairs(EXP_ORDER) do
       local _, newAnchor, newOffY = buildExpansion(exp, curAnchor, curOffY)
       if newAnchor then curAnchor, curOffY = newAnchor, newOffY end

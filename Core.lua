@@ -60,6 +60,7 @@ Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories; Resonance_Cre
 Resonance.ProfessionSoundData  = Resonance_ProfessionSoundData;  Resonance_ProfessionSoundData  = nil
 Resonance.ProfessionCategories = Resonance_ProfessionCategories;  Resonance_ProfessionCategories = nil
 Resonance.AmbientSoundData    = Resonance_AmbientSoundData;      Resonance_AmbientSoundData    = nil
+Resonance.AmbientSounds       = Resonance_AmbientSounds;         Resonance_AmbientSounds       = nil
 Resonance.SpellSounds         = Resonance_SpellSounds;          Resonance_SpellSounds         = nil
 Resonance.CharacterSounds     = Resonance_CharacterSounds;      Resonance_CharacterSounds     = nil
 Resonance.ExcludedFIDs        = Resonance_ExcludedFIDs;          Resonance_ExcludedFIDs        = nil
