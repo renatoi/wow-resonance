@@ -2051,10 +2051,10 @@ function Resonance:RemovePresetSpells(presetName)
 end
 
 ---------------------------------------------------------------------------
--- AceConfig options table (General tab)
+-- AceConfig options tables (one per subcategory panel)
 ---------------------------------------------------------------------------
 local function getGeneralOptions()
-  local opts = {
+  return {
     type = "group",
     name = L["General"],
     args = {
@@ -2079,7 +2079,6 @@ local function getGeneralOptions()
             if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
           else
             cancelActiveLoop()
-            -- Revert weapon impact and vocalization settings before clearing
             db.muteWeaponImpacts = false
             db.muteVocalizations = "off"
             db.classicAutoShot = false
@@ -2141,11 +2140,20 @@ local function getGeneralOptions()
         get = function() return db.soundChannel end,
         set = function(_, v) db.soundChannel = v end,
       },
+    },
+  }
+end
+
+local function getCombatSoundsOptions()
+  return {
+    type = "group",
+    name = L["Combat Sounds"],
+    args = {
       muteWeaponImpacts = {
         type = "toggle",
         name = L["Mute weapon impact sounds"],
         desc = L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."],
-        order = 5,
+        order = 1,
         width = "full",
         disabled = function() return not db.enabled end,
         get = function() return db.muteWeaponImpacts end,
@@ -2158,7 +2166,7 @@ local function getGeneralOptions()
         type = "toggle",
         name = L["Classic auto-shot sounds (Hunter)"],
         desc = L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."],
-        order = 5.5,
+        order = 2,
         width = "full",
         hidden = function() return playerClassToken ~= "HUNTER" end,
         disabled = function() return not db.enabled end,
@@ -2168,12 +2176,21 @@ local function getGeneralOptions()
           if v then if db.enabled then applyAutoShotMutes() end else clearAutoShotMutes() end
         end,
       },
+    },
+  }
+end
+
+local function getFishingOptions()
+  return {
+    type = "group",
+    name = L["Fishing"],
+    args = {
       classicFishingSounds = {
         type = "toggle",
         name = L["Replace fishing bobber sound"],
         desc = L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."],
-        order = 5.6,
-        width = 1.5,
+        order = 1,
+        width = "full",
         disabled = function() return not db.enabled end,
         get = function() return db.classicFishingSounds end,
         set = function(_, v)
@@ -2191,7 +2208,7 @@ local function getGeneralOptions()
         type = "select",
         name = L["Replacement sound"],
         desc = L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."],
-        order = 5.7,
+        order = 2,
         hidden = function() return not db.classicFishingSounds end,
         disabled = function() return not db.enabled end,
         values = {
@@ -2206,7 +2223,7 @@ local function getGeneralOptions()
           if v == "classic" then
             db.fishingBobberSound = nil
           elseif not db.fishingBobberSound then
-            db.fishingBobberSound = ""  -- placeholder until user enters a value
+            db.fishingBobberSound = ""
           end
         end,
       },
@@ -2214,7 +2231,7 @@ local function getGeneralOptions()
         type = "input",
         name = L["Custom sound"],
         desc = L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."],
-        order = 5.75,
+        order = 3,
         width = "double",
         hidden = function() return not db.classicFishingSounds or not db.fishingBobberSound end,
         disabled = function() return not db.enabled end,
@@ -2223,12 +2240,12 @@ local function getGeneralOptions()
           return (v and v ~= "") and tostring(v) or ""
         end,
         set = function(_, v)
-          v = v and v:match("^%s*(.-)%s*$") or ""  -- trim whitespace
+          v = v and v:match("^%s*(.-)%s*$") or ""
           if v == "" then
-            db.fishingBobberSound = ""  -- keep in custom mode but empty
+            db.fishingBobberSound = ""
           else
             local num = tonumber(v)
-            db.fishingBobberSound = num or v  -- number for FID, string for path
+            db.fishingBobberSound = num or v
           end
         end,
       },
@@ -2236,8 +2253,7 @@ local function getGeneralOptions()
         type = "execute",
         name = L["Preview"],
         desc = L["Preview the replacement fishing bobber sound."],
-        order = 5.79,
-        width = 1,
+        order = 4,
         hidden = function() return not db.classicFishingSounds end,
         disabled = function() return not db.enabled end,
         func = function()
@@ -2246,16 +2262,76 @@ local function getGeneralOptions()
           playOneSoundWithUnmute(snd, db.debug)
         end,
       },
-      interruptAlertHeader = {
-        type = "header",
-        name = L["Interrupt alert"],
-        order = 5.85,
+    },
+  }
+end
+
+local function getVocalizationOptions()
+  local opts = {
+    type = "group",
+    name = L["Vocalizations"],
+    args = {
+      muteVocalizations = {
+        type = "select",
+        name = L["Mute character vocalizations"],
+        desc = L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."],
+        order = 1,
+        disabled = function() return not db.enabled end,
+        values = {
+          off = L["Off"],
+          mine = L["Mine"],
+          all = L["All races"],
+        },
+        sorting = { "off", "mine", "all" },
+        get = function() return getVoxMode() end,
+        set = function(_, v)
+          db.muteVocalizations = v
+          refreshVoxMutes()
+        end,
       },
+      creatureVoxHeader = {
+        type = "header",
+        name = L["Mute creature vocalizations"],
+        order = 2,
+      },
+      creatureVoxDesc = {
+        type = "description",
+        name = L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."],
+        order = 3,
+      },
+    },
+  }
+
+  if Resonance.CreatureVoxCategories then
+    for i, cat in ipairs(Resonance.CreatureVoxCategories) do
+      opts.args["creatureVox_" .. cat] = {
+        type = "toggle",
+        name = L[cat] or cat,
+        order = 3 + i,
+        disabled = function() return not db.enabled end,
+        get = function() return db.muteCreatureVox and db.muteCreatureVox[cat] or false end,
+        set = function(_, v)
+          if not db.muteCreatureVox then db.muteCreatureVox = {} end
+          db.muteCreatureVox[cat] = v or nil
+          refreshCreatureVoxMutes()
+        end,
+      }
+    end
+  end
+
+  return opts
+end
+
+local function getInterruptOptions()
+  return {
+    type = "group",
+    name = L["Interrupt"],
+    args = {
       interruptAlert = {
         type = "toggle",
         name = L["Play sound when interrupted"],
         desc = L["Play a custom alert sound when your cast is interrupted by another player or NPC."],
-        order = 5.86,
+        order = 1,
         width = "full",
         disabled = function() return not db.enabled end,
         get = function() return db.interruptAlert end,
@@ -2275,9 +2351,10 @@ local function getGeneralOptions()
         type = "input",
         name = L["Alert sound (FID or file path)"],
         desc = L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"],
-        order = 5.87,
+        order = 2,
         width = "double",
-        disabled = function() return not db.enabled or not db.interruptAlert end,
+        hidden = function() return not db.interruptAlert end,
+        disabled = function() return not db.enabled end,
         get = function() return db.interruptAlertSound and tostring(db.interruptAlertSound) or "" end,
         set = function(_, v)
           if v == "" then
@@ -2292,8 +2369,9 @@ local function getGeneralOptions()
         type = "input",
         name = L["Duration cutoff (seconds)"],
         desc = L["Stop the alert sound after this many seconds. Leave blank to let it play fully."],
-        order = 5.88,
-        disabled = function() return not db.enabled or not db.interruptAlert end,
+        order = 3,
+        hidden = function() return not db.interruptAlert end,
+        disabled = function() return not db.enabled end,
         get = function() return db.interruptAlertDuration and tostring(db.interruptAlertDuration) or "" end,
         set = function(_, v)
           if v == "" then
@@ -2308,8 +2386,9 @@ local function getGeneralOptions()
         type = "execute",
         name = L["Test"],
         desc = L["Play the configured interrupt alert sound."],
-        order = 5.89,
-        disabled = function() return not db.enabled or not db.interruptAlert or not db.interruptAlertSound end,
+        order = 4,
+        hidden = function() return not db.interruptAlert end,
+        disabled = function() return not db.enabled or not db.interruptAlertSound end,
         func = function()
           local sound = db.interruptAlertSound
           if not sound then return end
@@ -2319,43 +2398,19 @@ local function getGeneralOptions()
           end
         end,
       },
-      muteVocalizations = {
-        type = "select",
-        name = L["Mute character vocalizations"],
-        desc = L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."],
-        order = 6,
-        disabled = function() return not db.enabled end,
-        values = {
-          off = L["Off"],
-          mine = L["Mine"],
-          all = L["All races"],
-        },
-        sorting = { "off", "mine", "all" },
-        get = function() return getVoxMode() end,
-        set = function(_, v)
-          db.muteVocalizations = v
-          refreshVoxMutes()
-        end,
-      },
-      creatureVoxHeader = {
-        type = "header",
-        name = L["Mute creature vocalizations"],
-        order = 7,
-      },
-      creatureVoxDesc = {
-        type = "description",
-        name = L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."],
-        order = 8,
-      },
-      professionHeader = {
-        type = "header",
-        name = L["Mute profession sounds"],
-        order = 20,
-      },
+    },
+  }
+end
+
+local function getProfessionOptions()
+  local opts = {
+    type = "group",
+    name = L["Professions"],
+    args = {
       professionDesc = {
         type = "description",
         name = L["Mute crafting, gathering, and other profession-related sounds by profession."],
-        order = 21,
+        order = 1,
       },
       sharedSoundsNote = {
         type = "description",
@@ -2365,31 +2420,12 @@ local function getGeneralOptions()
     },
   }
 
-  -- Add creature vox category toggles dynamically from data
-  if Resonance.CreatureVoxCategories then
-    for i, cat in ipairs(Resonance.CreatureVoxCategories) do
-      opts.args["creatureVox_" .. cat] = {
-        type = "toggle",
-        name = L[cat] or cat,
-        order = 8 + i,
-        disabled = function() return not db.enabled end,
-        get = function() return db.muteCreatureVox and db.muteCreatureVox[cat] or false end,
-        set = function(_, v)
-          if not db.muteCreatureVox then db.muteCreatureVox = {} end
-          db.muteCreatureVox[cat] = v or nil
-          refreshCreatureVoxMutes()
-        end,
-      }
-    end
-  end
-
-  -- Add profession sound toggles dynamically from data
   if ProfessionCategories then
     for i, prof in ipairs(ProfessionCategories) do
       opts.args["profession_" .. prof] = {
         type = "toggle",
         name = L[prof] or prof,
-        order = 21 + i,
+        order = 1 + i,
         disabled = function() return not db.enabled end,
         get = function() return db.muteProfessionSounds and db.muteProfessionSounds[prof] or false end,
         set = function(_, v)
@@ -2555,14 +2591,23 @@ function Resonance:OnInitialize()
       self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
       self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     end
+    if Resonance.refreshVisibleOptionPanels then
+      Resonance.refreshVisibleOptionPanels()
+    end
   end
   self.db.RegisterCallback(self, "OnProfileChanged", onProfileChanged)
   self.db.RegisterCallback(self, "OnProfileCopied", onProfileChanged)
   self.db.RegisterCallback(self, "OnProfileReset", onProfileChanged)
 
-  -- Register AceConfig
-  LibStub("AceConfig-3.0"):RegisterOptionsTable("Resonance_General", getGeneralOptions)
-  LibStub("AceConfig-3.0"):RegisterOptionsTable("Resonance_Profiles",
+  -- Register AceConfig tables (one per subcategory panel)
+  local AceConfig = LibStub("AceConfig-3.0")
+  AceConfig:RegisterOptionsTable("Resonance_General", getGeneralOptions)
+  AceConfig:RegisterOptionsTable("Resonance_CombatSounds", getCombatSoundsOptions)
+  AceConfig:RegisterOptionsTable("Resonance_Fishing", getFishingOptions)
+  AceConfig:RegisterOptionsTable("Resonance_Vocalizations", getVocalizationOptions)
+  AceConfig:RegisterOptionsTable("Resonance_Interrupt", getInterruptOptions)
+  AceConfig:RegisterOptionsTable("Resonance_Professions", getProfessionOptions)
+  AceConfig:RegisterOptionsTable("Resonance_Profiles",
     LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db))
 
   -- Slash commands

@@ -513,24 +513,57 @@ local CLASS_ORDER = {
 }
 
 ---------------------------------------------------------------------------
--- Panel registration
+-- Subcategory panel registration
 ---------------------------------------------------------------------------
-local panel = CreateFrame("Frame")
-panel:Hide()
+local parentCategory
+local subcategories = {}  -- name -> { category, panel, built }
 
-local category
-local function registerPanel()
-  if category then return end
-  category = Settings.RegisterCanvasLayoutCategory(panel, "Resonance")
-  Settings.RegisterAddOnCategory(category)
+local SUB_NAMES = {
+  "General", "Spell Sounds", "Combat Sounds", "Fishing",
+  "Vocalizations", "Interrupt", "Professions", "Ambient",
+  "Muted Sounds", "Presets", "Profiles",
+}
+
+local function createSubPanel()
+  local p = CreateFrame("Frame")
+  p:Hide()
+  return p
+end
+
+local function registerAllPanels()
+  if parentCategory then return end
+
+  -- Main (parent) panel -- shows a brief landing page
+  local mainPanel = createSubPanel()
+  parentCategory = Settings.RegisterCanvasLayoutCategory(mainPanel, "Resonance")
+  Settings.RegisterAddOnCategory(parentCategory)
+
+  -- Landing page content (built once)
+  mainPanel:SetScript("OnShow", function(self)
+    self:SetScript("OnShow", nil)
+    local title = self:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("Resonance")
+    local desc = self:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    desc:SetWidth(500)
+    desc:SetJustifyH("LEFT")
+    desc:SetText(L["Select a subcategory on the left to configure Resonance."])
+  end)
+
+  for _, name in ipairs(SUB_NAMES) do
+    local p = createSubPanel()
+    local subcat = Settings.RegisterCanvasLayoutSubcategory(parentCategory, p, L[name] or name)
+    subcategories[name] = { category = subcat, panel = p, built = false }
+  end
 end
 
 -- Settings.OpenToCategory calls the protected OpenSettingsPanel(), which is
 -- blocked during combat lockdown.  Defer to PLAYER_REGEN_ENABLED so the
 -- panel opens automatically once combat ends.
 local pendingOpen = false
-Resonance.openOptions = function()
-  if not category then return end
+Resonance.openOptions = function(subcategoryName)
+  if not parentCategory then return end
   -- Ensure Resonance_Data (LoadOnDemand) is loaded before showing the UI
   local loaded, reason = Resonance.loadDataAddon()
   if not loaded then
@@ -542,6 +575,17 @@ Resonance.openOptions = function()
       Resonance.msg((L["Could not load Resonance Data: %s"]):format(reason or "unknown"))
     end
   end
+  local targetID
+  if subcategoryName and subcategories[subcategoryName] then
+    targetID = subcategories[subcategoryName].category.ID
+  else
+    -- Default to General subcategory
+    if subcategories["General"] then
+      targetID = subcategories["General"].category.ID
+    else
+      targetID = parentCategory.ID
+    end
+  end
   if InCombatLockdown() then
     if not pendingOpen then
       pendingOpen = true
@@ -550,12 +594,12 @@ Resonance.openOptions = function()
       f:SetScript("OnEvent", function(self)
         self:UnregisterEvent("PLAYER_REGEN_ENABLED")
         pendingOpen = false
-        if category then Settings.OpenToCategory(category.ID) end
+        if targetID then Settings.OpenToCategory(targetID) end
       end)
     end
     return
   end
-  Settings.OpenToCategory(category.ID)
+  Settings.OpenToCategory(targetID)
 end
 
 ---------------------------------------------------------------------------
@@ -969,9 +1013,9 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
 end
 
 ---------------------------------------------------------------------------
--- Tab builders (extracted from buildLayout to stay under Lua 5.1's
+-- Panel builders (extracted into functions to stay under Lua 5.1's
 -- 200 local-variable limit).  Each receives a shared context table
--- `ctx` and populates it with cross-tab references.
+-- `ctx` and populates it with cross-panel references.
 ---------------------------------------------------------------------------
 
 -- Forward declarations for the builder functions (defined below).
@@ -984,12 +1028,11 @@ local buildTab5_Ambient
 -- Tab 2: Spell Sounds
 ---------------------------------------------------------------------------
 buildTab2_SpellSounds = function(ctx)
-  local tabFrames = ctx.tabFrames
   local recalcContentHeight = ctx.recalcContentHeight
   local playerClass = ctx.playerClass
   local profile = Resonance.db.profile
 
-  local spellTab = tabFrames[2].content
+  local spellTab = ctx.spellSoundsContent
 
   local clearAllSpellsBtn = makeButton(spellTab, L["Clear All"], 65, nil)
   clearAllSpellsBtn:SetPoint("TOPRIGHT", spellTab, "TOPRIGHT", -16, -8)
@@ -2329,12 +2372,11 @@ end
 -- Tab 3: Muted Sounds
 ---------------------------------------------------------------------------
 buildTab3_MutedSounds = function(ctx)
-  local tabFrames = ctx.tabFrames
   local recalcContentHeight = ctx.recalcContentHeight
   local playerClass = ctx.playerClass
   local profile = Resonance.db.profile
 
-  local muteTab = tabFrames[3].content
+  local muteTab = ctx.mutedSoundsContent
 
   local muteSpellRadio = makeRadio(muteTab)
   muteSpellRadio:SetPoint("TOPLEFT", muteTab, "TOPLEFT", 16, -10)
@@ -3131,12 +3173,11 @@ end
 -- Tab 4: Presets
 ---------------------------------------------------------------------------
 buildTab4_Presets = function(ctx)
-  local tabFrames = ctx.tabFrames
   local recalcContentHeight = ctx.recalcContentHeight
   local playerClass = ctx.playerClass
   local profile = Resonance.db.profile
 
-  local presetTab = tabFrames[5].content
+  local presetTab = ctx.presetsContent
 
   -- Export/Import dialog (shared by Presets tab)
   local eiFrame = CreateFrame("Frame", "ResonanceExportImport", UIParent, "BackdropTemplate")
@@ -3696,11 +3737,10 @@ end
 -- Tab 5: Ambient Sounds
 ---------------------------------------------------------------------------
 buildTab5_Ambient = function(ctx)
-  local tabFrames = ctx.tabFrames
   local recalcContentHeight = ctx.recalcContentHeight
 
   ctx.refreshAmbientTab = (function()
-    local ambTab = tabFrames[4].content
+    local ambTab = ctx.ambientContent
     local ASD = Resonance.AmbientSoundData
     if not ASD then
       local noData = ambTab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -3974,269 +4014,245 @@ end
 
 
 ---------------------------------------------------------------------------
--- Build layout
+-- Subcategory panel infrastructure
 ---------------------------------------------------------------------------
-local built = false
 
-local function buildLayout()
-  if built then return end
-  built = true
+-- Shared context table used by all builder functions.  Elevated to module
+-- scope so that cross-panel references (refreshList, allDropdowns, etc.)
+-- survive across subcategory show/hide cycles.
+local ctx
 
-  -- AceDB can switch profiles mid-session, so `profile` captured here may go
-  -- stale. Callbacks that mutate profile data re-read `Resonance.db.profile`
-  -- at their start to ensure they operate on the active profile.
-  local profile = Resonance.db.profile
-  local _, playerClass = UnitClass("player")
+-- Create a scroll frame inside a panel and return both the scroll frame
+-- and its content child.  This mirrors the old per-tab scroll setup.
+local function createScrollableContent(parentPanel)
+  local sf = CreateFrame("ScrollFrame", nil, parentPanel, "UIPanelScrollFrameTemplate")
+  sf:SetPoint("TOPLEFT", parentPanel, "TOPLEFT", 8, -8)
+  sf:SetPoint("BOTTOMRIGHT", parentPanel, "BOTTOMRIGHT", -24, 8)
 
-  -- Shared context table passed to each tab builder function.
-  -- Tab builders read from and write to this table so that cross-tab
-  -- references (e.g. refreshList, allDropdowns) work without passing
-  -- dozens of individual parameters.
-  local ctx = {
-    playerClass  = playerClass,
-    allDropdowns = {},
-  }
+  -- Auto-hide scrollbar when content fits
+  local scrollbarParts = {}
+  for j = 1, sf:GetNumChildren() do
+    local child = select(j, sf:GetChildren())
+    if child:IsObjectType("Slider") then
+      scrollbarParts[#scrollbarParts + 1] = child
+      for k = 1, child:GetNumChildren() do
+        local sub = select(k, child:GetChildren())
+        scrollbarParts[#scrollbarParts + 1] = sub
+      end
+      break
+    end
+  end
+  sf.scrollbarParts = scrollbarParts
+  for _, part in ipairs(scrollbarParts) do part:Hide() end
 
-  -------------------------------------------------------------------
-  -- Tab system
-  -------------------------------------------------------------------
-  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Ambient"], L["Presets"], L["Profiles"] }
-  local TAB_HEIGHT = 28
-  local TAB_OVERLAP = 4
-  local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
-  local tabFrames = {}
-  local tabButtons = {}
+  local function updateScrollbar(self)
+    local yRange = self:GetVerticalScrollRange()
+    local show = yRange and yRange > 0
+    for _, part in ipairs(self.scrollbarParts) do
+      part:SetShown(show)
+    end
+    if not show then self:SetVerticalScroll(0) end
+  end
+  sf:HookScript("OnScrollRangeChanged", updateScrollbar)
+  sf:HookScript("OnShow", updateScrollbar)
 
-  local tabBackdrop = {
-    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    edgeSize = 14,
-    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
-  }
+  local c = CreateFrame("Frame")
+  sf:SetScrollChild(c)
+  c:SetWidth(CONTENT_WIDTH + 40)
+  c:SetHeight(1)
+  sf:HookScript("OnSizeChanged", function(self, w)
+    if w and w > 0 then c:SetWidth(w) end
+  end)
 
-  -- Content container with border
-  local contentBox = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-  contentBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(TAB_HEIGHT + 8 - TAB_OVERLAP))
-  contentBox:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
-  contentBox:SetBackdrop({
-    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    edgeSize = 14,
-    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
-  })
-  contentBox:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], CONTENT_BG[4])
-  contentBox:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
+  return sf, c
+end
 
-  for i, name in ipairs(TAB_NAMES) do
-    local btn = CreateFrame("Button", "ResonanceTab" .. i, panel, "BackdropTemplate")
-    btn:SetHeight(TAB_HEIGHT)
-    btn:SetBackdrop(tabBackdrop)
-    btn:SetFrameLevel(contentBox:GetFrameLevel() + 1)
-
-    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    btn.text:SetPoint("CENTER", 0, 1)
-    btn.text:SetText(name)
-    btn:SetWidth(btn.text:GetStringWidth() + 26)
-
-    -- Mask that hides the bottom border of the tab
-    btn.bottomMask = btn:CreateTexture(nil, "OVERLAY")
-    btn.bottomMask:SetPoint("BOTTOMLEFT", 3, -TAB_OVERLAP)
-    btn.bottomMask:SetPoint("BOTTOMRIGHT", -3, -TAB_OVERLAP)
-    btn.bottomMask:SetHeight(TAB_OVERLAP + 8)
-
-    if i == 1 then
-      btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8)
+-- Dynamically resize scroll child to fit actual content.
+-- Accepts either a numeric tabIndex (legacy compat -- indexes into
+-- ctx.contentFrames) or a content frame directly.
+local function recalcContentHeight(contentOrIndex)
+  C_Timer.After(0, function()
+    local content
+    if type(contentOrIndex) == "number" then
+      local entry = ctx and ctx.contentFrames and ctx.contentFrames[contentOrIndex]
+      content = entry
     else
-      btn:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 4, 0)
+      content = contentOrIndex
     end
-    tabButtons[i] = btn
-
-    local sf = CreateFrame("ScrollFrame", nil, contentBox, "UIPanelScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", contentBox, "TOPLEFT", 8, -8)
-    sf:SetPoint("BOTTOMRIGHT", contentBox, "BOTTOMRIGHT", -24, 8)
-    sf:Hide()
-
-    -- Auto-hide scrollbar when content fits
-    local scrollbarParts = {}
-    for j = 1, sf:GetNumChildren() do
-      local child = select(j, sf:GetChildren())
-      if child:IsObjectType("Slider") then
-        scrollbarParts[#scrollbarParts + 1] = child
-        for k = 1, child:GetNumChildren() do
-          local sub = select(k, child:GetChildren())
-          scrollbarParts[#scrollbarParts + 1] = sub
-        end
-        break
-      end
-    end
-    sf.scrollbarParts = scrollbarParts
-    -- Hide scrollbar initially
-    for _, part in ipairs(scrollbarParts) do part:Hide() end
-
-    local function updateScrollbar(self)
-      local yRange = self:GetVerticalScrollRange()
-      local show = yRange and yRange > 0
-      for _, part in ipairs(self.scrollbarParts) do
-        part:SetShown(show)
-      end
-      if not show then self:SetVerticalScroll(0) end
-    end
-    sf:HookScript("OnScrollRangeChanged", updateScrollbar)
-    sf:HookScript("OnShow", updateScrollbar)
-
-    local c = CreateFrame("Frame")
-    sf:SetScrollChild(c)
-    c:SetWidth(CONTENT_WIDTH + 40)
-    c:SetHeight(1)
-    -- Dynamically match scroll child width to scroll frame
-    sf:HookScript("OnSizeChanged", function(self, w)
-      if w and w > 0 then c:SetWidth(w) end
-    end)
-    tabFrames[i] = { scroll = sf, content = c }
-  end
-
-  -- Dynamically resize scroll child to fit actual content
-  local function recalcContentHeight(tabIndex)
-    C_Timer.After(0, function()
-      local content = tabFrames[tabIndex].content
-      local top = content:GetTop()
-      if not top then return end
-      local lowestBottom = top
-      for i = 1, content:GetNumChildren() do
-        local child = select(i, content:GetChildren())
-        if child:IsShown() then
-          local bottom = child:GetBottom()
-          if bottom and bottom < lowestBottom then
-            lowestBottom = bottom
-          end
+    if not content then return end
+    local top = content:GetTop()
+    if not top then return end
+    local lowestBottom = top
+    for i = 1, content:GetNumChildren() do
+      local child = select(i, content:GetChildren())
+      if child:IsShown() then
+        local bottom = child:GetBottom()
+        if bottom and bottom < lowestBottom then
+          lowestBottom = bottom
         end
       end
-      content:SetHeight(math.max(top - lowestBottom + 20, 1))
-    end)
-  end
-
-  ctx.tabFrames = tabFrames
-  ctx.recalcContentHeight = recalcContentHeight
-
-  local function selectTab(id)
-    for i, tf in ipairs(tabFrames) do
-      tf.scroll:SetShown(i == id)
     end
-    for i, btn in ipairs(tabButtons) do
-      if i == id then
-        btn:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
-        btn:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
-        btn:SetFrameLevel(contentBox:GetFrameLevel() + 2)
-        btn.text:SetFontObject("GameFontHighlight")
-        btn.bottomMask:SetColorTexture(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
-      else
-        btn:SetBackdropColor(0.06, 0.06, 0.06, 1)
-        btn:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
-        btn:SetFrameLevel(contentBox:GetFrameLevel() - 1)
-        btn.text:SetFontObject("GameFontNormal")
-        btn.bottomMask:SetColorTexture(0.06, 0.06, 0.06, 1)
-      end
-    end
-    for _, dd in ipairs(ctx.allDropdowns) do dd:Hide() end
-    if id == 1 then recalcContentHeight(1) end
-    if id == 2 and ctx.refreshList then ctx.refreshList() end
-    if id == 3 and ctx.refreshMuteList then ctx.refreshMuteList() end
-    if id == 4 and ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
-    if id == 5 and ctx.refreshPresetList then ctx.refreshPresetList() end
-  end
+    content:SetHeight(math.max(top - lowestBottom + 20, 1))
+  end)
+end
 
-  for i, btn in ipairs(tabButtons) do
-    btn:SetScript("OnClick", function() selectTab(i) end)
-  end
+-- Helper to embed an AceConfig table into a subcategory panel
+local function buildAceConfigPanel(parentFrame, aceConfigName)
+  local aceGUI = LibStub("AceGUI-3.0")
+  local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
-  -------------------------------------------------------------------
-  -- Tab 1: General (AceConfig embedded)
-  -------------------------------------------------------------------
-  local gen = tabFrames[1].content
-
-  local aceContainer = CreateFrame("Frame", nil, gen)
+  local aceContainer = CreateFrame("Frame", nil, parentFrame)
   aceContainer:SetPoint("TOPLEFT", 16, -16)
   aceContainer:SetPoint("TOPRIGHT", -16, 0)
-  aceContainer:SetHeight(300)
+  aceContainer:SetHeight(400)
 
-  local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-  -- AceConfigDialog:Open uses a container widget; we embed into our tab
-  -- We use a simple group with inline=true approach
-  local aceGUI = LibStub("AceGUI-3.0")
+  local container = aceGUI:Create("SimpleGroup")
+  container:SetLayout("Fill")
+  container.frame:SetParent(parentFrame)
+  container.frame:SetAllPoints(aceContainer)
+  container.frame:Show()
 
-  local function buildAceGeneralTab()
-    -- Create an AceGUI container and embed in our frame
-    local container = aceGUI:Create("SimpleGroup")
-    container:SetLayout("Fill")
-    container.frame:SetParent(gen)
-    container.frame:SetAllPoints(aceContainer)
-    container.frame:Show()
+  AceConfigDialog:Open(aceConfigName, container)
+  return container
+end
 
-    AceConfigDialog:Open("Resonance_General", container)
+-- Build the content for a specific subcategory panel.
+-- Called on first OnShow of each panel; `built` flag prevents re-entry.
+local function buildSubcategoryContent(name, panel)
+  local entry = subcategories[name]
+  if not entry or entry.built then return end
+  entry.built = true
+
+  Resonance.loadDataAddon()
+
+  -- AceConfig-based panels
+  if name == "General" or name == "Combat Sounds" or name == "Fishing"
+     or name == "Vocalizations" or name == "Interrupt" or name == "Professions"
+     or name == "Profiles" then
+    local aceKey = ({
+      ["General"]       = "Resonance_General",
+      ["Combat Sounds"] = "Resonance_CombatSounds",
+      ["Fishing"]       = "Resonance_Fishing",
+      ["Vocalizations"] = "Resonance_Vocalizations",
+      ["Interrupt"]     = "Resonance_Interrupt",
+      ["Professions"]   = "Resonance_Professions",
+      ["Profiles"]      = "Resonance_Profiles",
+    })[name]
+    buildAceConfigPanel(panel, aceKey)
+    return
   end
 
-  -- Build on first show
-  aceContainer:SetScript("OnShow", function(self)
-    self:SetScript("OnShow", nil)
-    buildAceGeneralTab()
-  end)
-
-
-  -------------------------------------------------------------------
-  -- Build tabs 2-5 via extracted functions
-  -------------------------------------------------------------------
-  buildTab2_SpellSounds(ctx)
-  buildTab3_MutedSounds(ctx)
-  buildTab5_Ambient(ctx)
-  buildTab4_Presets(ctx)
-
-  -------------------------------------------------------------------
-  -- Tab 6: Profiles (AceDBOptions)
-  -------------------------------------------------------------------
-  local profTab = tabFrames[6].content
-
-  local profContainer = CreateFrame("Frame", nil, profTab)
-  profContainer:SetPoint("TOPLEFT", 16, -16)
-  profContainer:SetPoint("TOPRIGHT", -16, 0)
-  profContainer:SetHeight(400)
-
-  local function buildProfilesTab()
-    local container = aceGUI:Create("SimpleGroup")
-    container:SetLayout("Fill")
-    container.frame:SetParent(profTab)
-    container.frame:SetAllPoints(profContainer)
-    container.frame:Show()
-
-    AceConfigDialog:Open("Resonance_Profiles", container)
+  -- Custom UI panels need scrollable content areas
+  if name == "Spell Sounds" then
+    local sf, content = createScrollableContent(panel)
+    ctx.spellSoundsContent = content
+    ctx.contentFrames[2] = content
+    buildTab2_SpellSounds(ctx)
+    -- Wire editor frame dropdown cleanup
+    if ctx.editorFrame then
+      ctx.editorFrame:HookScript("OnHide", function()
+        if ctx.edBrowseDD then ctx.edBrowseDD:Hide() end
+        if ctx.edSpellSearchDD then ctx.edSpellSearchDD:Hide() end
+      end)
+    end
+    -- Register dropdowns for click-catcher management
+    if ctx.edBrowseDD then ctx.allDropdowns[#ctx.allDropdowns + 1] = ctx.edBrowseDD end
+    if ctx.edSpellSearchDD then ctx.allDropdowns[#ctx.allDropdowns + 1] = ctx.edSpellSearchDD end
+    return
   end
 
-  profContainer:SetScript("OnShow", function(self)
-    self:SetScript("OnShow", nil)
-    buildProfilesTab()
-  end)
+  if name == "Muted Sounds" then
+    local sf, content = createScrollableContent(panel)
+    ctx.mutedSoundsContent = content
+    ctx.contentFrames[3] = content
+    buildTab3_MutedSounds(ctx)
+    -- Register mute dropdown for click-catcher management
+    if ctx.muteDD then ctx.allDropdowns[#ctx.allDropdowns + 1] = ctx.muteDD end
+    return
+  end
 
-  -------------------------------------------------------------------
-  -- Dropdown management & panel events
-  -------------------------------------------------------------------
-  local allDropdowns = ctx.allDropdowns
-  allDropdowns[#allDropdowns + 1] = ctx.edBrowseDD
-  allDropdowns[#allDropdowns + 1] = ctx.edSpellSearchDD
-  allDropdowns[#allDropdowns + 1] = ctx.muteDD
+  if name == "Ambient" then
+    local sf, content = createScrollableContent(panel)
+    ctx.ambientContent = content
+    ctx.contentFrames[4] = content
+    buildTab5_Ambient(ctx)
+    return
+  end
 
-  panel:SetScript("OnShow", function()
-    invalidateSpellCache()
-    startBuildPlayerSpellCache()  -- begin building in background immediately
-    selectTab(1)
-  end)
-  panel:SetScript("OnHide", function()
-    for _, dd in ipairs(allDropdowns) do dd:Hide() end
-    invalidateSpellCache()  -- free cached tables while options panel is closed
-  end)
+  if name == "Presets" then
+    local sf, content = createScrollableContent(panel)
+    ctx.presetsContent = content
+    ctx.contentFrames[5] = content
+    buildTab4_Presets(ctx)
+    return
+  end
+end
 
-  ctx.editorFrame:HookScript("OnHide", function()
-    ctx.edBrowseDD:Hide()
-    ctx.edSpellSearchDD:Hide()
-  end)
+---------------------------------------------------------------------------
+-- SetupOptions (called from Core.lua OnInitialize)
+---------------------------------------------------------------------------
+function Resonance:SetupOptions()
+  registerAllPanels()
+
+  local _, playerClass = UnitClass("player")
+
+  -- Initialize shared context (elevated to module scope)
+  ctx = {
+    playerClass    = playerClass,
+    allDropdowns   = {},
+    recalcContentHeight = recalcContentHeight,
+    contentFrames  = {},  -- numeric index -> content frame (legacy compat)
+  }
+
+  -- Wire OnShow handlers for each subcategory panel to build on first show
+  for name, entry in pairs(subcategories) do
+    local panelFrame = entry.panel
+    panelFrame:SetScript("OnShow", function(self)
+      if entry.built then
+        -- Re-trigger refresh callbacks on subsequent shows
+        if name == "Spell Sounds" then
+          invalidateSpellCache()
+          startBuildPlayerSpellCache()
+          if ctx.refreshList then ctx.refreshList() end
+        elseif name == "Muted Sounds" then
+          if ctx.refreshMuteList then ctx.refreshMuteList() end
+        elseif name == "Ambient" then
+          if ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
+        elseif name == "Presets" then
+          if ctx.refreshPresetList then ctx.refreshPresetList() end
+        end
+        return
+      end
+      local ok, err = pcall(buildSubcategoryContent, name, self)
+      if not ok then
+        local errStr = tostring(err)
+        local errLabel = self:CreateFontString(nil, "OVERLAY", "GameFontRed")
+        errLabel:SetPoint("CENTER", 0, 0)
+        errLabel:SetWidth(500)
+        errLabel:SetText(L["Resonance options failed to load:\n\n"] .. errStr)
+        Resonance.msg("|cffff4444" .. L["Options UI error: "] .. errStr .. "|r")
+        Resonance.msg("|cffff4444" .. L["Type /res diag for library diagnostics."] .. "|r")
+      end
+    end)
+  end
+
+  -- Free spell cache memory when leaving Spell Sounds panel
+  if subcategories["Spell Sounds"] then
+    subcategories["Spell Sounds"].panel:HookScript("OnHide", function()
+      invalidateSpellCache()
+    end)
+  end
+
+  -- Dropdown management: hide dropdowns when custom panels hide
+  for _, sname in ipairs({"Spell Sounds", "Muted Sounds", "Ambient"}) do
+    if subcategories[sname] then
+      subcategories[sname].panel:HookScript("OnHide", function()
+        if ctx and ctx.allDropdowns then
+          for _, dd in ipairs(ctx.allDropdowns) do dd:Hide() end
+        end
+      end)
+    end
+  end
 
   -- Click catcher to close dropdowns when clicking outside
   local clickCatcher = CreateFrame("Button", nil, UIParent)
@@ -4246,59 +4262,42 @@ local function buildLayout()
   clickCatcher:Hide()
   clickCatcher:RegisterForClicks("AnyUp")
   clickCatcher:SetScript("OnClick", function()
-    for _, dd in ipairs(allDropdowns) do dd:Hide() end
+    if ctx and ctx.allDropdowns then
+      for _, dd in ipairs(ctx.allDropdowns) do dd:Hide() end
+    end
     clickCatcher:Hide()
   end)
 
-  for _, dd in ipairs(allDropdowns) do
-    dd:HookScript("OnShow", function() clickCatcher:Show() end)
-    dd:HookScript("OnHide", function()
-      local anyVisible = false
-      for _, d in ipairs(allDropdowns) do
-        if d:IsShown() then anyVisible = true; break end
-      end
-      if not anyVisible then clickCatcher:Hide() end
-    end)
+  -- Wire click catcher to all dropdowns that get registered.
+  -- Since dropdowns are created lazily when panels build, we hook
+  -- into the allDropdowns table via a metatable that auto-wires new entries.
+  local realDropdowns = ctx.allDropdowns
+  local ddMeta = {}
+  ddMeta.__newindex = function(t, k, dd)
+    rawset(t, k, dd)
+    if dd and type(dd) == "table" and dd.HookScript then
+      dd:HookScript("OnShow", function() clickCatcher:Show() end)
+      dd:HookScript("OnHide", function()
+        local anyVisible = false
+        for _, d in ipairs(realDropdowns) do
+          if d:IsShown() then anyVisible = true; break end
+        end
+        if not anyVisible then clickCatcher:Hide() end
+      end)
+    end
   end
+  setmetatable(realDropdowns, ddMeta)
 end
 
----------------------------------------------------------------------------
--- SetupOptions (called from Core.lua OnInitialize)
----------------------------------------------------------------------------
-function Resonance:SetupOptions()
-  registerPanel()
-  -- Defer buildLayout to first panel show — don't load Resonance_Data at login.
-  -- This keeps the core addon lightweight (~1MB) until the user opens settings.
-  local layoutBuilt = false
-  panel:SetScript("OnShow", function(self)
-    if layoutBuilt then return end
-    layoutBuilt = true
-    -- Load Resonance_Data on demand
-    local loaded, reason = Resonance.loadDataAddon()
-    if not loaded then
-      -- Show a user-friendly message instead of building the layout
-      local msg = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-      msg:SetPoint("CENTER", 0, 20)
-      msg:SetWidth(500)
-      msg:SetJustifyH("CENTER")
-      if reason == "DISABLED" then
-        msg:SetText(L["Resonance Data is disabled.\n\nTo configure sounds, enable |cff00ff00Resonance Data|r in the AddOns list\n(press Esc > AddOns) and then type |cff00ff00/reload|r."])
-      elseif reason == "MISSING" or reason == "NOT_INSTALLED" then
-        msg:SetText(L["Resonance Data module not found.\n\nPlease reinstall Resonance to restore full functionality."])
-      else
-        msg:SetText((L["Could not load Resonance Data: %s"]):format(reason or "unknown"))
-      end
-      return
+-- Refresh any currently-visible custom panel (called from Core.lua on profile change)
+Resonance.refreshVisibleOptionPanels = function()
+  if not ctx then return end
+  for name, entry in pairs(subcategories) do
+    if entry.built and entry.panel:IsVisible() then
+      if name == "Spell Sounds" and ctx.refreshList then ctx.refreshList() end
+      if name == "Muted Sounds" and ctx.refreshMuteList then ctx.refreshMuteList() end
+      if name == "Presets" and ctx.refreshPresetList then ctx.refreshPresetList() end
+      if name == "Ambient" and ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
     end
-    local ok, err = pcall(buildLayout)
-    if not ok then
-      local errStr = tostring(err)
-      local errLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontRed")
-      errLabel:SetPoint("CENTER", 0, 0)
-      errLabel:SetWidth(500)
-      errLabel:SetText(L["Resonance options failed to load:\n\n"] .. errStr)
-      Resonance.msg("|cffff4444" .. L["Options UI error: "] .. errStr .. "|r")
-      Resonance.msg("|cffff4444" .. L["Type /res diag for library diagnostics."] .. "|r")
-    end
-  end)
+  end
 end
