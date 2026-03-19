@@ -1710,7 +1710,7 @@ local function getGeneralOptions()
         name = L["Replace fishing bobber sound"],
         desc = L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."],
         order = 5.6,
-        width = "full",
+        width = 1.5,
         disabled = function() return not db.enabled end,
         get = function() return db.classicFishingSounds end,
         set = function(_, v)
@@ -1771,8 +1771,9 @@ local function getGeneralOptions()
       },
       fishingBobberPreview = {
         type = "execute",
-        name = L["Preview"],
-        order = 5.8,
+        name = "|TInterface\\Buttons\\UI-SpellbookIcon-NextPage-Up:14:14|t " .. L["Preview"],
+        desc = L["Preview the replacement fishing bobber sound."],
+        order = 5.61,
         width = "half",
         hidden = function() return not db.classicFishingSounds end,
         disabled = function() return not db.enabled end,
@@ -1781,6 +1782,12 @@ local function getGeneralOptions()
           if not snd or snd == "" then snd = CLASSIC_FISHING_BOBBER_FID end
           playOneSoundWithUnmute(snd, db.debug)
         end,
+      },
+      vocalizationSpacer = {
+        type = "description",
+        name = "",
+        order = 5.99,
+        width = "full",
       },
       muteVocalizations = {
         type = "select",
