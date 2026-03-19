@@ -1625,7 +1625,7 @@ buildTab2_SpellSounds = function(ctx)
     else
       local soundListH = edSoundListFrame:GetHeight()
       local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
-      baseH = 420 + extraSoundH  -- includes trigger radios
+      baseH = 455 + extraSoundH  -- includes trigger radios + duration section
       if editorTrigger == "precast_and_cast" then
         baseH = baseH + (edPrecastSection:GetHeight() or 76) + 6
       end
