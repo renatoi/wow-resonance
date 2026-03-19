@@ -709,19 +709,22 @@ end
 ---------------------------------------------------------------------------
 -- Autocomplete dropdown component
 ---------------------------------------------------------------------------
-local ROW_HEIGHT_2 = math.floor(ROW_HEIGHT * 1.7)
+local ROW_HEIGHT_1 = ROW_HEIGHT        -- single-line row
+local ROW_HEIGHT_2 = ROW_HEIGHT + 14   -- two-line row (text + 2px gap + subtext)
 
 local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdownWidth, extraActions)
-  -- actionDef: { label, tooltip, width } or string (legacy label-only)
+  -- actionDef: { label, tooltip, width, icon, altIcons } or string (legacy)
+  -- When icon is set, renders a small icon button instead of a text button.
+  -- altIcons: optional list of alternate icon paths (swapped via onRowRefresh).
   if type(actionDef) == "string" then actionDef = { label = actionDef } end
+  local useIconAction = actionDef.icon ~= nil
   local w = dropdownWidth or CONTENT_WIDTH
   local dd = CreateFrame("Frame", nil, UIParent)
   dd:SetFrameStrata("TOOLTIP")
-  dd:SetSize(w, AUTOCOMPLETE_ROWS * ROW_HEIGHT + 18)
+  dd:SetSize(w, AUTOCOMPLETE_ROWS * ROW_HEIGHT_1 + 18)
   dd:SetPoint("TOPLEFT", searchBox, "BOTTOMLEFT", -2, -2)
   dd:SetClampedToScreen(true)
   dd:Hide()
-  dd.rowH = ROW_HEIGHT
 
   local bg = dd:CreateTexture(nil, "BACKGROUND")
   bg:SetAllPoints()
@@ -772,10 +775,16 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
     local tw = btnTextWidth(label)
     return math.max((minW or 0) + 4, tw + 16)
   end
-  local primaryW = measuredBtnW(actionDef.label, actionDef.width or 48)
-  if actionDef.altLabels then
-    for _, alt in ipairs(actionDef.altLabels) do
-      primaryW = math.max(primaryW, measuredBtnW(alt, actionDef.width or 48))
+
+  local primaryW
+  if useIconAction then
+    primaryW = 20
+  else
+    primaryW = measuredBtnW(actionDef.label, actionDef.width or 48)
+    if actionDef.altLabels then
+      for _, alt in ipairs(actionDef.altLabels) do
+        primaryW = math.max(primaryW, measuredBtnW(alt, actionDef.width or 48))
+      end
     end
   end
   local btnAreaW = primaryW + 4
@@ -788,14 +797,13 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
 
   for i = 1, AUTOCOMPLETE_ROWS do
     local row = CreateFrame("Frame", nil, dd)
-    row:SetSize(w - 4, ROW_HEIGHT)
-    row:SetPoint("TOPLEFT", 2, -(i - 1) * ROW_HEIGHT - 2)
+    row:SetSize(w - 4, ROW_HEIGHT_1)
+    row:SetPoint("TOPLEFT", 2, -(i - 1) * ROW_HEIGHT_1 - 2)
 
-    if i % 2 == 0 then
-      local stripe = row:CreateTexture(nil, "BACKGROUND")
-      stripe:SetAllPoints()
-      stripe:SetColorTexture(1, 1, 1, 0.04)
-    end
+    row.stripe = row:CreateTexture(nil, "BACKGROUND")
+    row.stripe:SetAllPoints()
+    row.stripe:SetColorTexture(1, 1, 1, 0.04)
+    row.stripe:Hide()
 
     row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.text:SetPoint("TOPLEFT", row, "TOPLEFT", 6, -3)
@@ -804,7 +812,7 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
     row.text:SetWordWrap(false)
 
     row.sub = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.sub:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 6, 3)
+    row.sub:SetPoint("TOPLEFT", row.text, "BOTTOMLEFT", 0, -2)
     row.sub:SetPoint("RIGHT", row, "RIGHT", textRightOffset, 0)
     row.sub:SetJustifyH("LEFT")
     row.sub:SetWordWrap(false)
@@ -812,12 +820,28 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
     row.sub:Hide()
 
     -- Build buttons right-to-left: primary action -> extra actions -> play
-    row.actionBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.actionBtn:SetSize(primaryW, 22)
-    row.actionBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
-    row.actionBtn:SetText(actionDef.label)
-    row.actionBtn:SetScript("OnClick", function() if row.entry then onAction(row.entry) end end)
-    addBtnTooltip(row.actionBtn, actionDef.tooltip)
+    if useIconAction then
+      row.actionBtn = makeIconButton(row, actionDef.icon, 20)
+      row.actionBtn:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+      row.actionBtn:SetScript("OnClick", function() if row.entry then onAction(row.entry) end end)
+      row.actionBtn.tooltipText = actionDef.label
+      row.actionBtn:SetScript("OnEnter", function(self)
+        tipText:SetText(self.tooltipText or "")
+        local textW = tipText:GetStringWidth()
+        tip:SetSize(math.min(textW + 16, 240), tipText:GetStringHeight() + 14)
+        tip:ClearAllPoints()
+        tip:SetPoint("BOTTOM", self, "TOP", 0, 4)
+        tip:Show()
+      end)
+      row.actionBtn:SetScript("OnLeave", function() tip:Hide() end)
+    else
+      row.actionBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+      row.actionBtn:SetSize(primaryW, 22)
+      row.actionBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
+      row.actionBtn:SetText(actionDef.label)
+      row.actionBtn:SetScript("OnClick", function() if row.entry then onAction(row.entry) end end)
+      addBtnTooltip(row.actionBtn, actionDef.tooltip)
+    end
 
     local prevBtn = row.actionBtn
     row.extraBtns = {}
@@ -854,7 +878,6 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
   local scrollTrack = dd:CreateTexture(nil, "ARTWORK")
   scrollTrack:SetWidth(4)
   scrollTrack:SetPoint("TOPRIGHT", dd, "TOPRIGHT", -2, -2)
-  scrollTrack:SetPoint("BOTTOMRIGHT", dd, "BOTTOMRIGHT", -2, 16)
   scrollTrack:SetColorTexture(0.15, 0.15, 0.18, 0.6)
   scrollTrack:Hide()
 
@@ -866,22 +889,22 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
   local function refreshRows(self)
     local data = self.data or {}
     local off = self.scrollOffset
-    local rh = self.rowH or ROW_HEIGHT
+    local yOff = 2
+    local visibleCount = 0
     for i, row in ipairs(self.rows) do
       local di = off + i
-      row:SetHeight(rh)
-      row:ClearAllPoints()
-      row:SetPoint("TOPLEFT", 2, -(i - 1) * rh - 2)
-      row:SetSize(w - 4, rh)
       if di <= #data then
+        visibleCount = visibleCount + 1
         row.entry = data[di]
         row.text:SetText(data[di].display or data[di].path or "")
         local sub = data[di].subdisplay
         if sub and sub ~= "" then
           row.sub:SetText(sub)
           row.sub:Show()
+          row:SetHeight(ROW_HEIGHT_2)
         else
           row.sub:Hide()
+          row:SetHeight(ROW_HEIGHT_1)
         end
         -- Re-anchor text vertically depending on whether sub is shown
         row.text:ClearAllPoints()
@@ -891,18 +914,28 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
           row.text:SetPoint("LEFT", 6, 0)
         end
         row.text:SetPoint("RIGHT", row, "RIGHT", textRightOffset, 0)
+        -- Alternating stripe based on data index (not visual position)
+        if di % 2 == 0 then row.stripe:Show() else row.stripe:Hide() end
         if self.onRowRefresh then self:onRowRefresh(row, data[di]) end
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", dd, "TOPLEFT", 2, -yOff)
+        row:SetSize(w - 4, row:GetHeight())
         row:Show()
+        yOff = yOff + row:GetHeight()
       else
         row.entry = nil
         row:Hide()
       end
     end
+    local contentH = yOff
     if #data > AUTOCOMPLETE_ROWS then
       self.scrollHint:SetText(L["Showing %d\226\128\147%d of %d"]:format(off + 1, math.min(off + AUTOCOMPLETE_ROWS, #data), #data))
+      scrollTrack:ClearAllPoints()
+      scrollTrack:SetPoint("TOPRIGHT", dd, "TOPRIGHT", -2, -2)
+      scrollTrack:SetPoint("BOTTOMRIGHT", dd, "BOTTOMRIGHT", -2, 16)
       scrollTrack:Show()
       scrollThumb:Show()
-      local trackH = AUTOCOMPLETE_ROWS * rh
+      local trackH = contentH - 2
       local thumbH = math.max(16, trackH * AUTOCOMPLETE_ROWS / #data)
       local maxOff = #data - AUTOCOMPLETE_ROWS
       local frac = maxOff > 0 and (off / maxOff) or 0
@@ -914,19 +947,12 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
       scrollTrack:Hide()
       scrollThumb:Hide()
     end
+    dd:SetHeight(contentH + 18)
   end
 
   function dd:SetData(data, statusMsg)
     self.data = data or {}
     self.scrollOffset = 0
-    -- Use taller rows when any result has subdisplay text
-    local hasSub = false
-    for _, d in ipairs(self.data) do
-      if d.subdisplay and d.subdisplay ~= "" then hasSub = true; break end
-    end
-    self.rowH = hasSub and ROW_HEIGHT_2 or ROW_HEIGHT
-    local visibleRows = math.min(#self.data, AUTOCOMPLETE_ROWS)
-    dd:SetHeight(math.max(visibleRows, 1) * self.rowH + 18)
     self.statusText:SetText(statusMsg or "")
     refreshRows(self)
     self:SetShown(#self.data > 0 or (statusMsg and statusMsg ~= ""))
@@ -2448,18 +2474,18 @@ buildTab3_MutedSounds = function(ctx)
         end
       end
     end,
-    { label = L["+ Mute"], altLabels = { L["Muted"] } }, CONTENT_WIDTH
+    { label = L["+ Mute"], icon = "Interface\\Buttons\\UI-GroupLoot-Pass-Down" }, CONTENT_WIDTH
   )
 
   function muteDD:onRowRefresh(row, entry)
     if muteMode == "npc" then
       local muted = isNPCMuted(entry.fileDataID)
       row.actionBtn:SetEnabled(not muted)
-      row.actionBtn:SetText(muted and L["Muted"] or L["+ Mute"])
+      row.actionBtn.tooltipText = muted and L["Muted"] or L["+ Mute"]
     else
       local muted = isFIDMuted(entry.fileDataID)
       row.actionBtn:SetEnabled(not muted)
-      row.actionBtn:SetText(muted and L["Muted"] or L["+ Mute"])
+      row.actionBtn.tooltipText = muted and L["Muted"] or L["+ Mute"]
     end
   end
 
@@ -3718,17 +3744,13 @@ buildTab5_Ambient = function(ctx)
           doAmbSearch()
         end
       end,
-      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH
+      { label = L["Mute"], icon = "Interface\\Buttons\\UI-GroupLoot-Pass-Down" }, CONTENT_WIDTH
     )
     ctx.allDropdowns[#ctx.allDropdowns + 1] = ambSearchDD
 
     function ambSearchDD:onRowRefresh(row, entry)
       local muted = Resonance.db.profile.mute_file_data_ids[entry.fileDataID]
-      if muted then
-        row.actionBtn:SetText(L["Unmute"])
-      else
-        row.actionBtn:SetText(L["Mute"])
-      end
+      row.actionBtn.tooltipText = muted and L["Unmute"] or L["Mute"]
     end
 
     -- Build FID → "Expansion > Zone" lookup lazily (cached).
