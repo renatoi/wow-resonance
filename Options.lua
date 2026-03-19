@@ -3686,63 +3686,74 @@ buildTab5_Ambient = function(ctx)
       return row
     end
 
-    local function buildExpansion(exp, anchor, offY)
-      local data = ASD[exp]
-      if not data then return nil, anchor, offY end
-
-      local ehdr = CreateFrame("Button", nil, ambTab)
-      ehdr:SetHeight(ROW_HEIGHT + 4)
-      ehdr:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, offY)
-      ehdr:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
-      local bg = ehdr:CreateTexture(nil, "BACKGROUND")
-      bg:SetAllPoints()
-      bg:SetColorTexture(0.18, 0.18, 0.18, 0.8)
-      local arrow = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-      arrow:SetPoint("LEFT", 8, 0)
-      local title = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-      title:SetPoint("LEFT", arrow, "RIGHT", 4, 0)
-      title:SetText(L[exp] or exp)
-
-      local zc, fc = 0, 0
-      for _, packed in pairs(data) do zc = zc + 1; fc = fc + countFIDs(packed) end
-      local info = ehdr:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-      info:SetPoint("LEFT", title, "RIGHT", 8, 0)
-      info:SetText("(" .. zc .. " zones, " .. fc .. " sounds)")
-
-      local sorted = {}
-      for z in pairs(data) do sorted[#sorted + 1] = z end
-      table.sort(sorted)
-
-      local zoneRows = {}
-      local prev = ehdr
-      for i, z in ipairs(sorted) do
-        local row = buildZoneRow(ambTab, prev, (i == 1), z, exp .. "|" .. z, countFIDs(data[z]))
-        zoneRows[#zoneRows + 1] = row
-        allRows[#allRows + 1] = row
-        prev = row
+    local expHeaders = {}  -- { ehdr, zoneRows[] } per expansion
+    local function relayoutExpansions()
+      local yOff = -8
+      for _, entry in ipairs(expHeaders) do
+        entry.ehdr:ClearAllPoints()
+        entry.ehdr:SetPoint("TOPLEFT", zoneHeader, "BOTTOMLEFT", 0, yOff)
+        entry.ehdr:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
+        yOff = yOff - (ROW_HEIGHT + 4) - 2
+        if expanded[entry.exp] then
+          for _, row in ipairs(entry.zoneRows) do
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", zoneHeader, "BOTTOMLEFT", 20, yOff)
+            row:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
+            yOff = yOff - ROW_HEIGHT - 2
+          end
+        end
       end
-
-      expanded[exp] = false
-      local function toggle()
-        expanded[exp] = not expanded[exp]
-        arrow:SetText(expanded[exp] and "v" or ">")
-        for _, r in ipairs(zoneRows) do r:SetShown(expanded[exp]) end
-        recalcContentHeight(5)
-      end
-      arrow:SetText(">")
-      for _, r in ipairs(zoneRows) do r:Hide() end
-      ehdr:SetScript("OnClick", toggle)
-      ehdr:SetScript("OnEnter", function() bg:SetColorTexture(0.25, 0.25, 0.25, 0.8) end)
-      ehdr:SetScript("OnLeave", function() bg:SetColorTexture(0.18, 0.18, 0.18, 0.8) end)
-
-      return ehdr, zoneRows[#zoneRows] or ehdr, -6
+      recalcContentHeight(5)
     end
 
-    local curAnchor, curOffY = zoneHeader, -8
     for _, exp in ipairs(EXP_ORDER) do
-      local _, newAnchor, newOffY = buildExpansion(exp, curAnchor, curOffY)
-      if newAnchor then curAnchor, curOffY = newAnchor, newOffY end
+      local data = ASD[exp]
+      if data then
+        local ehdr = CreateFrame("Button", nil, ambTab)
+        ehdr:SetHeight(ROW_HEIGHT + 4)
+        ehdr:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
+        local bg = ehdr:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(0.18, 0.18, 0.18, 0.8)
+        local arrow = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        arrow:SetPoint("LEFT", 8, 0)
+        arrow:SetText(">")
+        local title = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        title:SetPoint("LEFT", arrow, "RIGHT", 4, 0)
+        title:SetText(L[exp] or exp)
+
+        local zc, fc = 0, 0
+        for _, packed in pairs(data) do zc = zc + 1; fc = fc + countFIDs(packed) end
+        local info = ehdr:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        info:SetPoint("LEFT", title, "RIGHT", 8, 0)
+        info:SetText("(" .. zc .. " zones, " .. fc .. " sounds)")
+
+        local sorted = {}
+        for z in pairs(data) do sorted[#sorted + 1] = z end
+        table.sort(sorted)
+
+        local zoneRows = {}
+        for _, z in ipairs(sorted) do
+          local row = buildZoneRow(ambTab, ehdr, false, z, exp .. "|" .. z, countFIDs(data[z]))
+          row:Hide()
+          zoneRows[#zoneRows + 1] = row
+          allRows[#allRows + 1] = row
+        end
+
+        expanded[exp] = false
+        ehdr:SetScript("OnClick", function()
+          expanded[exp] = not expanded[exp]
+          arrow:SetText(expanded[exp] and "v" or ">")
+          for _, r in ipairs(zoneRows) do r:SetShown(expanded[exp]) end
+          relayoutExpansions()
+        end)
+        ehdr:SetScript("OnEnter", function() bg:SetColorTexture(0.25, 0.25, 0.25, 0.8) end)
+        ehdr:SetScript("OnLeave", function() bg:SetColorTexture(0.18, 0.18, 0.18, 0.8) end)
+
+        expHeaders[#expHeaders + 1] = { exp = exp, ehdr = ehdr, zoneRows = zoneRows }
+      end
     end
+    relayoutExpansions()
 
     return function()
       local p = Resonance.db.profile
