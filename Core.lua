@@ -287,16 +287,23 @@ end
 -- (e.g., rapid casts of the same spell like Whirlwind in a proc window).
 local activePlaybackFIDs = {}
 
-local function playOneSoundWithUnmute(snd, dbg)
+local function scheduleStopSound(handle, duration)
+  if duration and handle then
+    C_Timer.After(duration, function() StopSound(handle, 0) end)
+  end
+end
+
+local function playOneSoundWithUnmute(snd, dbg, duration)
   local isNum = type(snd) == "number"
   local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd] or autoShotMutedFIDs[snd] or professionMutedFIDs[snd] or fishingMutedFIDs[snd] or npcMutedFIDs[snd])
-  if dbg then msg(("  Playing: %s (muted: %s)"):format(tostring(snd), tostring(isMuted and true or false))) end
+  if dbg then msg(("  Playing: %s (muted: %s, duration: %s)"):format(tostring(snd), tostring(isMuted and true or false), duration and ("%.2fs"):format(duration) or "full")) end
+  local handle
   if isMuted then
     local fid = snd
     local ch = db.soundChannel or "Master"
     for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     activePlaybackFIDs[fid] = (activePlaybackFIDs[fid] or 0) + 1
-    PlaySoundFile(fid, ch)
+    _, handle = PlaySoundFile(fid, ch)
     -- Re-mute symmetrically (same count as unmutes) to restore WoW's internal
     -- refcount, but only after the sound buffer has had time to start playing.
     C_Timer.After(0.5, function()
@@ -321,17 +328,68 @@ local function playOneSoundWithUnmute(snd, dbg)
       if npcMutedFIDs[fid] then MuteSoundFile(fid) end
     end)
   elseif isNum then
-    -- Unmuted numeric FID: play directly (skip previewSound overhead)
-    PlaySoundFile(snd, db.soundChannel or "Master")
+    _, handle = PlaySoundFile(snd, db.soundChannel or "Master")
   else
-    previewSound(snd)
+    _, handle = previewSound(snd)
+  end
+  scheduleStopSound(handle, duration)
+end
+
+-- Active sound loop state: cancelled on next cast or when iterations exhausted.
+local activeLoop = nil  -- { ticker = C_Timer ticker, cancel = function }
+
+local function cancelActiveLoop()
+  if activeLoop then
+    if activeLoop.ticker then activeLoop.ticker:Cancel() end
+    activeLoop = nil
   end
 end
 
-local function playResolvedSound(spellID, spellName, cfg, dbg)
+local function playSoundCollection(soundData, dbg, duration)
+  if not soundData then return end
+  if type(soundData) == "table" then
+    if dbg then msg(("  spell_config: %d sound(s), channel: %s"):format(#soundData, getChannel())) end
+    for _, snd in ipairs(soundData) do
+      playOneSoundWithUnmute(snd, dbg, duration)
+    end
+    if soundData.random and #soundData.random > 0 then
+      local pick = soundData.random[math.random(1, #soundData.random)]
+      if dbg then msg(("  Random pool (%d): picked %s"):format(#soundData.random, tostring(pick))) end
+      playOneSoundWithUnmute(pick, dbg, duration)
+    end
+  else
+    if dbg then msg(("  spell_config: 1 sound, channel: %s"):format(getChannel())) end
+    playOneSoundWithUnmute(soundData, dbg, duration)
+  end
+end
+
+-- Play a sound collection with optional looping.
+-- loop: nil/false = no loop, true = loop until next cast, number = max iterations
+-- Requires duration to know when to re-trigger.
+local function playSoundCollectionWithLoop(soundData, dbg, duration, loop)
+  cancelActiveLoop()
+  playSoundCollection(soundData, dbg, duration)
+  if not loop or not duration or duration <= 0 then return end
+  local maxIter = (type(loop) == "number") and loop or 999
+  local iter = 0
+  local ticker
+  ticker = C_Timer.NewTicker(duration, function()
+    iter = iter + 1
+    if iter >= maxIter then
+      cancelActiveLoop()
+      return
+    end
+    playSoundCollection(soundData, dbg, duration)
+  end)
+  activeLoop = { ticker = ticker }
+end
+
+local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
   -- Hot-path callers pass cfg and dbg to avoid redundant lookups;
   -- other callers (e.g., /res testspell) can omit them.
+  -- phase: nil/"cast" = cast complete (default), "precast" = cast bar start
   if dbg == nil then dbg = db.debug end
+  phase = phase or "cast"
 
   -- 0) spell_config: unified per-spell configuration
   if cfg == nil then
@@ -351,35 +409,54 @@ local function playResolvedSound(spellID, spellName, cfg, dbg)
     end
   end
 
+  -- Cancel any active sound loop from a previous cast
+  cancelActiveLoop()
+
   if cfg and cfg.sound == false then
     -- Mute only — original sounds are auto-muted, no replacement plays
     if dbg then msg("  spell_config: mute only (no replacement)") end
     return true
   elseif cfg and cfg.sound then
-    local sound = cfg.sound
-    if type(sound) == "table" then
-      -- Multiple sounds and/or random pool
-      if dbg then msg(("  spell_config: %d sound(s), channel: %s"):format(#sound, getChannel())) end
-      for _, snd in ipairs(sound) do
-        playOneSoundWithUnmute(snd, dbg)
+    -- Determine which phase this config triggers on:
+    --   "cast"             = cast complete only (default)
+    --   "precast"          = cast bar start only
+    --   "precast_and_cast" = precast plays precastSound, cast plays sound
+    local trigger = cfg.trigger or "cast"
+    if trigger == "precast_and_cast" then
+      -- Two-phase setup: precastSound on start, sound on complete
+      if phase == "precast" then
+        local psnd = cfg.precastSound
+        local pdur = cfg.precastDuration
+        if psnd then
+          playSoundCollection(psnd, dbg, pdur)
+        elseif dbg then
+          msg("  No precastSound configured for precast phase.")
+        end
+        return true
       end
-      if sound.random and #sound.random > 0 then
-        local pool = sound.random
-        local pick = pool[math.random(1, #pool)]
-        if dbg then msg(("  Random pool (%d): picked %s"):format(#pool, tostring(pick))) end
-        playOneSoundWithUnmute(pick, dbg)
+      -- phase == "cast": fall through to play cfg.sound below
+    elseif trigger == "precast" then
+      if phase ~= "precast" then
+        if dbg then msg("  spell_config: trigger=precast, skipping cast phase") end
+        return true
       end
-    else
-      -- Single sound (common case) — avoid creating a wrapper table
-      if dbg then msg(("  spell_config: 1 sound, channel: %s"):format(getChannel())) end
-      playOneSoundWithUnmute(sound, dbg)
+    else -- trigger == "cast" (default)
+      if phase ~= "cast" then
+        if dbg then msg("  spell_config: trigger=cast, skipping precast phase") end
+        return true
+      end
     end
+
+    playSoundCollectionWithLoop(cfg.sound, dbg, cfg.duration, cfg.loop)
     -- User explicitly configured this sound; don't fall through
     -- (PlaySoundFile may return nil for valid FileDataIDs)
     return true
   elseif dbg then
     msg("  No spell_config sound for this spell.")
   end
+
+  -- Fallback paths only apply to the "cast" phase
+  if phase ~= "cast" then return false end
 
   -- Fallback paths need spellName; resolve lazily (skipped on the
   -- common path above where cfg.sound existed and returned early).
@@ -1167,6 +1244,49 @@ end
 ---------------------------------------------------------------------------
 -- Export / Import
 ---------------------------------------------------------------------------
+local function encodeSoundValue(sound)
+  if type(sound) == "table" then
+    local parts = {}
+    for _, s in ipairs(sound) do parts[#parts + 1] = tostring(s) end
+    if sound.random then
+      local rParts = {}
+      for _, s in ipairs(sound.random) do rParts[#rParts + 1] = tostring(s) end
+      parts[#parts + 1] = "R" .. table.concat(rParts, "|")
+    end
+    return table.concat(parts, ",")
+  elseif type(sound) == "number" then
+    return tostring(sound)
+  else
+    return '"' .. tostring(sound) .. '"'
+  end
+end
+
+local function decodeSoundValue(val)
+  if not val or val == "" then return nil end
+  local quoted = val:match('^"(.*)"$')
+  if quoted then return quoted end
+  if val:find(",") then
+    local sound = {}
+    for part in val:gmatch("[^,]+") do
+      local rPool = part:match("^R(.+)$")
+      if rPool then
+        sound.random = {}
+        for fidStr in rPool:gmatch("(%d+)") do
+          sound.random[#sound.random + 1] = tonumber(fidStr)
+        end
+      else
+        local n = tonumber(part)
+        if n then sound[#sound + 1] = n end
+      end
+    end
+    if sound.random and #sound.random == 0 then sound.random = nil end
+    if #sound == 1 and not sound.random then sound = sound[1] end
+    if #sound == 0 and not sound.random then sound = nil end
+    return sound
+  end
+  return tonumber(val)
+end
+
 local function encodePresetData(name, spells, mutes)
   local lines = { "V1" }
   if name and name ~= "" then
@@ -1176,23 +1296,7 @@ local function encodePresetData(name, spells, mutes)
     if cfg.sound == false then
       lines[#lines + 1] = "S" .. sid .. "=!M"
     elseif cfg.sound then
-      local val
-      if type(cfg.sound) == "table" then
-        local parts = {}
-        for _, s in ipairs(cfg.sound) do parts[#parts + 1] = tostring(s) end
-        -- Append random pool as R<fid>|<fid>|...
-        if cfg.sound.random then
-          local rParts = {}
-          for _, s in ipairs(cfg.sound.random) do rParts[#rParts + 1] = tostring(s) end
-          parts[#parts + 1] = "R" .. table.concat(rParts, "|")
-        end
-        val = table.concat(parts, ",")
-      elseif type(cfg.sound) == "number" then
-        val = tostring(cfg.sound)
-      else
-        val = '"' .. tostring(cfg.sound) .. '"'
-      end
-      lines[#lines + 1] = "S" .. sid .. "=" .. val
+      lines[#lines + 1] = "S" .. sid .. "=" .. encodeSoundValue(cfg.sound)
     else
       lines[#lines + 1] = "S" .. sid .. "="
     end
@@ -1209,6 +1313,21 @@ local function encodePresetData(name, spells, mutes)
       if #parts > 0 then
         lines[#lines + 1] = "F" .. sid .. ":" .. table.concat(parts, ",")
       end
+    end
+    if cfg.duration then
+      lines[#lines + 1] = "D" .. sid .. ":" .. tostring(cfg.duration)
+    end
+    if cfg.loop then
+      lines[#lines + 1] = "L" .. sid .. ":" .. tostring(cfg.loop)
+    end
+    if cfg.trigger and cfg.trigger ~= "cast" then
+      lines[#lines + 1] = "T" .. sid .. ":" .. cfg.trigger
+    end
+    if cfg.precastSound then
+      lines[#lines + 1] = "P" .. sid .. "=" .. encodeSoundValue(cfg.precastSound)
+    end
+    if cfg.precastDuration then
+      lines[#lines + 1] = "Q" .. sid .. ":" .. tostring(cfg.precastDuration)
     end
   end
   for fid in pairs(mutes or {}) do
@@ -1252,30 +1371,7 @@ local function decodePresetString(str)
         if val == "!M" then
           sound = false
         elseif val and val ~= "" then
-          local quoted = val:match('^"(.*)"$')
-          if quoted then
-            sound = quoted
-          elseif val:find(",") then
-            -- Multiple comma-separated FIDs, may contain R<fid>|<fid> random pool
-            sound = {}
-            for part in val:gmatch("[^,]+") do
-              local rPool = part:match("^R(.+)$")
-              if rPool then
-                sound.random = {}
-                for fidStr in rPool:gmatch("(%d+)") do
-                  sound.random[#sound.random + 1] = tonumber(fidStr)
-                end
-              else
-                local n = tonumber(part)
-                if n then sound[#sound + 1] = n end
-              end
-            end
-            if sound.random and #sound.random == 0 then sound.random = nil end
-            if #sound == 1 and not sound.random then sound = sound[1] end
-            if #sound == 0 and not sound.random then sound = nil end
-          else
-            sound = tonumber(val)
-          end
+          sound = decodeSoundValue(val)
         end
         spells[sid] = { sound = sound }
       end
@@ -1299,6 +1395,45 @@ local function decodePresetString(str)
         end
         if #mfids > 0 then spells[sid].muteFIDs = mfids end
       end
+    elseif tag == "D" then
+      local sid, dur = line:match("^D(%d+):(.+)$")
+      sid = tonumber(sid)
+      dur = tonumber(dur)
+      if sid and dur and spells[sid] then
+        spells[sid].duration = dur
+      end
+    elseif tag == "L" then
+      local sid, val = line:match("^L(%d+):(.+)$")
+      sid = tonumber(sid)
+      if sid and val and spells[sid] then
+        if val == "true" then
+          spells[sid].loop = true
+        else
+          local n = tonumber(val)
+          if n then spells[sid].loop = n end
+        end
+      end
+    elseif tag == "T" then
+      local sid, trig = line:match("^T(%d+):(.+)$")
+      sid = tonumber(sid)
+      if sid and trig and spells[sid] then
+        if trig == "cast" or trig == "precast" or trig == "precast_and_cast" then
+          spells[sid].trigger = trig
+        end
+      end
+    elseif tag == "P" then
+      local sid, val = line:match("^P(%d+)=(.*)")
+      sid = tonumber(sid)
+      if sid and val and spells[sid] then
+        spells[sid].precastSound = decodeSoundValue(val)
+      end
+    elseif tag == "Q" then
+      local sid, dur = line:match("^Q(%d+):(.+)$")
+      sid = tonumber(sid)
+      dur = tonumber(dur)
+      if sid and dur and spells[sid] then
+        spells[sid].precastDuration = dur
+      end
     elseif tag == "M" then
       local fid = tonumber(line:sub(2))
       if fid then mutes[fid] = true end
@@ -1319,6 +1454,21 @@ function Resonance:ExportConfig(name)
     end
     if cfg.muteFIDs then
       entry.muteFIDs = cfg.muteFIDs
+    end
+    if cfg.duration then
+      entry.duration = cfg.duration
+    end
+    if cfg.loop then
+      entry.loop = cfg.loop
+    end
+    if cfg.trigger and cfg.trigger ~= "cast" then
+      entry.trigger = cfg.trigger
+    end
+    if cfg.precastSound then
+      entry.precastSound = cfg.precastSound
+    end
+    if cfg.precastDuration then
+      entry.precastDuration = cfg.precastDuration
     end
     spells[sid] = entry
   end
@@ -1342,7 +1492,7 @@ function Resonance:ImportConfig(str)
     if db.spell_config[sid] then
       skipped = skipped + 1
     else
-      db.spell_config[sid] = { sound = cfg.sound, muteExclusions = cfg.muteExclusions, muteFIDs = cfg.muteFIDs }
+      db.spell_config[sid] = { sound = cfg.sound, muteExclusions = cfg.muteExclusions, muteFIDs = cfg.muteFIDs, duration = cfg.duration, loop = cfg.loop, trigger = cfg.trigger, precastSound = cfg.precastSound, precastDuration = cfg.precastDuration }
       applyAutoMutesForSpell(sid)
       added = added + 1
     end
@@ -1393,6 +1543,21 @@ function Resonance:SaveCurrentAsPreset(name)
     if cfg.muteFIDs then
       entry.muteFIDs = cfg.muteFIDs
     end
+    if cfg.duration then
+      entry.duration = cfg.duration
+    end
+    if cfg.loop then
+      entry.loop = cfg.loop
+    end
+    if cfg.trigger and cfg.trigger ~= "cast" then
+      entry.trigger = cfg.trigger
+    end
+    if cfg.precastSound then
+      entry.precastSound = cfg.precastSound
+    end
+    if cfg.precastDuration then
+      entry.precastDuration = cfg.precastDuration
+    end
     preset.spells[sid] = entry
   end
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
@@ -1419,6 +1584,21 @@ function Resonance:ApplySavedPreset(name)
       end
       if cfg.muteFIDs then
         newCfg.muteFIDs = cfg.muteFIDs
+      end
+      if cfg.duration then
+        newCfg.duration = cfg.duration
+      end
+      if cfg.loop then
+        newCfg.loop = cfg.loop
+      end
+      if cfg.trigger and cfg.trigger ~= "cast" then
+        newCfg.trigger = cfg.trigger
+      end
+      if cfg.precastSound then
+        newCfg.precastSound = cfg.precastSound
+      end
+      if cfg.precastDuration then
+        newCfg.precastDuration = cfg.precastDuration
       end
       db.spell_config[sid] = newCfg
       db.preset_spells[sid] = name
@@ -1511,6 +1691,21 @@ function Resonance:ApplyClassTemplate(classKey)
       if entry.muteFIDs then
         cfg.muteFIDs = {unpack(entry.muteFIDs)}
       end
+      if entry.duration then
+        cfg.duration = entry.duration
+      end
+      if entry.loop then
+        cfg.loop = entry.loop
+      end
+      if entry.trigger then
+        cfg.trigger = entry.trigger
+      end
+      if entry.precastSound then
+        cfg.precastSound = entry.precastSound
+      end
+      if entry.precastDuration then
+        cfg.precastDuration = entry.precastDuration
+      end
       db.spell_config[sid] = cfg
       db.preset_spells[sid] = classKey
       applyAutoMutesForSpell(sid)
@@ -1582,6 +1777,21 @@ local function refreshPresetsFromTemplates()
           if entry.muteFIDs then
             cfg.muteFIDs = {unpack(entry.muteFIDs)}
           end
+          if entry.duration then
+            cfg.duration = entry.duration
+          end
+          if entry.loop then
+            cfg.loop = entry.loop
+          end
+          if entry.trigger then
+            cfg.trigger = entry.trigger
+          end
+          if entry.precastSound then
+            cfg.precastSound = entry.precastSound
+          end
+          if entry.precastDuration then
+            cfg.precastDuration = entry.precastDuration
+          end
           db.spell_config[sid] = cfg
           db.preset_spells[sid] = classKey
           added = added + 1
@@ -1644,6 +1854,7 @@ local function getGeneralOptions()
             if db.classicAutoShot then applyAutoShotMutes() end
             if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
           else
+            cancelActiveLoop()
             -- Revert weapon impact and vocalization settings before clearing
             db.muteWeaponImpacts = false
             db.muteVocalizations = "off"
@@ -1995,6 +2206,7 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         if db.classicAutoShot then applyAutoShotMutes() end
         if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
       else
+        cancelActiveLoop()
         db.muteWeaponImpacts = false
         db.muteVocalizations = "off"
         db.classicAutoShot = false
@@ -2082,6 +2294,7 @@ function Resonance:OnInitialize()
 
   -- Profile change callbacks
   local function onProfileChanged()
+    cancelActiveLoop()
     clearAutoShotMutes()
     clearFishingMutes()
     clearNPCMutes()
@@ -2136,6 +2349,7 @@ end
 
 function Resonance:OnEnable()
   self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+  self:RegisterEvent("UNIT_SPELLCAST_START")
   self:RegisterEvent("UNIT_MODEL_CHANGED")
   if db.interruptAlert then
     self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
@@ -2185,6 +2399,18 @@ function Resonance:LOOT_READY()
   playOneSoundWithUnmute(snd, db.debug)
 end
 
+local function resolveSpellConfig(spellID)
+  local spell_config = db.spell_config
+  local cfg = spell_config and spell_config[spellID]
+  if not cfg then
+    local name = _GetSpellName(spellID)
+    if name and name ~= "" then
+      cfg = getSpellNameIndex()[name:lower()]
+    end
+  end
+  return cfg
+end
+
 function Resonance:UNIT_MODEL_CHANGED(_, unit)
   if unit ~= "player" then return end
   -- Player changed appearance (barbershop gender change, etc.) — re-apply vox mutes
@@ -2227,6 +2453,25 @@ function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
   end
 end
 
+function Resonance:UNIT_SPELLCAST_START(_, unit, _, spellID)
+  if unit ~= "player" then return end
+  if not db.enabled or not spellID then return end
+
+  local cfg = resolveSpellConfig(spellID)
+  if not cfg then return end
+  local trigger = cfg.trigger
+  if trigger ~= "precast" and trigger ~= "precast_and_cast" then return end
+
+  local dbg = db.debug
+  local spellName
+  if dbg then
+    spellName = _GetSpellName(spellID) or ""
+    msg(("Precast: %s (spellID %d)"):format(spellName ~= "" and spellName or "<?>", spellID))
+  end
+
+  playResolvedSound(spellID, spellName, cfg, dbg, "precast")
+end
+
 function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   if unit ~= "player" then return end
   if not db.enabled or not spellID then return end
@@ -2243,11 +2488,9 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
     return
   end
 
-  -- Inlined shouldTriggerForSpell: check spell_config first (common
-  -- case for configured spells), fall back to IsPlayerSpell (WoW API).
-  -- Keeping the cfg reference avoids a redundant lookup in playResolvedSound.
-  local spell_config = db.spell_config
-  local cfg = spell_config and spell_config[spellID]
+  -- Resolve config with name-based fallback for spell variants,
+  -- then gate on IsPlayerSpell for unconfigured spells.
+  local cfg = resolveSpellConfig(spellID)
   if not cfg and not IsPlayerSpell(spellID) then return end
 
   -- Defer GetSpellName: for the common case (configured sound), the name
@@ -2260,7 +2503,7 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
     msg(("Cast: %s (spellID %d)"):format(spellName ~= "" and spellName or "<?>", spellID))
   end
 
-  playResolvedSound(spellID, spellName, cfg, dbg)
+  playResolvedSound(spellID, spellName, cfg, dbg, "cast")
 end
 
 ---------------------------------------------------------------------------
@@ -2290,6 +2533,7 @@ function Resonance:ChatCommand(input)
     if db.classicFishingSounds then applyFishingMutes(); self:RegisterEvent("LOOT_READY") end
     msg(L["Enabled."])
   elseif cmd == "off" then
+    cancelActiveLoop()
     db.enabled = false
     db.muteWeaponImpacts = false
     db.muteVocalizations = "off"
@@ -2392,6 +2636,30 @@ function Resonance:ChatCommand(input)
     end
     db.local_file_overrides_by_spell_name[name] = nil
     msg(L["Cleared override for '%s'"]:format(name))
+  elseif cmd == "duration" then
+    local sid, dur = rest:match("^(%d+)%s+(.+)$")
+    sid = sid and tonumber(sid)
+    if not sid then
+      msg(L["Usage: /res duration <spellID> <seconds|off>"])
+      return
+    end
+    local cfg = db.spell_config[sid]
+    if not cfg then
+      msg(L["No spell config for spellID %d. Configure a sound first."]:format(sid))
+      return
+    end
+    if dur == "off" or dur == "0" or dur == "clear" then
+      cfg.duration = nil
+      msg(L["Cleared duration limit for spellID %d."]:format(sid))
+    else
+      local val = tonumber(dur)
+      if not val or val <= 0 then
+        msg(L["Usage: /res duration <spellID> <seconds|off>"])
+        return
+      end
+      cfg.duration = val
+      msg(L["Set spellID %d duration to %.2f seconds."]:format(sid, val))
+    end
   elseif cmd == "testspell" then
     local sid = tonumber(rest)
     if not sid then
@@ -2487,6 +2755,7 @@ function Resonance:ChatCommand(input)
     msg("  /res testspell <spellID>")
     msg("  /res muteadd <fileDataID>   /res mutedel <fileDataID>   /res mutelist")
     msg("  /res map <spellID> <fileDataID>   /res unmap <spellID>")
+    msg("  /res duration <spellID> <seconds|off>")
     msg('  /res override "Spell Name" <path>   /res clearoverride "Spell Name"')
     msg("  /res applymutes  /res clearmutes")
     msg("  /res sfx on|off")
