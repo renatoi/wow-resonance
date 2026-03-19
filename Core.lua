@@ -53,8 +53,6 @@ if ADDON_VERSION:find("@") then ADDON_VERSION = "dev" end
 -- guaranteed set.  Data-addon globals (SpellMuteData, SpellSounds, etc.) may
 -- not exist yet if Resonance_Data hasn't been loaded (LoadOnDemand).
 Resonance.ClassTemplates      = Resonance_ClassTemplates;       Resonance_ClassTemplates      = nil
-Resonance.VoxFIDs             = Resonance_VoxFIDs;              Resonance_VoxFIDs             = nil
-Resonance.WeaponImpactFIDs    = Resonance_WeaponImpactFIDs;    Resonance_WeaponImpactFIDs    = nil
 Resonance.CreatureVoxData     = Resonance_CreatureVoxData;      Resonance_CreatureVoxData     = nil
 Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories; Resonance_CreatureVoxCategories = nil
 Resonance.ProfessionSoundData  = Resonance_ProfessionSoundData;  Resonance_ProfessionSoundData  = nil
@@ -71,6 +69,8 @@ Resonance.NPCRepCSDs          = Resonance_NPCRepCSDs;            Resonance_NPCRe
 local function captureDataAddonGlobals()
   if Resonance_SpellMuteData then Resonance.SpellMuteData = Resonance_SpellMuteData; Resonance_SpellMuteData = nil end
   if Resonance_RaceCSD then Resonance.RaceCSD = Resonance_RaceCSD; Resonance_RaceCSD = nil end
+  if Resonance_VoxFIDs then Resonance.VoxFIDs = Resonance_VoxFIDs; Resonance_VoxFIDs = nil end
+  if Resonance_WeaponImpactFIDs then Resonance.WeaponImpactFIDs = Resonance_WeaponImpactFIDs; Resonance_WeaponImpactFIDs = nil end
   if Resonance_ExcludedFIDs then Resonance.ExcludedFIDs = Resonance_ExcludedFIDs; Resonance_ExcludedFIDs = nil end
   if Resonance_AmbientSoundData then Resonance.AmbientSoundData = Resonance_AmbientSoundData; Resonance_AmbientSoundData = nil end
   if Resonance_AmbientSounds then Resonance.AmbientSounds = Resonance_AmbientSounds; Resonance_AmbientSounds = nil end
@@ -93,8 +93,6 @@ local C_Timer         = C_Timer
 
 -- Local aliases for hot-path access (core-addon data, always available)
 local ClassTemplates   = Resonance.ClassTemplates
-local VoxFIDs          = Resonance.VoxFIDs
-local WeaponImpactFIDs = Resonance.WeaponImpactFIDs
 local CreatureVoxData  = Resonance.CreatureVoxData
 local CreatureVoxCategories = Resonance.CreatureVoxCategories
 local CreatureVoxExcludedFIDs = Resonance.CreatureVoxExcludedFIDs
@@ -105,9 +103,10 @@ local NPCSoundCSD          = Resonance.NPCSoundCSD
 local NPCVoiceData         = Resonance.NPCVoiceData
 local NPCRepCSDs           = Resonance.NPCRepCSDs
 
--- Data-addon tables (SpellMuteData, RaceCSD, AmbientSoundData, SpellSounds,
--- CharacterSounds, AmbientSounds) live on Resonance.X and are accessed there
--- so that loadDataAddon() updates are visible without re-capturing locals.
+-- Data-addon tables (SpellMuteData, RaceCSD, VoxFIDs, WeaponImpactFIDs,
+-- AmbientSoundData, SpellSounds, CharacterSounds, AmbientSounds) live on
+-- Resonance.X and are accessed there so that loadDataAddon() updates are
+-- visible without re-capturing locals.
 
 -- WoW's MuteSoundFile is refcounted; this ceiling covers the worst case of
 -- stale mute state accumulated across reloads/multiple spells sharing FIDs.
@@ -429,12 +428,12 @@ end
 ---------------------------------------------------------------------------
 local function getPlayerCSDEntry()
   local raceCSD = Resonance.RaceCSD
-  if not raceCSD or not VoxFIDs then return nil end
+  if not raceCSD or not Resonance.VoxFIDs then return nil end
   local raceID = select(3, UnitRace("player"))
   local sex = (UnitSex("player") == 3) and "1" or "0"
   local csdID = raceCSD[tostring(raceID) .. ":" .. sex]
   if not csdID then return nil end
-  return VoxFIDs[csdID]
+  return Resonance.VoxFIDs[csdID]
 end
 
 local function getVoxMode()
@@ -468,8 +467,8 @@ local function applyVoxMutes()
       count = muteVoxEntry(voxEntry)
     end
   elseif mode == "all" then
-    if VoxFIDs then
-      for _, voxEntry in pairs(VoxFIDs) do
+    if Resonance.VoxFIDs then
+      for _, voxEntry in pairs(Resonance.VoxFIDs) do
         count = count + muteVoxEntry(voxEntry)
       end
     end
@@ -503,9 +502,9 @@ end
 -- Global weapon impact mute
 ---------------------------------------------------------------------------
 local function applyWeaponMutes()
-  if not WeaponImpactFIDs then return end
+  if not Resonance.WeaponImpactFIDs then return end
   local count = 0
-  for _, fid in ipairs(WeaponImpactFIDs) do
+  for _, fid in ipairs(Resonance.WeaponImpactFIDs) do
     if not weaponMutedFIDs[fid] then
       weaponMutedFIDs[fid] = true
       MuteSoundFile(fid)
@@ -1052,7 +1051,7 @@ local function rebuildAutoMutes()
   -- sounds) would stay muted until a full client restart.
   local stale = db and db._lastAutoMutedFIDs or {}
   for fid, refcount in pairs(autoMutedFIDs) do
-    if refcount > 0 and not isMutedElsewhere(fid) then
+    if refcount > 0 and not isMutedElsewhere(fid, autoMutedFIDs) then
       UnmuteSoundFile(fid)
     end
   end
@@ -1145,7 +1144,7 @@ local function clearMutes()
     end
   end
   for fid, refcount in pairs(autoMutedFIDs) do
-    if refcount > 0 and not isMutedElsewhere(fid) then
+    if refcount > 0 and not isMutedElsewhere(fid, autoMutedFIDs) then
       UnmuteSoundFile(fid)
       count = count + 1
     end
@@ -2379,7 +2378,7 @@ function Resonance:ChatCommand(input)
     end
     msg("  Settings API: " .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
     msg("  Spell mute data: " .. (Resonance.SpellMuteData and "|cff00ff00loaded (string-packed)|r" or "|cffff0000NOT LOADED|r"))
-    msg("  Vox data: " .. (VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
+    msg("  Vox data: " .. (Resonance.VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
     msg("  Creature vox data: " .. (CreatureVoxData and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
     if CreatureVoxCategories then
       local enabledCats = {}
