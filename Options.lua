@@ -1564,12 +1564,11 @@ buildTab2_SpellSounds = function(ctx)
   edInputAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -8)
 
   local edDurationFrame = CreateFrame("Frame", nil, editorFrame)
-  edDurationFrame:SetSize(CONTENT_WIDTH - 20, 46)
+  edDurationFrame:SetSize(CONTENT_WIDTH - 20, 24)
   edDurationFrame:SetPoint("TOPLEFT", edInputAnchor, "TOPLEFT", 0, 0)
 
-  -- Row 1: label + input + clear
   local edDurationLabel = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  edDurationLabel:SetPoint("TOPLEFT", edDurationFrame, "TOPLEFT", 0, -2)
+  edDurationLabel:SetPoint("LEFT", edDurationFrame, "LEFT", 0, 0)
   edDurationLabel:SetText(L["Stop sound after (seconds):"])
 
   local edDurationBox = CreateFrame("EditBox", nil, edDurationFrame, "InputBoxTemplate")
@@ -1596,14 +1595,9 @@ buildTab2_SpellSounds = function(ctx)
   end)
   edDurationClearBtn:SetPoint("LEFT", edDurationBox, "RIGHT", 4, 0)
 
-  -- Row 2: help text + loop checkbox
-  local edDurationHelp = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  edDurationHelp:SetPoint("TOPLEFT", edDurationLabel, "BOTTOMLEFT", 0, -6)
-  edDurationHelp:SetText(L["Cuts long sounds short"])
-
   local edLoopCheck = CreateFrame("CheckButton", nil, edDurationFrame, "UICheckButtonTemplate")
   edLoopCheck:SetSize(22, 22)
-  edLoopCheck:SetPoint("LEFT", edDurationHelp, "RIGHT", 8, 0)
+  edLoopCheck:SetPoint("LEFT", edDurationClearBtn, "RIGHT", 8, 0)
   edLoopCheck.text:SetFontObject("GameFontNormalSmall")
   edLoopCheck.text:SetText(L["Loop"])
   edLoopCheck:SetScript("OnClick", function(self)
@@ -1668,7 +1662,7 @@ buildTab2_SpellSounds = function(ctx)
     else
       local soundListH = edSoundListFrame:GetHeight()
       local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
-      baseH = 475 + extraSoundH  -- includes trigger radios + 2-row duration section
+      baseH = 455 + extraSoundH  -- includes trigger radios + duration section
       if editorTrigger == "precast_and_cast" then
         baseH = baseH + (edPrecastSection:GetHeight() or 76) + 6
       end
@@ -4192,24 +4186,38 @@ end
 ---------------------------------------------------------------------------
 function Resonance:SetupOptions()
   registerPanel()
-  -- Attempt to load Resonance_Data so search databases are available for buildLayout.
-  -- This is a best-effort load; if it fails the UI degrades gracefully.
-  Resonance.loadDataAddon()
-  local ok, err = pcall(buildLayout)
-  if not ok then
-    local errStr = tostring(err)
-    -- Show error on the panel itself so it's visible when the user opens settings
-    local errLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontRed")
-    errLabel:SetPoint("CENTER", 0, 0)
-    errLabel:SetWidth(500)
-    errLabel:SetText(L["Resonance options failed to load:\n\n"] .. errStr)
-    -- Delay chat message until PLAYER_ENTERING_WORLD so the chat frame is ready
-    local frame = CreateFrame("Frame")
-    frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    frame:SetScript("OnEvent", function(self)
-      self:UnregisterAllEvents()
+  -- Defer buildLayout to first panel show — don't load Resonance_Data at login.
+  -- This keeps the core addon lightweight (~1MB) until the user opens settings.
+  local layoutBuilt = false
+  panel:SetScript("OnShow", function(self)
+    if layoutBuilt then return end
+    layoutBuilt = true
+    -- Load Resonance_Data on demand
+    local loaded, reason = Resonance.loadDataAddon()
+    if not loaded then
+      -- Show a user-friendly message instead of building the layout
+      local msg = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+      msg:SetPoint("CENTER", 0, 20)
+      msg:SetWidth(500)
+      msg:SetJustifyH("CENTER")
+      if reason == "DISABLED" then
+        msg:SetText(L["Resonance Data is disabled.\n\nTo configure sounds, enable |cff00ff00Resonance Data|r in the AddOns list (press Esc \226\134\146 AddOns) and then type /reload."])
+      elseif reason == "MISSING" or reason == "NOT_INSTALLED" then
+        msg:SetText(L["Resonance Data module not found.\n\nPlease reinstall Resonance to restore full functionality."])
+      else
+        msg:SetText((L["Could not load Resonance Data: %s"]):format(reason or "unknown"))
+      end
+      return
+    end
+    local ok, err = pcall(buildLayout)
+    if not ok then
+      local errStr = tostring(err)
+      local errLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontRed")
+      errLabel:SetPoint("CENTER", 0, 0)
+      errLabel:SetWidth(500)
+      errLabel:SetText(L["Resonance options failed to load:\n\n"] .. errStr)
       Resonance.msg("|cffff4444" .. L["Options UI error: "] .. errStr .. "|r")
       Resonance.msg("|cffff4444" .. L["Type /res diag for library diagnostics."] .. "|r")
-    end)
-  end
+    end
+  end)
 end
