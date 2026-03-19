@@ -3797,9 +3797,9 @@ buildTab5_Ambient = function(ctx)
             r.display = "|cff666666" .. filename .. "|r"
           end
           local parts = {}
-          if parent then parts[#parts + 1] = parent .. "/" end
-          parts[#parts + 1] = "#" .. fid
-          if zoneLabel then parts[#parts + 1] = zoneLabel end
+          if zoneLabel then parts[#parts + 1] = "|cff66aacc" .. zoneLabel .. "|r" end
+          if parent then parts[#parts + 1] = "|cff666666" .. parent .. "/|r" end
+          parts[#parts + 1] = "|cff555555#" .. fid .. "|r"
           r.subdisplay = table.concat(parts, "  \194\183  ")
         end
         ambSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
