@@ -1394,7 +1394,9 @@ local function decodePresetString(str)
       local sid, trig = line:match("^T(%d+):(.+)$")
       sid = tonumber(sid)
       if sid and trig and spells[sid] then
-        spells[sid].trigger = trig
+        if trig == "cast" or trig == "precast" or trig == "precast_and_cast" then
+          spells[sid].trigger = trig
+        end
       end
     elseif tag == "P" then
       local sid, val = line:match("^P(%d+)=(.*)")
@@ -1829,6 +1831,7 @@ local function getGeneralOptions()
             if db.classicAutoShot then applyAutoShotMutes() end
             if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
           else
+            cancelActiveLoop()
             -- Revert weapon impact and vocalization settings before clearing
             db.muteWeaponImpacts = false
             db.muteVocalizations = "off"
@@ -2097,6 +2100,7 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         if db.classicAutoShot then applyAutoShotMutes() end
         if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
       else
+        cancelActiveLoop()
         db.muteWeaponImpacts = false
         db.muteVocalizations = "off"
         db.classicAutoShot = false
@@ -2181,6 +2185,7 @@ function Resonance:OnInitialize()
 
   -- Profile change callbacks
   local function onProfileChanged()
+    cancelActiveLoop()
     clearAutoShotMutes()
     clearFishingMutes()
     clearNPCMutes()
@@ -2375,6 +2380,7 @@ function Resonance:ChatCommand(input)
     if db.classicFishingSounds then applyFishingMutes(); self:RegisterEvent("LOOT_READY") end
     msg(L["Enabled."])
   elseif cmd == "off" then
+    cancelActiveLoop()
     db.enabled = false
     db.muteWeaponImpacts = false
     db.muteVocalizations = "off"

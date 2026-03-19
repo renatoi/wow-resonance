@@ -1263,6 +1263,7 @@ local function buildLayout()
 
   local edPrecastSection  -- forward declaration
   local edRefreshPrecastList  -- forward declaration
+  local repHeader             -- forward declaration
 
   local function edSetTriggerMode(mode)
     editorTrigger = mode
@@ -1360,7 +1361,7 @@ local function buildLayout()
   edPrecastDurBox:SetPoint("LEFT", edPrecastDurLabel, "RIGHT", 6, 0)
   wireNumericEditBox(edPrecastDurBox, function(val) editorPrecastDuration = val end)
 
-  local repHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  repHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   repHeader:SetPoint("TOPLEFT", edTriggerCast, "BOTTOMLEFT", 0, -6)
   repHeader:SetText(L["Replacement Sound"])
 
