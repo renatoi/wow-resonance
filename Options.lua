@@ -3611,14 +3611,66 @@ buildTab5_Ambient = function(ctx)
       end
     end
 
+    -- Build FID → { expansion, zone } lookup and augmented search array
+    -- so that searching "silvermoon" or "midnight" matches relevant sounds.
+    local ambFIDZone = {}  -- fid (number) → "Expansion > Zone"
+    local ambSearchArray   -- augmented version of AmbientSounds with zone info in path
+    local function getAmbSearchArray()
+      if ambSearchArray then return ambSearchArray end
+      -- Build reverse lookup: FID → "Expansion > Zone"
+      if ASD then
+        for exp, zones in pairs(ASD) do
+          for zone, packed in pairs(zones) do
+            local label = exp .. " > " .. zone
+            for s in packed:gmatch("%d+") do
+              ambFIDZone[tonumber(s)] = label
+            end
+          end
+        end
+      end
+      -- Build augmented search array: append zone info to path for matching
+      ambSearchArray = {}
+      local src = Resonance.AmbientSounds
+      if src then
+        for i, entry in ipairs(src) do
+          local path, fid = entry:match("([^#]+)#([^#]+)")
+          if path and fid then
+            local fidNum = tonumber(fid)
+            local zoneLabel = fidNum and ambFIDZone[fidNum]
+            if zoneLabel then
+              -- Append zone info to path so searchDB matches on it
+              -- Also append localized expansion/zone names for L10N search
+              local exp, zone = zoneLabel:match("^(.+) > (.+)$")
+              local localExp = exp and L[exp] or ""
+              local localZone = zone and L[zone] or ""
+              local extra = " " .. zoneLabel
+              if localExp ~= exp and localExp ~= "" then extra = extra .. " " .. localExp end
+              if localZone ~= zone and localZone ~= "" then extra = extra .. " " .. localZone end
+              ambSearchArray[#ambSearchArray + 1] = path .. extra .. "#" .. fid
+            else
+              ambSearchArray[#ambSearchArray + 1] = entry
+            end
+          end
+        end
+      end
+      return ambSearchArray
+    end
+
     doAmbSearch = function()
       if not ambSearchBox:HasFocus() then return end
       local q = ambSearchBox:GetText()
       if #q < 3 then ambSearchDD:SetData({}, ""); ambSearchDD:Hide(); return end
-      searchDB(Resonance.AmbientSounds, q, "ambSearch", function(results)
+      searchDB(getAmbSearchArray(), q, "ambSearch", function(results)
         for _, r in ipairs(results) do
-          local display = formatSoundDisplay(r.path, r.fileDataID)
-          if Resonance.db.profile.mute_file_data_ids[r.fileDataID] then
+          local fid = r.fileDataID
+          local zoneLabel = ambFIDZone[fid]
+          -- Strip the appended zone info from the path for display
+          local cleanPath = r.path:match("^(sound/.-)%s") or r.path
+          local display = formatSoundDisplay(cleanPath, fid)
+          if zoneLabel then
+            display = display .. "  |cff66aacc" .. zoneLabel .. "|r"
+          end
+          if Resonance.db.profile.mute_file_data_ids[fid] then
             display = "|cff666666[muted]|r " .. display
           end
           r.display = display
