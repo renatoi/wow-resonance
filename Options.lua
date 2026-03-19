@@ -802,7 +802,7 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
 
     row.stripe = row:CreateTexture(nil, "BACKGROUND")
     row.stripe:SetAllPoints()
-    row.stripe:SetColorTexture(1, 1, 1, 0.04)
+    row.stripe:SetColorTexture(1, 1, 1, 0.06)
     row.stripe:Hide()
 
     row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -1883,7 +1883,7 @@ buildTab2_SpellSounds = function(ctx)
       row.muteBtn:Show()
 
       if i % 2 == 0 then
-        row.stripe:SetColorTexture(1, 1, 1, 0.04)
+        row.stripe:SetColorTexture(1, 1, 1, 0.06)
         row.stripe:Show()
       else
         row.stripe:Hide()
@@ -2501,7 +2501,7 @@ buildTab3_MutedSounds = function(ctx)
           local displayName = r.path
           r.display = displayName
           if isNPCMuted(npcID) then
-            r.display = "|cff666666" .. displayName .. "|r"
+            r.display = "|cff888888" .. displayName .. "|r"
           end
           r.subdisplay = "NPC " .. npcID .. "  \194\183  " .. count .. " " .. L["sounds"]
         end
@@ -2516,7 +2516,7 @@ buildTab3_MutedSounds = function(ctx)
           local parent = r.path:match("([^/\\]+)[/\\][^/\\]+$")
           r.display = filename
           if isFIDMuted(r.fileDataID) then
-            r.display = "|cff666666" .. filename .. "|r"
+            r.display = "|cff888888" .. filename .. "|r"
           end
           r.subdisplay = (parent and (parent .. "/  \194\183  ") or "") .. "#" .. r.fileDataID
         end
@@ -2863,7 +2863,7 @@ buildTab3_MutedSounds = function(ctx)
         if not row.stripe then
           row.stripe = row:CreateTexture(nil, "BACKGROUND")
           row.stripe:SetAllPoints()
-          row.stripe:SetColorTexture(1, 1, 1, 0.04)
+          row.stripe:SetColorTexture(1, 1, 1, 0.06)
         end
         row.stripe:SetShown(soundRowIdx % 2 == 0)
 
@@ -3038,7 +3038,7 @@ buildTab3_MutedSounds = function(ctx)
             if not row.stripe then
               row.stripe = row:CreateTexture(nil, "BACKGROUND")
               row.stripe:SetAllPoints()
-              row.stripe:SetColorTexture(1, 1, 1, 0.04)
+              row.stripe:SetColorTexture(1, 1, 1, 0.06)
             end
             row.stripe:SetShown(soundRowIdx % 2 == 0)
 
@@ -3104,7 +3104,7 @@ buildTab3_MutedSounds = function(ctx)
         if not row.stripe then
           row.stripe = row:CreateTexture(nil, "BACKGROUND")
           row.stripe:SetAllPoints()
-          row.stripe:SetColorTexture(1, 1, 1, 0.04)
+          row.stripe:SetColorTexture(1, 1, 1, 0.06)
         end
         row.stripe:SetShown(ni % 2 == 0)
         row:Show()
@@ -3448,7 +3448,7 @@ buildTab4_Presets = function(ctx)
         if not row.stripe then
           row.stripe = row:CreateTexture(nil, "BACKGROUND")
           row.stripe:SetAllPoints()
-          row.stripe:SetColorTexture(1, 1, 1, 0.04)
+          row.stripe:SetColorTexture(1, 1, 1, 0.06)
         end
         row.stripe:Show()
       elseif row.stripe then row.stripe:Hide() end
@@ -3459,7 +3459,7 @@ buildTab4_Presets = function(ctx)
         if preset.key == playerClass then
           nameDisplay = nameDisplay .. "  |cff888888" .. L["(Your Class)"] .. "|r"
         else
-          nameDisplay = "|cff666666" .. nameDisplay .. "  " .. L["(Other Class)"] .. "|r"
+          nameDisplay = "|cff888888" .. nameDisplay .. "  " .. L["(Other Class)"] .. "|r"
         end
       end
       row.nameText:SetText(nameDisplay)
@@ -3751,6 +3751,12 @@ buildTab5_Ambient = function(ctx)
     function ambSearchDD:onRowRefresh(row, entry)
       local muted = Resonance.db.profile.mute_file_data_ids[entry.fileDataID]
       row.actionBtn.tooltipText = muted and L["Unmute"] or L["Mute"]
+      -- Visual feedback: tint icon red when muted, normal when not
+      if muted then
+        row.actionBtn.icon:SetVertexColor(1, 0.3, 0.3)
+      else
+        row.actionBtn.icon:SetVertexColor(1, 1, 1)
+      end
     end
 
     -- Build FID → "Expansion > Zone" lookup lazily (cached).
@@ -3794,12 +3800,12 @@ buildTab5_Ambient = function(ctx)
           local parent = r.path:match("([^/\\]+)[/\\][^/\\]+$")
           r.display = filename
           if Resonance.db.profile.mute_file_data_ids[fid] then
-            r.display = "|cff666666" .. filename .. "|r"
+            r.display = "|cff888888" .. filename .. "|r"
           end
           local parts = {}
           if zoneLabel then parts[#parts + 1] = "|cff66aacc" .. zoneLabel .. "|r" end
-          if parent then parts[#parts + 1] = "|cff666666" .. parent .. "/|r" end
-          parts[#parts + 1] = "|cff555555#" .. fid .. "|r"
+          if parent then parts[#parts + 1] = "|cff888888" .. parent .. "/|r" end
+          parts[#parts + 1] = "|cff777777#" .. fid .. "|r"
           r.subdisplay = table.concat(parts, "  \194\183  ")
         end
         ambSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
