@@ -1,3 +1,4 @@
+.codegg/
 tools/.db2_cache/
 tools/__pycache__/
 *.pyc
