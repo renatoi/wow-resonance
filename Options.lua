@@ -40,7 +40,7 @@ local function cancelSearch(key)
   end
 end
 
-local function searchDB(sourceDB, query, key, callback, prefixPool, l10nTable)
+local function searchDB(sourceDB, query, key, callback, prefixPool, l10nTable, extraMatchFn)
   cancelSearch(key)
   if not sourceDB then callback({}); return end
   local terms = {}
@@ -52,42 +52,64 @@ local function searchDB(sourceDB, query, key, callback, prefixPool, l10nTable)
   searchGeneration[key] = (searchGeneration[key] or 0) + 1
   local gen = searchGeneration[key]
 
+  -- Pre-lowercase prefix pool once to avoid per-entry allocation
+  local lowerPrefixes
+  if prefixPool then
+    lowerPrefixes = {}
+    for idx, p in ipairs(prefixPool) do
+      lowerPrefixes[idx] = p:lower()
+    end
+  end
+
   local co = coroutine.create(function()
     local results = {}
     for i, entry in ipairs(sourceDB) do
-      local path, fid, prefixIdx
       if prefixPool then
         -- Prefix-pooled format: "filename#FID#prefixIdx"
+        -- Match against filename and prefix separately to avoid
+        -- concatenating a full path string for every entry.
         local fn, fidStr, pIdx = entry:match("([^#]+)#([^#]+)#([^#]+)")
         if fn and fidStr and pIdx then
+          local lfn = fn:lower()
           local idx = tonumber(pIdx)
-          local prefix = idx and prefixPool[idx] or ""
-          path = prefix .. fn
-          fid = fidStr
-        end
-      else
-        path, fid = entry:match("([^#]+)#([^#]+)")
-      end
-      if path and fid then
-        local lp = path:lower()
-        local match = true
-        for _, t in ipairs(terms) do
-          if not lp:find(t, 1, true) then match = false; break end
-        end
-        -- For NPC search: also check L10N table if English name didn't match
-        if not match and l10nTable then
-          local npcID = tonumber(fid)
-          local l10n = npcID and l10nTable[npcID]
-          if l10n then
-            local ll = l10n:lower()
-            match = true
-            for _, t in ipairs(terms) do
-              if not ll:find(t, 1, true) then match = false; break end
+          local lprefix = idx and lowerPrefixes[idx] or ""
+          local match = true
+          for _, t in ipairs(terms) do
+            if not lfn:find(t, 1, true) and not lprefix:find(t, 1, true) then
+              match = false; break
             end
           end
+          if match then
+            local prefix = idx and prefixPool[idx] or ""
+            results[#results + 1] = { path = prefix .. fn, fileDataID = tonumber(fidStr) }
+          end
         end
-        if match then
-          results[#results + 1] = { path = path, fileDataID = tonumber(fid) }
+      else
+        local path, fid = entry:match("([^#]+)#([^#]+)")
+        if path and fid then
+          local lp = path:lower()
+          local match = true
+          for _, t in ipairs(terms) do
+            if not lp:find(t, 1, true) then match = false; break end
+          end
+          -- For NPC search: also check L10N table if English name didn't match
+          if not match and l10nTable then
+            local npcID = tonumber(fid)
+            local l10n = npcID and l10nTable[npcID]
+            if l10n then
+              local ll = l10n:lower()
+              match = true
+              for _, t in ipairs(terms) do
+                if not ll:find(t, 1, true) then match = false; break end
+              end
+            end
+          end
+          if not match and extraMatchFn then
+            match = extraMatchFn(tonumber(fid), terms)
+          end
+          if match then
+            results[#results + 1] = { path = path, fileDataID = tonumber(fid) }
+          end
         end
       end
       if i % SEARCH_BATCH_SIZE == 0 then coroutine.yield() end
@@ -3709,62 +3731,45 @@ buildTab5_Ambient = function(ctx)
       end
     end
 
-    -- Build FID → { expansion, zone } lookup and augmented search array
-    -- so that searching "silvermoon" or "midnight" matches relevant sounds.
+    -- Build FID → "Expansion > Zone" lookup lazily (cached).
+    -- Used for both search matching and display labels.
     local ambFIDZone = {}  -- fid (number) → "Expansion > Zone"
-    local ambSearchArray   -- augmented version of AmbientSounds with zone info in path
-    local function getAmbSearchArray()
-      if ambSearchArray then return ambSearchArray end
-      -- Build reverse lookup: FID → "Expansion > Zone"
+    -- Pre-lowercased zone+expansion search strings per FID (built once)
+    local ambFIDZoneSearch  -- fid (number) → lowercased "Exp > Zone LocalExp LocalZone"
+    local function ensureAmbFIDZone()
+      if ambFIDZoneSearch then return end
+      ambFIDZoneSearch = {}
       if ASD then
         for exp, zones in pairs(ASD) do
           for zone, packed in pairs(zones) do
             local label = exp .. " > " .. zone
+            local localExp = L[exp] or ""
+            local localZone = L[zone] or ""
+            local searchStr = label
+            if localExp ~= exp and localExp ~= "" then searchStr = searchStr .. " " .. localExp end
+            if localZone ~= zone and localZone ~= "" then searchStr = searchStr .. " " .. localZone end
+            local lowerSearch = searchStr:lower()
             for s in packed:gmatch("%d+") do
-              ambFIDZone[tonumber(s)] = label
+              local fid = tonumber(s)
+              ambFIDZone[fid] = label
+              ambFIDZoneSearch[fid] = lowerSearch
             end
           end
         end
       end
-      -- Build augmented search array: append zone info to path for matching
-      ambSearchArray = {}
-      local src = Resonance.AmbientSounds
-      if src then
-        for i, entry in ipairs(src) do
-          local path, fid = entry:match("([^#]+)#([^#]+)")
-          if path and fid then
-            local fidNum = tonumber(fid)
-            local zoneLabel = fidNum and ambFIDZone[fidNum]
-            if zoneLabel then
-              -- Append zone info to path so searchDB matches on it
-              -- Also append localized expansion/zone names for L10N search
-              local exp, zone = zoneLabel:match("^(.+) > (.+)$")
-              local localExp = exp and L[exp] or ""
-              local localZone = zone and L[zone] or ""
-              local extra = " " .. zoneLabel
-              if localExp ~= exp and localExp ~= "" then extra = extra .. " " .. localExp end
-              if localZone ~= zone and localZone ~= "" then extra = extra .. " " .. localZone end
-              ambSearchArray[#ambSearchArray + 1] = path .. extra .. "#" .. fid
-            else
-              ambSearchArray[#ambSearchArray + 1] = entry
-            end
-          end
-        end
-      end
-      return ambSearchArray
     end
 
     doAmbSearch = function()
       if not ambSearchBox:HasFocus() then return end
       local q = ambSearchBox:GetText()
       if #q < 3 then ambSearchDD:SetData({}, ""); ambSearchDD:Hide(); return end
-      searchDB(getAmbSearchArray(), q, "ambSearch", function(results)
+      ensureAmbFIDZone()
+      searchDB(Resonance.AmbientSounds, q, "ambSearch", function(results)
         for _, r in ipairs(results) do
           local fid = r.fileDataID
           local zoneLabel = ambFIDZone[fid]
-          local cleanPath = r.path:match("^(sound/.-)%s") or r.path
-          local filename = cleanPath:match("([^/\\]+)$") or cleanPath
-          local parent = cleanPath:match("([^/\\]+)[/\\][^/\\]+$")
+          local filename = r.path:match("([^/\\]+)$") or r.path
+          local parent = r.path:match("([^/\\]+)[/\\][^/\\]+$")
           r.display = filename
           if Resonance.db.profile.mute_file_data_ids[fid] then
             r.display = "|cff666666" .. filename .. "|r"
@@ -3776,6 +3781,14 @@ buildTab5_Ambient = function(ctx)
           r.subdisplay = table.concat(parts, "  \194\183  ")
         end
         ambSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+      end, nil, nil, function(fid, terms)
+        -- Match zone/expansion metadata without concatenating into the path
+        local zs = ambFIDZoneSearch[fid]
+        if not zs then return false end
+        for _, t in ipairs(terms) do
+          if not zs:find(t, 1, true) then return false end
+        end
+        return true
       end)
     end
 
