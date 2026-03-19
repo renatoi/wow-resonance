@@ -79,7 +79,11 @@ local IsPlayerSpell   = IsPlayerSpell
 local UnitRace        = UnitRace
 local UnitSex         = UnitSex
 local UnitClass       = UnitClass
+local StopSound       = StopSound
 local C_Timer         = C_Timer
+local UnitGUID        = UnitGUID
+local GetTime         = GetTime
+local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 
 -- Local aliases for hot-path access
 local SpellMuteData    = Resonance.SpellMuteData
@@ -110,6 +114,8 @@ local autoShotMutedFIDs = {}  -- runtime-only: FIDs muted by classic auto-shot t
 local professionMutedFIDs = {} -- runtime-only: FIDs muted by profession sound toggle
 local fishingMutedFIDs = {}    -- runtime-only: FIDs muted by classic fishing sounds toggle
 local npcMutedFIDs = {}        -- runtime-only: FIDs muted by NPC sound muting
+local lastInterruptInfo = nil  -- { time, spellID } set by CLEU SPELL_INTERRUPT
+local activeAlertHandle = nil  -- sound handle for debouncing interrupt alerts
 
 ---------------------------------------------------------------------------
 -- Classic auto-shot data
@@ -173,6 +179,9 @@ local defaults = {
     classicFishingSounds = false,
     fishingBobberSound = nil,  -- nil = classic default (569816); number = FileDataID; string = file path
     mutedNPCs = {},  -- { [npcID] = true } NPCs whose sounds are muted
+    interruptAlert = false,
+    interruptAlertSound = nil,
+    interruptAlertDuration = nil,
     minimap = { hide = false },
     _lastAutoMutedFIDs = {},  -- persisted snapshot for stale-mute cleanup across /reload
     _lastCreatureMutedFIDs = {},  -- same for creature vox mutes
@@ -257,6 +266,20 @@ local function previewSound(value)
     return PlaySoundFile(path, ch)
   end
   return false
+end
+
+local function scheduleStopSound(handle, duration)
+  if handle and duration and duration > 0 then
+    C_Timer.After(duration, function() StopSound(handle) end)
+  end
+end
+
+local function clearInterruptAlertState()
+  lastInterruptInfo = nil
+  if activeAlertHandle then
+    StopSound(activeAlertHandle)
+    activeAlertHandle = nil
+  end
 end
 
 -- Ref-counted tracker for FIDs with in-flight playback.
@@ -1633,6 +1656,9 @@ local function getGeneralOptions()
             clearFishingMutes()
             clearNPCMutes()
             Resonance:UnregisterEvent("LOOT_READY")
+            Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+            Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+            clearInterruptAlertState()
             clearProfessionMutes()
             clearCreatureVoxMutes()
             clearVoxMutes()
@@ -1783,6 +1809,79 @@ local function getGeneralOptions()
           playOneSoundWithUnmute(snd, db.debug)
         end,
       },
+      interruptAlertHeader = {
+        type = "header",
+        name = L["Interrupt alert"],
+        order = 5.85,
+      },
+      interruptAlert = {
+        type = "toggle",
+        name = L["Play sound when interrupted"],
+        desc = L["Play a custom alert sound when your cast is interrupted by another player or NPC."],
+        order = 5.86,
+        width = "full",
+        disabled = function() return not db.enabled end,
+        get = function() return db.interruptAlert end,
+        set = function(_, v)
+          db.interruptAlert = v
+          if v then
+            Resonance:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+            Resonance:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+          else
+            Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+            Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+            clearInterruptAlertState()
+          end
+        end,
+      },
+      interruptAlertSound = {
+        type = "input",
+        name = L["Alert sound (FID or file path)"],
+        desc = L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"],
+        order = 5.87,
+        width = "double",
+        disabled = function() return not db.enabled or not db.interruptAlert end,
+        get = function() return db.interruptAlertSound and tostring(db.interruptAlertSound) or "" end,
+        set = function(_, v)
+          if v == "" then
+            db.interruptAlertSound = nil
+          else
+            local n = tonumber(v)
+            db.interruptAlertSound = n or v
+          end
+        end,
+      },
+      interruptAlertDuration = {
+        type = "input",
+        name = L["Duration cutoff (seconds)"],
+        desc = L["Stop the alert sound after this many seconds. Leave blank to let it play fully."],
+        order = 5.88,
+        disabled = function() return not db.enabled or not db.interruptAlert end,
+        get = function() return db.interruptAlertDuration and tostring(db.interruptAlertDuration) or "" end,
+        set = function(_, v)
+          if v == "" then
+            db.interruptAlertDuration = nil
+          else
+            local n = tonumber(v)
+            if n and n > 0 then db.interruptAlertDuration = n end
+          end
+        end,
+      },
+      interruptAlertTest = {
+        type = "execute",
+        name = L["Test"],
+        desc = L["Play the configured interrupt alert sound."],
+        order = 5.89,
+        disabled = function() return not db.enabled or not db.interruptAlert or not db.interruptAlertSound end,
+        func = function()
+          local sound = db.interruptAlertSound
+          if not sound then return end
+          local ok, handle = previewSound(sound)
+          if ok then
+            scheduleStopSound(handle, db.interruptAlertDuration)
+          end
+        end,
+      },
       vocalizationSpacer = {
         type = "description",
         name = "",
@@ -1907,6 +2006,9 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         clearFishingMutes()
         clearNPCMutes()
         Resonance:UnregisterEvent("LOOT_READY")
+        Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+        Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+        clearInterruptAlertState()
         clearProfessionMutes()
         clearCreatureVoxMutes()
         clearVoxMutes()
@@ -1988,6 +2090,9 @@ function Resonance:OnInitialize()
     clearWeaponMutes()
     clearVoxMutes()
     clearMutes()
+    self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    clearInterruptAlertState()
     db = self.db.profile
     wipe(autoMutedFIDs)
     rebuildAutoMutes()
@@ -2003,6 +2108,10 @@ function Resonance:OnInitialize()
       self:RegisterEvent("LOOT_READY")
     else
       self:UnregisterEvent("LOOT_READY")
+    end
+    if db.interruptAlert then
+      self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+      self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     end
   end
   self.db.RegisterCallback(self, "OnProfileChanged", onProfileChanged)
@@ -2028,6 +2137,10 @@ end
 function Resonance:OnEnable()
   self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
   self:RegisterEvent("UNIT_MODEL_CHANGED")
+  if db.interruptAlert then
+    self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+  end
   refreshPresetsFromTemplates()
   rebuildAutoMutes()
   if db.enabled then applyMutes() end
@@ -2078,6 +2191,39 @@ function Resonance:UNIT_MODEL_CHANGED(_, unit)
   -- Only relevant for "mine" mode; "all" already covers everything
   if getVoxMode() == "mine" then
     refreshVoxMutes()
+  end
+end
+
+function Resonance:COMBAT_LOG_EVENT_UNFILTERED()
+  if not db.interruptAlert then return end
+  local _, subevent, _, _, _, _, _, destGUID, _, _, _, _, _, _, interruptedSpellID = CombatLogGetCurrentEventInfo()
+  if subevent ~= "SPELL_INTERRUPT" then return end
+  if destGUID ~= UnitGUID("player") then return end
+  lastInterruptInfo = { time = GetTime(), spellID = interruptedSpellID }
+end
+
+function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
+  if unit ~= "player" then return end
+  if not db.enabled or not db.interruptAlert or not spellID then return end
+  -- Only alert on enemy interrupts (confirmed by CLEU SPELL_INTERRUPT)
+  if not lastInterruptInfo then return end
+  if lastInterruptInfo.spellID ~= spellID then return end
+  if GetTime() - lastInterruptInfo.time > 1 then return end
+  lastInterruptInfo = nil
+  local sound = db.interruptAlertSound
+  if not sound then return end
+  if db.debug then
+    local name = _GetSpellName(spellID) or ""
+    msg(("Interrupted: %s (spellID %d)"):format(name ~= "" and name or "<?>", spellID))
+  end
+  if activeAlertHandle then
+    StopSound(activeAlertHandle)
+    activeAlertHandle = nil
+  end
+  local ok, handle = previewSound(sound)
+  if ok then
+    activeAlertHandle = handle
+    scheduleStopSound(handle, db.interruptAlertDuration)
   end
 end
 
@@ -2155,6 +2301,9 @@ function Resonance:ChatCommand(input)
     clearAutoShotMutes()
     clearFishingMutes()
     self:UnregisterEvent("LOOT_READY")
+    self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    clearInterruptAlertState()
     clearNPCMutes()
     clearProfessionMutes()
     clearVoxMutes()
