@@ -4241,7 +4241,7 @@ function Resonance:SetupOptions()
       msg:SetWidth(500)
       msg:SetJustifyH("CENTER")
       if reason == "DISABLED" then
-        msg:SetText(L["Resonance Data is disabled.\n\nTo configure sounds, enable |cff00ff00Resonance Data|r in the AddOns list (press Esc \226\134\146 AddOns) and then type /reload."])
+        msg:SetText(L["Resonance Data is disabled.\n\nTo configure sounds, enable |cff00ff00Resonance Data|r in the AddOns list\n(press Esc > AddOns) and then type |cff00ff00/reload|r."])
       elseif reason == "MISSING" or reason == "NOT_INSTALLED" then
         msg:SetText(L["Resonance Data module not found.\n\nPlease reinstall Resonance to restore full functionality."])
       else
