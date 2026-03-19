@@ -649,13 +649,14 @@ end
 ---------------------------------------------------------------------------
 local NUM_WIDTH = 24
 
-local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdownWidth, extraActions)
+local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdownWidth, extraActions, rowHeight)
   -- actionDef: { label, tooltip, width } or string (legacy label-only)
   if type(actionDef) == "string" then actionDef = { label = actionDef } end
+  local rh = rowHeight or ROW_HEIGHT
   local w = dropdownWidth or CONTENT_WIDTH
   local dd = CreateFrame("Frame", nil, UIParent)
   dd:SetFrameStrata("TOOLTIP")
-  dd:SetSize(w, AUTOCOMPLETE_ROWS * ROW_HEIGHT + 18)
+  dd:SetSize(w, AUTOCOMPLETE_ROWS * rh + 18)
   dd:SetPoint("TOPLEFT", searchBox, "BOTTOMLEFT", -2, -2)
   dd:SetClampedToScreen(true)
   dd:Hide()
@@ -725,8 +726,8 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
 
   for i = 1, AUTOCOMPLETE_ROWS do
     local row = CreateFrame("Frame", nil, dd)
-    row:SetSize(w - 4, ROW_HEIGHT)
-    row:SetPoint("TOPLEFT", 2, -(i - 1) * ROW_HEIGHT - 2)
+    row:SetSize(w - 4, rh)
+    row:SetPoint("TOPLEFT", 2, -(i - 1) * rh - 2)
 
     if i % 2 == 0 then
       local stripe = row:CreateTexture(nil, "BACKGROUND")
@@ -740,10 +741,14 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
     row.num:SetJustifyH("RIGHT")
 
     row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.text:SetPoint("LEFT", NUM_WIDTH + 6, 0)
+    if rh > ROW_HEIGHT then
+      row.text:SetPoint("TOPLEFT", row, "TOPLEFT", NUM_WIDTH + 6, -2)
+    else
+      row.text:SetPoint("LEFT", NUM_WIDTH + 6, 0)
+    end
     row.text:SetPoint("RIGHT", row, "RIGHT", textRightOffset, 0)
     row.text:SetJustifyH("LEFT")
-    row.text:SetWordWrap(false)
+    row.text:SetWordWrap(rh > ROW_HEIGHT)
 
     -- Build buttons right-to-left: primary action -> extra actions -> play
     row.actionBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
@@ -817,7 +822,7 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
       self.scrollHint:SetText(L["Showing %d\226\128\147%d of %d"]:format(off + 1, math.min(off + AUTOCOMPLETE_ROWS, #data), #data))
       scrollTrack:Show()
       scrollThumb:Show()
-      local trackH = AUTOCOMPLETE_ROWS * ROW_HEIGHT
+      local trackH = AUTOCOMPLETE_ROWS * rh
       local thumbH = math.max(16, trackH * AUTOCOMPLETE_ROWS / #data)
       local maxOff = #data - AUTOCOMPLETE_ROWS
       local frac = maxOff > 0 and (off / maxOff) or 0
@@ -1621,7 +1626,7 @@ buildTab2_SpellSounds = function(ctx)
 
   autoMuteAnchor = CreateFrame("Frame", nil, editorFrame)
   autoMuteAnchor:SetSize(CONTENT_WIDTH - 20, 1)
-  autoMuteAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -12)
+  autoMuteAnchor:SetPoint("TOPLEFT", edDurationFrame, "BOTTOMLEFT", 0, -8)
 
   local autoMuteHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   autoMuteHeader:SetPoint("TOPLEFT", autoMuteAnchor, "TOPLEFT", 0, 0)
@@ -2990,7 +2995,7 @@ buildTab4_Presets = function(ctx)
   local playerClass = ctx.playerClass
   local profile = Resonance.db.profile
 
-  local presetTab = tabFrames[4].content
+  local presetTab = tabFrames[5].content
 
   -- Export/Import dialog (shared by Presets tab)
   local eiFrame = CreateFrame("Frame", "ResonanceExportImport", UIParent, "BackdropTemplate")
@@ -3460,7 +3465,7 @@ buildTab4_Presets = function(ctx)
     -- Remove All button
     presetRemoveAllBtn:SetShown(hasActivePresetSpells)
 
-    recalcContentHeight(4)
+    recalcContentHeight(5)
   end
 
   -- Save Current Config button
@@ -3476,7 +3481,7 @@ buildTab4_Presets = function(ctx)
       presetListAnchor:ClearAllPoints()
       presetListAnchor:SetPoint("TOPLEFT", presetSaveFrame, "BOTTOMLEFT", 0, -6)
     end
-    recalcContentHeight(4)
+    recalcContentHeight(5)
   end)
 
   presetSaveConfirmBtn:SetScript("OnClick", function()
@@ -3498,7 +3503,7 @@ buildTab4_Presets = function(ctx)
     presetSaveFrame:Hide()
     presetListAnchor:ClearAllPoints()
     presetListAnchor:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -10)
-    recalcContentHeight(4)
+    recalcContentHeight(5)
   end)
 
   presetSaveNameBox:SetScript("OnEnterPressed", function() presetSaveConfirmBtn:Click() end)
@@ -3554,7 +3559,7 @@ buildTab5_Ambient = function(ctx)
   local recalcContentHeight = ctx.recalcContentHeight
 
   ctx.refreshAmbientTab = (function()
-    local ambTab = tabFrames[5].content
+    local ambTab = tabFrames[4].content
     local ASD = Resonance.AmbientSoundData
     if not ASD then
       local noData = ambTab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -3598,7 +3603,7 @@ buildTab5_Ambient = function(ctx)
           doAmbSearch()
         end
       end,
-      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH
+      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH, nil, ROW_HEIGHT * 2
     )
     ctx.allDropdowns[#ctx.allDropdowns + 1] = ambSearchDD
 
@@ -3668,7 +3673,7 @@ buildTab5_Ambient = function(ctx)
           local cleanPath = r.path:match("^(sound/.-)%s") or r.path
           local display = formatSoundDisplay(cleanPath, fid)
           if zoneLabel then
-            display = display .. "  |cff66aacc" .. zoneLabel .. "|r"
+            display = display .. "\n    |cff66aacc" .. zoneLabel .. "|r"
           end
           if Resonance.db.profile.mute_file_data_ids[fid] then
             display = "|cff666666[muted]|r " .. display
@@ -3714,11 +3719,10 @@ buildTab5_Ambient = function(ctx)
       return n
     end
 
+    local ZONE_COL_WIDTH = math.floor((CONTENT_WIDTH - 40) / 2)
     local function buildZoneRow(parent, anchor, isFirst, zone, key, fidCount)
       local row = CreateFrame("Frame", nil, parent)
-      row:SetHeight(ROW_HEIGHT)
-      row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", isFirst and 20 or 0, -2)
-      row:SetPoint("RIGHT", parent, "RIGHT", -16, 0)
+      row:SetSize(ZONE_COL_WIDTH, ROW_HEIGHT)
       local cb = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
       cb:SetPoint("LEFT", 0, 0)
       local t = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -3747,15 +3751,22 @@ buildTab5_Ambient = function(ctx)
         entry.ehdr:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
         yOff = yOff - (ROW_HEIGHT + 4) - 2
         if expanded[entry.exp] then
-          for _, row in ipairs(entry.zoneRows) do
+          for idx, row in ipairs(entry.zoneRows) do
             row:ClearAllPoints()
-            row:SetPoint("TOPLEFT", zoneHeader, "BOTTOMLEFT", 20, yOff)
-            row:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
+            local col = (idx - 1) % 2  -- 0 = left, 1 = right
+            local xOff = 20 + col * ZONE_COL_WIDTH
+            row:SetPoint("TOPLEFT", zoneHeader, "BOTTOMLEFT", xOff, yOff)
+            if col == 1 then
+              yOff = yOff - ROW_HEIGHT - 2
+            end
+          end
+          -- If odd number of rows, advance Y after the last left-column row
+          if #entry.zoneRows % 2 == 1 then
             yOff = yOff - ROW_HEIGHT - 2
           end
         end
       end
-      recalcContentHeight(5)
+      recalcContentHeight(4)
     end
 
     for _, exp in ipairs(EXP_ORDER) do
@@ -3812,7 +3823,7 @@ buildTab5_Ambient = function(ctx)
       for _, row in ipairs(allRows) do
         row.cb:SetChecked(p.muteAmbientSounds and p.muteAmbientSounds[row.key] or false)
       end
-      recalcContentHeight(5)
+      recalcContentHeight(4)
     end
   end)()
 end
@@ -3845,7 +3856,7 @@ local function buildLayout()
   -------------------------------------------------------------------
   -- Tab system
   -------------------------------------------------------------------
-  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Presets"], L["Ambient"], L["Profiles"] }
+  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Ambient"], L["Presets"], L["Profiles"] }
   local TAB_HEIGHT = 28
   local TAB_OVERLAP = 4
   local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
@@ -3986,8 +3997,8 @@ local function buildLayout()
     if id == 1 then recalcContentHeight(1) end
     if id == 2 and ctx.refreshList then ctx.refreshList() end
     if id == 3 and ctx.refreshMuteList then ctx.refreshMuteList() end
-    if id == 4 and ctx.refreshPresetList then ctx.refreshPresetList() end
-    if id == 5 and ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
+    if id == 4 and ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
+    if id == 5 and ctx.refreshPresetList then ctx.refreshPresetList() end
   end
 
   for i, btn in ipairs(tabButtons) do
@@ -4032,8 +4043,8 @@ local function buildLayout()
   -------------------------------------------------------------------
   buildTab2_SpellSounds(ctx)
   buildTab3_MutedSounds(ctx)
-  buildTab4_Presets(ctx)
   buildTab5_Ambient(ctx)
+  buildTab4_Presets(ctx)
 
   -------------------------------------------------------------------
   -- Tab 6: Profiles (AceDBOptions)

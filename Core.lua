@@ -2090,10 +2090,10 @@ local function getGeneralOptions()
       },
       fishingBobberPreview = {
         type = "execute",
-        name = "|TInterface\\Buttons\\UI-SpellbookIcon-NextPage-Up:14:14|t " .. L["Preview"],
+        name = L["Preview"],
         desc = L["Preview the replacement fishing bobber sound."],
-        order = 5.61,
-        width = "half",
+        order = 5.79,
+        width = 1,
         hidden = function() return not db.classicFishingSounds end,
         disabled = function() return not db.enabled end,
         func = function()
@@ -2174,12 +2174,6 @@ local function getGeneralOptions()
             scheduleStopSound(handle, db.interruptAlertDuration)
           end
         end,
-      },
-      vocalizationSpacer = {
-        type = "description",
-        name = "",
-        order = 5.99,
-        width = "full",
       },
       muteVocalizations = {
         type = "select",
