@@ -1536,11 +1536,12 @@ buildTab2_SpellSounds = function(ctx)
   edInputAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -8)
 
   local edDurationFrame = CreateFrame("Frame", nil, editorFrame)
-  edDurationFrame:SetSize(CONTENT_WIDTH - 20, 24)
+  edDurationFrame:SetSize(CONTENT_WIDTH - 20, 46)
   edDurationFrame:SetPoint("TOPLEFT", edInputAnchor, "TOPLEFT", 0, 0)
 
+  -- Row 1: label + input + clear
   local edDurationLabel = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  edDurationLabel:SetPoint("LEFT", edDurationFrame, "LEFT", 0, 0)
+  edDurationLabel:SetPoint("TOPLEFT", edDurationFrame, "TOPLEFT", 0, -2)
   edDurationLabel:SetText(L["Stop sound after (seconds):"])
 
   local edDurationBox = CreateFrame("EditBox", nil, edDurationFrame, "InputBoxTemplate")
@@ -1567,8 +1568,9 @@ buildTab2_SpellSounds = function(ctx)
   end)
   edDurationClearBtn:SetPoint("LEFT", edDurationBox, "RIGHT", 4, 0)
 
+  -- Row 2: help text + loop checkbox
   local edDurationHelp = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  edDurationHelp:SetPoint("LEFT", edDurationClearBtn, "RIGHT", 6, 0)
+  edDurationHelp:SetPoint("TOPLEFT", edDurationLabel, "BOTTOMLEFT", 0, -6)
   edDurationHelp:SetText(L["Cuts long sounds short"])
 
   local edLoopCheck = CreateFrame("CheckButton", nil, edDurationFrame, "UICheckButtonTemplate")
@@ -1638,7 +1640,7 @@ buildTab2_SpellSounds = function(ctx)
     else
       local soundListH = edSoundListFrame:GetHeight()
       local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
-      baseH = 455 + extraSoundH  -- includes trigger radios + duration section
+      baseH = 475 + extraSoundH  -- includes trigger radios + 2-row duration section
       if editorTrigger == "precast_and_cast" then
         baseH = baseH + (edPrecastSection:GetHeight() or 76) + 6
       end
