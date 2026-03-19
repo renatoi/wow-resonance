@@ -850,210 +850,26 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
 end
 
 ---------------------------------------------------------------------------
--- Build layout
+-- Tab builders (extracted from buildLayout to stay under Lua 5.1's
+-- 200 local-variable limit).  Each receives a shared context table
+-- `ctx` and populates it with cross-tab references.
 ---------------------------------------------------------------------------
-local built = false
 
-local function buildLayout()
-  if built then return end
-  built = true
+-- Forward declarations for the builder functions (defined below).
+local buildTab2_SpellSounds
+local buildTab3_MutedSounds
+local buildTab4_Presets
+local buildTab5_Ambient
 
-  -- AceDB can switch profiles mid-session, so `profile` captured here may go
-  -- stale. Callbacks that mutate profile data re-read `Resonance.db.profile`
-  -- at their start to ensure they operate on the active profile.
+---------------------------------------------------------------------------
+-- Tab 2: Spell Sounds
+---------------------------------------------------------------------------
+buildTab2_SpellSounds = function(ctx)
+  local tabFrames = ctx.tabFrames
+  local recalcContentHeight = ctx.recalcContentHeight
+  local playerClass = ctx.playerClass
   local profile = Resonance.db.profile
-  local _, playerClass = UnitClass("player")
 
-  local refreshList
-  local refreshMuteList
-  local refreshPresetList
-  local refreshAmbientTab
-  local allDropdowns = {}
-
-  -------------------------------------------------------------------
-  -- Tab system
-  -------------------------------------------------------------------
-  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Presets"], L["Ambient"], L["Profiles"] }
-  local TAB_HEIGHT = 28
-  local TAB_OVERLAP = 4
-  local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
-  local tabFrames = {}
-  local tabButtons = {}
-
-  local tabBackdrop = {
-    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    edgeSize = 14,
-    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
-  }
-
-  -- Content container with border
-  local contentBox = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-  contentBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(TAB_HEIGHT + 8 - TAB_OVERLAP))
-  contentBox:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
-  contentBox:SetBackdrop({
-    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    edgeSize = 14,
-    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
-  })
-  contentBox:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], CONTENT_BG[4])
-  contentBox:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
-
-  for i, name in ipairs(TAB_NAMES) do
-    local btn = CreateFrame("Button", "ResonanceTab" .. i, panel, "BackdropTemplate")
-    btn:SetHeight(TAB_HEIGHT)
-    btn:SetBackdrop(tabBackdrop)
-    btn:SetFrameLevel(contentBox:GetFrameLevel() + 1)
-
-    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    btn.text:SetPoint("CENTER", 0, 1)
-    btn.text:SetText(name)
-    btn:SetWidth(btn.text:GetStringWidth() + 26)
-
-    -- Mask that hides the bottom border of the tab
-    btn.bottomMask = btn:CreateTexture(nil, "OVERLAY")
-    btn.bottomMask:SetPoint("BOTTOMLEFT", 3, -TAB_OVERLAP)
-    btn.bottomMask:SetPoint("BOTTOMRIGHT", -3, -TAB_OVERLAP)
-    btn.bottomMask:SetHeight(TAB_OVERLAP + 8)
-
-    if i == 1 then
-      btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8)
-    else
-      btn:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 4, 0)
-    end
-    tabButtons[i] = btn
-
-    local sf = CreateFrame("ScrollFrame", nil, contentBox, "UIPanelScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", contentBox, "TOPLEFT", 8, -8)
-    sf:SetPoint("BOTTOMRIGHT", contentBox, "BOTTOMRIGHT", -24, 8)
-    sf:Hide()
-
-    -- Auto-hide scrollbar when content fits
-    local scrollbarParts = {}
-    for j = 1, sf:GetNumChildren() do
-      local child = select(j, sf:GetChildren())
-      if child:IsObjectType("Slider") then
-        scrollbarParts[#scrollbarParts + 1] = child
-        for k = 1, child:GetNumChildren() do
-          local sub = select(k, child:GetChildren())
-          scrollbarParts[#scrollbarParts + 1] = sub
-        end
-        break
-      end
-    end
-    sf.scrollbarParts = scrollbarParts
-    -- Hide scrollbar initially
-    for _, part in ipairs(scrollbarParts) do part:Hide() end
-
-    local function updateScrollbar(self)
-      local yRange = self:GetVerticalScrollRange()
-      local show = yRange and yRange > 0
-      for _, part in ipairs(self.scrollbarParts) do
-        part:SetShown(show)
-      end
-      if not show then self:SetVerticalScroll(0) end
-    end
-    sf:HookScript("OnScrollRangeChanged", updateScrollbar)
-    sf:HookScript("OnShow", updateScrollbar)
-
-    local c = CreateFrame("Frame")
-    sf:SetScrollChild(c)
-    c:SetWidth(CONTENT_WIDTH + 40)
-    c:SetHeight(1)
-    -- Dynamically match scroll child width to scroll frame
-    sf:HookScript("OnSizeChanged", function(self, w)
-      if w and w > 0 then c:SetWidth(w) end
-    end)
-    tabFrames[i] = { scroll = sf, content = c }
-  end
-
-  -- Dynamically resize scroll child to fit actual content
-  local function recalcContentHeight(tabIndex)
-    C_Timer.After(0, function()
-      local content = tabFrames[tabIndex].content
-      local top = content:GetTop()
-      if not top then return end
-      local lowestBottom = top
-      for i = 1, content:GetNumChildren() do
-        local child = select(i, content:GetChildren())
-        if child:IsShown() then
-          local bottom = child:GetBottom()
-          if bottom and bottom < lowestBottom then
-            lowestBottom = bottom
-          end
-        end
-      end
-      content:SetHeight(math.max(top - lowestBottom + 20, 1))
-    end)
-  end
-
-  local function selectTab(id)
-    for i, tf in ipairs(tabFrames) do
-      tf.scroll:SetShown(i == id)
-    end
-    for i, btn in ipairs(tabButtons) do
-      if i == id then
-        btn:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
-        btn:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
-        btn:SetFrameLevel(contentBox:GetFrameLevel() + 2)
-        btn.text:SetFontObject("GameFontHighlight")
-        btn.bottomMask:SetColorTexture(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
-      else
-        btn:SetBackdropColor(0.06, 0.06, 0.06, 1)
-        btn:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
-        btn:SetFrameLevel(contentBox:GetFrameLevel() - 1)
-        btn.text:SetFontObject("GameFontNormal")
-        btn.bottomMask:SetColorTexture(0.06, 0.06, 0.06, 1)
-      end
-    end
-    for _, dd in ipairs(allDropdowns) do dd:Hide() end
-    if id == 1 then recalcContentHeight(1) end
-    if id == 2 and refreshList then refreshList() end
-    if id == 3 and refreshMuteList then refreshMuteList() end
-    if id == 4 and refreshPresetList then refreshPresetList() end
-    if id == 5 and refreshAmbientTab then refreshAmbientTab() end
-  end
-
-  for i, btn in ipairs(tabButtons) do
-    btn:SetScript("OnClick", function() selectTab(i) end)
-  end
-
-  -------------------------------------------------------------------
-  -- Tab 1: General (AceConfig embedded)
-  -------------------------------------------------------------------
-  local gen = tabFrames[1].content
-
-  local aceContainer = CreateFrame("Frame", nil, gen)
-  aceContainer:SetPoint("TOPLEFT", 16, -16)
-  aceContainer:SetPoint("TOPRIGHT", -16, 0)
-  aceContainer:SetHeight(300)
-
-  local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-  -- AceConfigDialog:Open uses a container widget; we embed into our tab
-  -- We use a simple group with inline=true approach
-  local aceGUI = LibStub("AceGUI-3.0")
-
-  local function buildAceGeneralTab()
-    -- Create an AceGUI container and embed in our frame
-    local container = aceGUI:Create("SimpleGroup")
-    container:SetLayout("Fill")
-    container.frame:SetParent(gen)
-    container.frame:SetAllPoints(aceContainer)
-    container.frame:Show()
-
-    AceConfigDialog:Open("Resonance_General", container)
-  end
-
-  -- Build on first show
-  aceContainer:SetScript("OnShow", function(self)
-    self:SetScript("OnShow", nil)
-    buildAceGeneralTab()
-  end)
-
-  -------------------------------------------------------------------
-  -- Tab 2: Spell Sounds
-  -------------------------------------------------------------------
   local spellTab = tabFrames[2].content
 
   local clearAllSpellsBtn = makeButton(spellTab, L["Clear All"], 65, nil)
@@ -1784,7 +1600,7 @@ local function buildLayout()
     local muteOnly = edMuteOnlyCheck:GetChecked()
     local baseH
     if muteOnly then
-      -- No replacement sound section — just checkbox + auto-mute area
+      -- No replacement sound section -- just checkbox + auto-mute area
       baseH = 180
     else
       local soundListH = edSoundListFrame:GetHeight()
@@ -1951,6 +1767,8 @@ local function buildLayout()
 
   local edSaveBtn = makeButton(editorFrame, L["Save"], 60, nil)
   edSaveBtn:SetPoint("RIGHT", edCancelBtn, "LEFT", -4, 0)
+
+  local refreshList  -- forward declaration
 
   local function closeEditor()
     editorFrame:Hide()
@@ -2354,9 +2172,23 @@ local function buildLayout()
     recalcContentHeight(2)
   end
 
-  -------------------------------------------------------------------
-  -- Tab 3: Muted Sounds
-  -------------------------------------------------------------------
+  -- Publish to ctx
+  ctx.refreshList = refreshList
+  ctx.editorFrame = editorFrame
+  ctx.edBrowseDD = edBrowseDD
+  ctx.edSpellSearchDD = edSpellSearchDD
+  ctx.closeEditor = closeEditor
+end
+
+---------------------------------------------------------------------------
+-- Tab 3: Muted Sounds
+---------------------------------------------------------------------------
+buildTab3_MutedSounds = function(ctx)
+  local tabFrames = ctx.tabFrames
+  local recalcContentHeight = ctx.recalcContentHeight
+  local playerClass = ctx.playerClass
+  local profile = Resonance.db.profile
+
   local muteTab = tabFrames[3].content
 
   local muteSpellRadio = makeRadio(muteTab)
@@ -2383,6 +2215,8 @@ local function buildLayout()
 
   local muteSearchBox = makeEditBox(muteSearchFrame, CONTENT_WIDTH - 120, muteSearchFrame, 0, 0, L["Search sounds to mute..."])
   muteSearchBox:SetPoint("TOPLEFT", muteSearchFrame, "TOPLEFT", 0, 0)
+
+  local refreshMuteList  -- forward declaration
 
   local myVoxBtn = makeButton(muteTab, L["My Vox"], 60, function()
     muteCharRadio:Click()
@@ -3142,9 +2976,20 @@ local function buildLayout()
 
   setMuteMode("spells")
 
-  -------------------------------------------------------------------
-  -- Tab 4: Presets
-  -------------------------------------------------------------------
+  -- Publish to ctx
+  ctx.refreshMuteList = refreshMuteList
+  ctx.muteDD = muteDD
+end
+
+---------------------------------------------------------------------------
+-- Tab 4: Presets
+---------------------------------------------------------------------------
+buildTab4_Presets = function(ctx)
+  local tabFrames = ctx.tabFrames
+  local recalcContentHeight = ctx.recalcContentHeight
+  local playerClass = ctx.playerClass
+  local profile = Resonance.db.profile
+
   local presetTab = tabFrames[4].content
 
   -- Export/Import dialog (shared by Presets tab)
@@ -3208,6 +3053,8 @@ local function buildLayout()
   eiActionBtn:SetPoint("BOTTOMRIGHT", eiFrame, "BOTTOMRIGHT", -16, 14)
 
   local eiMode = "export"
+
+  local refreshPresetList  -- forward declaration
 
   eiActionBtn:SetScript("OnClick", function()
     if eiMode == "export" then
@@ -3527,7 +3374,7 @@ local function buildLayout()
           Resonance:RemovePresetSpells(preset.key)
           Resonance.msg(L["Deleted preset '%s'."]:format(preset.name))
           refreshPresetList()
-          if refreshList then refreshList() end
+          if ctx.refreshList then ctx.refreshList() end
         end)
         rightEdge = rightEdge - (row.deleteBtn:GetWidth() + 4)
       else
@@ -3573,7 +3420,7 @@ local function buildLayout()
           local removed = Resonance:RemovePresetSpells(preset.key)
           Resonance.msg(L["Removed %d preset spells from '%s'."]:format(removed, preset.name))
           refreshPresetList()
-          if refreshList then refreshList() end
+          if ctx.refreshList then ctx.refreshList() end
         end)
         rightEdge = rightEdge - (row.removeBtn:GetWidth() + 4)
       else
@@ -3594,7 +3441,7 @@ local function buildLayout()
             Resonance.msg(L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."]:format(preset.name, added, addedMutes, skipped))
           end
           refreshPresetList()
-          if refreshList then refreshList() end
+          if ctx.refreshList then ctx.refreshList() end
         end)
       else
         row.applyBtn:Hide()
@@ -3692,13 +3539,21 @@ local function buildLayout()
     local removed = Resonance:RemovePresetSpells()
     Resonance.msg(L["Removed %d preset spells."]:format(removed))
     refreshPresetList()
-    if refreshList then refreshList() end
+    if ctx.refreshList then ctx.refreshList() end
   end)
 
-  -------------------------------------------------------------------
-  -- Tab 5: Ambient Sounds
-  -------------------------------------------------------------------
-  refreshAmbientTab = (function()
+  -- Publish to ctx
+  ctx.refreshPresetList = refreshPresetList
+end
+
+---------------------------------------------------------------------------
+-- Tab 5: Ambient Sounds
+---------------------------------------------------------------------------
+buildTab5_Ambient = function(ctx)
+  local tabFrames = ctx.tabFrames
+  local recalcContentHeight = ctx.recalcContentHeight
+
+  ctx.refreshAmbientTab = (function()
     local ambTab = tabFrames[5].content
     local ASD = Resonance.AmbientSoundData
     if not ASD then
@@ -3745,7 +3600,7 @@ local function buildLayout()
       end,
       { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH
     )
-    allDropdowns[#allDropdowns + 1] = ambSearchDD
+    ctx.allDropdowns[#ctx.allDropdowns + 1] = ambSearchDD
 
     function ambSearchDD:onRowRefresh(row, entry)
       local muted = Resonance.db.profile.mute_file_data_ids[entry.fileDataID]
@@ -3897,6 +3752,225 @@ local function buildLayout()
       recalcContentHeight(5)
     end
   end)()
+end
+
+
+---------------------------------------------------------------------------
+-- Build layout
+---------------------------------------------------------------------------
+local built = false
+
+local function buildLayout()
+  if built then return end
+  built = true
+
+  -- AceDB can switch profiles mid-session, so `profile` captured here may go
+  -- stale. Callbacks that mutate profile data re-read `Resonance.db.profile`
+  -- at their start to ensure they operate on the active profile.
+  local profile = Resonance.db.profile
+  local _, playerClass = UnitClass("player")
+
+  -- Shared context table passed to each tab builder function.
+  -- Tab builders read from and write to this table so that cross-tab
+  -- references (e.g. refreshList, allDropdowns) work without passing
+  -- dozens of individual parameters.
+  local ctx = {
+    playerClass  = playerClass,
+    allDropdowns = {},
+  }
+
+  -------------------------------------------------------------------
+  -- Tab system
+  -------------------------------------------------------------------
+  local TAB_NAMES = { L["General"], L["Spell Sounds"], L["Muted Sounds"], L["Presets"], L["Ambient"], L["Profiles"] }
+  local TAB_HEIGHT = 28
+  local TAB_OVERLAP = 4
+  local CONTENT_BG = { 0.1, 0.1, 0.1, 0.7 }
+  local tabFrames = {}
+  local tabButtons = {}
+
+  local tabBackdrop = {
+    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 14,
+    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
+  }
+
+  -- Content container with border
+  local contentBox = CreateFrame("Frame", nil, panel, "BackdropTemplate")
+  contentBox:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(TAB_HEIGHT + 8 - TAB_OVERLAP))
+  contentBox:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
+  contentBox:SetBackdrop({
+    bgFile   = "Interface\\BUTTONS\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 14,
+    insets   = { left = 3, right = 3, top = 3, bottom = 3 },
+  })
+  contentBox:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], CONTENT_BG[4])
+  contentBox:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
+
+  for i, name in ipairs(TAB_NAMES) do
+    local btn = CreateFrame("Button", "ResonanceTab" .. i, panel, "BackdropTemplate")
+    btn:SetHeight(TAB_HEIGHT)
+    btn:SetBackdrop(tabBackdrop)
+    btn:SetFrameLevel(contentBox:GetFrameLevel() + 1)
+
+    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    btn.text:SetPoint("CENTER", 0, 1)
+    btn.text:SetText(name)
+    btn:SetWidth(btn.text:GetStringWidth() + 26)
+
+    -- Mask that hides the bottom border of the tab
+    btn.bottomMask = btn:CreateTexture(nil, "OVERLAY")
+    btn.bottomMask:SetPoint("BOTTOMLEFT", 3, -TAB_OVERLAP)
+    btn.bottomMask:SetPoint("BOTTOMRIGHT", -3, -TAB_OVERLAP)
+    btn.bottomMask:SetHeight(TAB_OVERLAP + 8)
+
+    if i == 1 then
+      btn:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8)
+    else
+      btn:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 4, 0)
+    end
+    tabButtons[i] = btn
+
+    local sf = CreateFrame("ScrollFrame", nil, contentBox, "UIPanelScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", contentBox, "TOPLEFT", 8, -8)
+    sf:SetPoint("BOTTOMRIGHT", contentBox, "BOTTOMRIGHT", -24, 8)
+    sf:Hide()
+
+    -- Auto-hide scrollbar when content fits
+    local scrollbarParts = {}
+    for j = 1, sf:GetNumChildren() do
+      local child = select(j, sf:GetChildren())
+      if child:IsObjectType("Slider") then
+        scrollbarParts[#scrollbarParts + 1] = child
+        for k = 1, child:GetNumChildren() do
+          local sub = select(k, child:GetChildren())
+          scrollbarParts[#scrollbarParts + 1] = sub
+        end
+        break
+      end
+    end
+    sf.scrollbarParts = scrollbarParts
+    -- Hide scrollbar initially
+    for _, part in ipairs(scrollbarParts) do part:Hide() end
+
+    local function updateScrollbar(self)
+      local yRange = self:GetVerticalScrollRange()
+      local show = yRange and yRange > 0
+      for _, part in ipairs(self.scrollbarParts) do
+        part:SetShown(show)
+      end
+      if not show then self:SetVerticalScroll(0) end
+    end
+    sf:HookScript("OnScrollRangeChanged", updateScrollbar)
+    sf:HookScript("OnShow", updateScrollbar)
+
+    local c = CreateFrame("Frame")
+    sf:SetScrollChild(c)
+    c:SetWidth(CONTENT_WIDTH + 40)
+    c:SetHeight(1)
+    -- Dynamically match scroll child width to scroll frame
+    sf:HookScript("OnSizeChanged", function(self, w)
+      if w and w > 0 then c:SetWidth(w) end
+    end)
+    tabFrames[i] = { scroll = sf, content = c }
+  end
+
+  -- Dynamically resize scroll child to fit actual content
+  local function recalcContentHeight(tabIndex)
+    C_Timer.After(0, function()
+      local content = tabFrames[tabIndex].content
+      local top = content:GetTop()
+      if not top then return end
+      local lowestBottom = top
+      for i = 1, content:GetNumChildren() do
+        local child = select(i, content:GetChildren())
+        if child:IsShown() then
+          local bottom = child:GetBottom()
+          if bottom and bottom < lowestBottom then
+            lowestBottom = bottom
+          end
+        end
+      end
+      content:SetHeight(math.max(top - lowestBottom + 20, 1))
+    end)
+  end
+
+  ctx.tabFrames = tabFrames
+  ctx.recalcContentHeight = recalcContentHeight
+
+  local function selectTab(id)
+    for i, tf in ipairs(tabFrames) do
+      tf.scroll:SetShown(i == id)
+    end
+    for i, btn in ipairs(tabButtons) do
+      if i == id then
+        btn:SetBackdropColor(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
+        btn:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
+        btn:SetFrameLevel(contentBox:GetFrameLevel() + 2)
+        btn.text:SetFontObject("GameFontHighlight")
+        btn.bottomMask:SetColorTexture(CONTENT_BG[1], CONTENT_BG[2], CONTENT_BG[3], 1)
+      else
+        btn:SetBackdropColor(0.06, 0.06, 0.06, 1)
+        btn:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
+        btn:SetFrameLevel(contentBox:GetFrameLevel() - 1)
+        btn.text:SetFontObject("GameFontNormal")
+        btn.bottomMask:SetColorTexture(0.06, 0.06, 0.06, 1)
+      end
+    end
+    for _, dd in ipairs(ctx.allDropdowns) do dd:Hide() end
+    if id == 1 then recalcContentHeight(1) end
+    if id == 2 and ctx.refreshList then ctx.refreshList() end
+    if id == 3 and ctx.refreshMuteList then ctx.refreshMuteList() end
+    if id == 4 and ctx.refreshPresetList then ctx.refreshPresetList() end
+    if id == 5 and ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
+  end
+
+  for i, btn in ipairs(tabButtons) do
+    btn:SetScript("OnClick", function() selectTab(i) end)
+  end
+
+  -------------------------------------------------------------------
+  -- Tab 1: General (AceConfig embedded)
+  -------------------------------------------------------------------
+  local gen = tabFrames[1].content
+
+  local aceContainer = CreateFrame("Frame", nil, gen)
+  aceContainer:SetPoint("TOPLEFT", 16, -16)
+  aceContainer:SetPoint("TOPRIGHT", -16, 0)
+  aceContainer:SetHeight(300)
+
+  local AceConfigDialog = LibStub("AceConfigDialog-3.0")
+  -- AceConfigDialog:Open uses a container widget; we embed into our tab
+  -- We use a simple group with inline=true approach
+  local aceGUI = LibStub("AceGUI-3.0")
+
+  local function buildAceGeneralTab()
+    -- Create an AceGUI container and embed in our frame
+    local container = aceGUI:Create("SimpleGroup")
+    container:SetLayout("Fill")
+    container.frame:SetParent(gen)
+    container.frame:SetAllPoints(aceContainer)
+    container.frame:Show()
+
+    AceConfigDialog:Open("Resonance_General", container)
+  end
+
+  -- Build on first show
+  aceContainer:SetScript("OnShow", function(self)
+    self:SetScript("OnShow", nil)
+    buildAceGeneralTab()
+  end)
+
+
+  -------------------------------------------------------------------
+  -- Build tabs 2-5 via extracted functions
+  -------------------------------------------------------------------
+  buildTab2_SpellSounds(ctx)
+  buildTab3_MutedSounds(ctx)
+  buildTab4_Presets(ctx)
+  buildTab5_Ambient(ctx)
 
   -------------------------------------------------------------------
   -- Tab 6: Profiles (AceDBOptions)
@@ -3926,7 +4000,10 @@ local function buildLayout()
   -------------------------------------------------------------------
   -- Dropdown management & panel events
   -------------------------------------------------------------------
-  allDropdowns = { edBrowseDD, edSpellSearchDD, muteDD }
+  local allDropdowns = ctx.allDropdowns
+  allDropdowns[#allDropdowns + 1] = ctx.edBrowseDD
+  allDropdowns[#allDropdowns + 1] = ctx.edSpellSearchDD
+  allDropdowns[#allDropdowns + 1] = ctx.muteDD
 
   panel:SetScript("OnShow", function()
     invalidateSpellCache()
@@ -3938,9 +4015,9 @@ local function buildLayout()
     invalidateSpellCache()  -- free cached tables while options panel is closed
   end)
 
-  editorFrame:HookScript("OnHide", function()
-    edBrowseDD:Hide()
-    edSpellSearchDD:Hide()
+  ctx.editorFrame:HookScript("OnHide", function()
+    ctx.edBrowseDD:Hide()
+    ctx.edSpellSearchDD:Hide()
   end)
 
   -- Click catcher to close dropdowns when clicking outside
