@@ -299,12 +299,6 @@ local function previewSound(value)
   return false
 end
 
-local function scheduleStopSound(handle, duration)
-  if handle and duration and duration > 0 then
-    C_Timer.After(duration, function() StopSound(handle) end)
-  end
-end
-
 local function clearInterruptAlertState()
   lastInterruptInfo = nil
   if activeAlertHandle then
@@ -1137,12 +1131,16 @@ Resonance.refreshNPCMutes = refreshNPCMutes
 -- for spells whose FIDs were excluded from SpellMuteData as over-shared)
 -- with SpellMuteData entries (comma-separated strings parsed on demand).
 ---------------------------------------------------------------------------
+local _smf_fids = {}
+local _smf_seen = {}
+
 local function getSpellMuteFIDs(sid)
   local cfg = db and db.spell_config and db.spell_config[sid]
   local explicit = cfg and cfg.muteFIDs
   local val = Resonance.SpellMuteData and Resonance.SpellMuteData[sid]
   if not explicit and not val then return nil end
-  local fids, seen = {}, {}
+  wipe(_smf_fids); wipe(_smf_seen)
+  local fids, seen = _smf_fids, _smf_seen
   if explicit then
     for _, fid in ipairs(explicit) do
       if not seen[fid] then fids[#fids + 1] = fid; seen[fid] = true end
@@ -1187,9 +1185,12 @@ local function getExclusions(spellID)
   return cfg and cfg.muteExclusions
 end
 
+local _filtered = {}
+
 local function filterExclusions(fids, exclusions)
   if not exclusions then return fids end
-  local filtered = {}
+  wipe(_filtered)
+  local filtered = _filtered
   for _, fid in ipairs(fids) do
     if not exclusions[fid] then
       filtered[#filtered + 1] = fid
@@ -1212,9 +1213,12 @@ local function shouldAutoMuteSpell(spellID)
   return source == playerClassToken
 end
 
+local _deferSnapshot = false
+
 local function persistAutoMutedSnapshot()
   -- Save current auto-muted FIDs so stale mutes can be cleaned on next /reload.
   -- MuteSoundFile persists across /reload but autoMutedFIDs (runtime table) does not.
+  if _deferSnapshot then return end
   if not db then return end
   local snapshot = {}
   for fid, rc in pairs(autoMutedFIDs) do
@@ -1285,13 +1289,16 @@ local function rebuildAutoMutes()
   persistAutoMutedSnapshot()
 end
 
+local _newFIDs = {}
+
 local function applyAutoMutesForSpell(spellID)
   if not shouldAutoMuteSpell(spellID) then return end
   local fids = getSpellMuteFIDs(spellID)
   if not fids then return end
   fids = filterExclusions(fids, getExclusions(spellID))
   -- Only call MuteSoundFile for FIDs not already muted (avoid inflating WoW's internal refcount)
-  local newFIDs = {}
+  wipe(_newFIDs)
+  local newFIDs = _newFIDs
   for _, fid in ipairs(fids) do
     if not autoMutedFIDs[fid] or autoMutedFIDs[fid] <= 0 then
       if not db.mute_file_data_ids[fid] then
@@ -1636,6 +1643,7 @@ function Resonance:ImportConfig(str)
     return nil, L["Failed to parse import string."]
   end
   local added, skipped, addedMutes = 0, 0, 0
+  _deferSnapshot = true
   for sid, cfg in pairs(result.spells or {}) do
     if db.spell_config[sid] then
       skipped = skipped + 1
@@ -1645,6 +1653,7 @@ function Resonance:ImportConfig(str)
       added = added + 1
     end
   end
+  _deferSnapshot = false
   for fid in pairs(result.mutes or {}) do
     if not db.mute_file_data_ids[fid] then
       db.mute_file_data_ids[fid] = true
@@ -1652,7 +1661,10 @@ function Resonance:ImportConfig(str)
       addedMutes = addedMutes + 1
     end
   end
-  if added > 0 then invalidateSpellNameIndex() end
+  if added > 0 then
+    persistAutoMutedSnapshot()
+    invalidateSpellNameIndex()
+  end
   return added, skipped, addedMutes
 end
 
@@ -1719,6 +1731,7 @@ function Resonance:ApplySavedPreset(name)
   local preset = db.saved_presets[name]
   if not preset then return 0, 0, 0 end
   local added, skipped, addedMutes = 0, 0, 0
+  _deferSnapshot = true
   for sid, cfg in pairs(preset.spells or {}) do
     if db.spell_config[sid] then
       skipped = skipped + 1
@@ -1754,6 +1767,7 @@ function Resonance:ApplySavedPreset(name)
       added = added + 1
     end
   end
+  _deferSnapshot = false
   for fid in pairs(preset.mutes or {}) do
     if not db.mute_file_data_ids[fid] then
       db.mute_file_data_ids[fid] = true
@@ -1761,7 +1775,10 @@ function Resonance:ApplySavedPreset(name)
       addedMutes = addedMutes + 1
     end
   end
-  if added > 0 then invalidateSpellNameIndex() end
+  if added > 0 then
+    persistAutoMutedSnapshot()
+    invalidateSpellNameIndex()
+  end
   return added, skipped, addedMutes
 end
 
@@ -1865,6 +1882,7 @@ function Resonance:ApplyClassTemplate(classKey)
   local template = ClassTemplates and ClassTemplates[classKey]
   if not template then return 0, 0 end
   local added, skipped = 0, 0
+  _deferSnapshot = true
   for _, entry in ipairs(template) do
     local sid = entry.spellID
     if db.spell_config[sid] then
@@ -1901,7 +1919,11 @@ function Resonance:ApplyClassTemplate(classKey)
       added = added + 1
     end
   end
-  if added > 0 then invalidateSpellNameIndex() end
+  _deferSnapshot = false
+  if added > 0 then
+    persistAutoMutedSnapshot()
+    invalidateSpellNameIndex()
+  end
   return added, skipped
 end
 
@@ -1911,6 +1933,7 @@ end
 local function refreshPresetsFromTemplates()
   if not ClassTemplates then return end
   local updated, added = 0, 0
+  _deferSnapshot = true
 
   -- Collect which class templates the user has loaded
   local loadedClasses = {}
@@ -1989,6 +2012,7 @@ local function refreshPresetsFromTemplates()
     end
   end
 
+  _deferSnapshot = false
   if updated > 0 or added > 0 then
     invalidateSpellNameIndex()
     -- Only do a full rebuild if SpellMuteData is available (data addon loaded).
@@ -1996,6 +2020,7 @@ local function refreshPresetsFromTemplates()
     if Resonance.SpellMuteData then
       rebuildAutoMutes()
     end
+    persistAutoMutedSnapshot()
     if added > 0 then
       msg(L["%d new template spell(s) auto-added."]:format(added))
     end
@@ -2010,13 +2035,18 @@ function Resonance:RemovePresetSpells(presetName)
       toRemove[#toRemove + 1] = sid
     end
   end
+  _deferSnapshot = true
   for _, sid in ipairs(toRemove) do
     removeAutoMutesForSpell(sid)
     db.spell_config[sid] = nil
     db.preset_spells[sid] = nil
     removed = removed + 1
   end
-  if removed > 0 then invalidateSpellNameIndex() end
+  _deferSnapshot = false
+  if removed > 0 then
+    persistAutoMutedSnapshot()
+    invalidateSpellNameIndex()
+  end
   return removed
 end
 
