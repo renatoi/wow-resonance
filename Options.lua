@@ -1543,8 +1543,22 @@ buildTab2_SpellSounds = function(ctx)
   edDurationLabel:SetPoint("LEFT", edDurationFrame, "LEFT", 0, 0)
   edDurationLabel:SetText(L["Stop sound after (seconds):"])
 
-  local edDurationBox = makeEditBox(edDurationFrame, 60, edDurationFrame, 0, 0, "e.g. 1.5")
+  local edDurationBox = CreateFrame("EditBox", nil, edDurationFrame, "InputBoxTemplate")
+  edDurationBox:SetSize(60, 22)
   edDurationBox:SetPoint("LEFT", edDurationLabel, "RIGHT", 6, 0)
+  edDurationBox:SetAutoFocus(false)
+  do
+    edDurationBox.placeholder = edDurationBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    edDurationBox.placeholder:SetPoint("LEFT", 4, 0)
+    edDurationBox.placeholder:SetText("e.g. 1.5")
+    local function upd(self)
+      self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus())
+    end
+    edDurationBox:SetScript("OnEditFocusGained", function(self) self.placeholder:Hide() end)
+    edDurationBox:SetScript("OnEditFocusLost", upd)
+    edDurationBox:SetScript("OnTextChanged", upd)
+    edDurationBox:SetScript("OnShow", upd)
+  end
   wireNumericEditBox(edDurationBox, function(val) editorDuration = val end)
 
   local edDurationClearBtn = makeButton(edDurationFrame, L["Clear"], 42, function()
@@ -1591,12 +1605,11 @@ buildTab2_SpellSounds = function(ctx)
     edFileFrame:SetShown(not muteOnly and not edBrowseRadio:GetChecked())
     edDurationFrame:SetShown(not muteOnly)
     if muteOnly then edBrowseDD:Hide() end
-    -- Re-anchor auto-mute section: attach to checkbox when mute-only, duration frame otherwise
+    -- Re-anchor auto-mute section below the appropriate element
+    autoMuteAnchor:ClearAllPoints()
     if muteOnly then
-      autoMuteAnchor:ClearAllPoints()
       autoMuteAnchor:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -12)
     else
-      autoMuteAnchor:ClearAllPoints()
       autoMuteAnchor:SetPoint("TOPLEFT", edDurationFrame, "BOTTOMLEFT", 0, -8)
     end
     if edResizeEditor and editorFrame:IsShown() then edResizeEditor() end
