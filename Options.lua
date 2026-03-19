@@ -405,7 +405,7 @@ local function searchSpells(query)
     end
     if match then
       results[#results + 1] = { spellID = entry.spellID, name = entry.name, known = entry.known,
-        display = entry.name .. "  |cff808080(ID: " .. entry.spellID .. ")|r" }
+        display = entry.name, subdisplay = "ID: " .. entry.spellID }
     end
   end
 
@@ -647,19 +647,19 @@ end
 ---------------------------------------------------------------------------
 -- Autocomplete dropdown component
 ---------------------------------------------------------------------------
-local NUM_WIDTH = 24
+local ROW_HEIGHT_2 = math.floor(ROW_HEIGHT * 1.7)
 
-local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdownWidth, extraActions, rowHeight)
+local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdownWidth, extraActions)
   -- actionDef: { label, tooltip, width } or string (legacy label-only)
   if type(actionDef) == "string" then actionDef = { label = actionDef } end
-  local rh = rowHeight or ROW_HEIGHT
   local w = dropdownWidth or CONTENT_WIDTH
   local dd = CreateFrame("Frame", nil, UIParent)
   dd:SetFrameStrata("TOOLTIP")
-  dd:SetSize(w, AUTOCOMPLETE_ROWS * rh + 18)
+  dd:SetSize(w, AUTOCOMPLETE_ROWS * ROW_HEIGHT + 18)
   dd:SetPoint("TOPLEFT", searchBox, "BOTTOMLEFT", -2, -2)
   dd:SetClampedToScreen(true)
   dd:Hide()
+  dd.rowH = ROW_HEIGHT
 
   local bg = dd:CreateTexture(nil, "BACKGROUND")
   bg:SetAllPoints()
@@ -726,8 +726,8 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
 
   for i = 1, AUTOCOMPLETE_ROWS do
     local row = CreateFrame("Frame", nil, dd)
-    row:SetSize(w - 4, rh)
-    row:SetPoint("TOPLEFT", 2, -(i - 1) * rh - 2)
+    row:SetSize(w - 4, ROW_HEIGHT)
+    row:SetPoint("TOPLEFT", 2, -(i - 1) * ROW_HEIGHT - 2)
 
     if i % 2 == 0 then
       local stripe = row:CreateTexture(nil, "BACKGROUND")
@@ -735,20 +735,19 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
       stripe:SetColorTexture(1, 1, 1, 0.04)
     end
 
-    row.num = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    row.num:SetPoint("LEFT", 2, 0)
-    row.num:SetWidth(NUM_WIDTH)
-    row.num:SetJustifyH("RIGHT")
-
     row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    if rh > ROW_HEIGHT then
-      row.text:SetPoint("TOPLEFT", row, "TOPLEFT", NUM_WIDTH + 6, -2)
-    else
-      row.text:SetPoint("LEFT", NUM_WIDTH + 6, 0)
-    end
+    row.text:SetPoint("TOPLEFT", row, "TOPLEFT", 6, -3)
     row.text:SetPoint("RIGHT", row, "RIGHT", textRightOffset, 0)
     row.text:SetJustifyH("LEFT")
-    row.text:SetWordWrap(rh > ROW_HEIGHT)
+    row.text:SetWordWrap(false)
+
+    row.sub = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.sub:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 6, 3)
+    row.sub:SetPoint("RIGHT", row, "RIGHT", textRightOffset, 0)
+    row.sub:SetJustifyH("LEFT")
+    row.sub:SetWordWrap(false)
+    row.sub:SetTextColor(0.5, 0.5, 0.55)
+    row.sub:Hide()
 
     -- Build buttons right-to-left: primary action -> extra actions -> play
     row.actionBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
@@ -805,12 +804,31 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
   local function refreshRows(self)
     local data = self.data or {}
     local off = self.scrollOffset
+    local rh = self.rowH or ROW_HEIGHT
     for i, row in ipairs(self.rows) do
       local di = off + i
+      row:SetHeight(rh)
+      row:ClearAllPoints()
+      row:SetPoint("TOPLEFT", 2, -(i - 1) * rh - 2)
+      row:SetSize(w - 4, rh)
       if di <= #data then
         row.entry = data[di]
-        row.num:SetText("|cff888888" .. di .. "|r")
         row.text:SetText(data[di].display or data[di].path or "")
+        local sub = data[di].subdisplay
+        if sub and sub ~= "" then
+          row.sub:SetText(sub)
+          row.sub:Show()
+        else
+          row.sub:Hide()
+        end
+        -- Re-anchor text vertically depending on whether sub is shown
+        row.text:ClearAllPoints()
+        if sub and sub ~= "" then
+          row.text:SetPoint("TOPLEFT", row, "TOPLEFT", 6, -3)
+        else
+          row.text:SetPoint("LEFT", 6, 0)
+        end
+        row.text:SetPoint("RIGHT", row, "RIGHT", textRightOffset, 0)
         if self.onRowRefresh then self:onRowRefresh(row, data[di]) end
         row:Show()
       else
@@ -839,6 +857,14 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
   function dd:SetData(data, statusMsg)
     self.data = data or {}
     self.scrollOffset = 0
+    -- Use taller rows when any result has subdisplay text
+    local hasSub = false
+    for _, d in ipairs(self.data) do
+      if d.subdisplay and d.subdisplay ~= "" then hasSub = true; break end
+    end
+    self.rowH = hasSub and ROW_HEIGHT_2 or ROW_HEIGHT
+    local visibleRows = math.min(#self.data, AUTOCOMPLETE_ROWS)
+    dd:SetHeight(math.max(visibleRows, 1) * self.rowH + 18)
     self.statusText:SetText(statusMsg or "")
     refreshRows(self)
     self:SetShown(#self.data > 0 or (statusMsg and statusMsg ~= ""))
@@ -1028,7 +1054,6 @@ buildTab2_SpellSounds = function(ctx)
   for _, row in ipairs(edSpellSearchDD.rows) do
     row.playBtn:Hide()
     row.playBtn:SetSize(1, 1)
-    row.text:SetPoint("RIGHT", row, "RIGHT", -(row.actionBtn:GetWidth() + 6), 0)
   end
 
   local function edDoSpellSearch()
@@ -1430,7 +1455,10 @@ buildTab2_SpellSounds = function(ctx)
     if #q < 3 then edBrowseDD:SetData({}, ""); edBrowseDD:Hide(); return end
     searchDB(Resonance.SpellSounds, q, "edBrowse", function(results)
       for _, r in ipairs(results) do
-        r.display = formatSoundDisplay(r.path, r.fileDataID)
+        local filename = r.path:match("([^/\\]+)$") or r.path
+        local parent = r.path:match("([^/\\]+)[/\\][^/\\]+$")
+        r.display = filename
+        r.subdisplay = (parent and (parent .. "/  \194\183  ") or "") .. "#" .. r.fileDataID
       end
       edBrowseDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
     end)
@@ -2389,13 +2417,12 @@ buildTab3_MutedSounds = function(ctx)
         for _, r in ipairs(results) do
           local npcID = r.fileDataID
           local count = getNPCFIDCount(npcID)
-          -- r.path is "EnglishName|alt1|alt2"; display just the first (English) name
           local displayName = r.path:match("^([^|]+)") or r.path
-          local display = displayName .. " |cff888888(NPC " .. npcID .. ", " .. count .. " " .. L["sounds"] .. ")|r"
+          r.display = displayName
           if isNPCMuted(npcID) then
-            display = "|cff666666[muted]|r " .. display
+            r.display = "|cff666666" .. displayName .. "|r"
           end
-          r.display = display
+          r.subdisplay = "NPC " .. npcID .. "  \194\183  " .. count .. " " .. L["sounds"]
         end
         muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
       end)
@@ -2403,11 +2430,13 @@ buildTab3_MutedSounds = function(ctx)
       local searchTarget = (muteMode == "character") and Resonance.CharacterSounds or Resonance.SpellSounds
       searchDB(searchTarget, q, "muteSearch", function(results)
         for _, r in ipairs(results) do
-          local display = formatSoundDisplay(r.path, r.fileDataID)
+          local filename = r.path:match("([^/\\]+)$") or r.path
+          local parent = r.path:match("([^/\\]+)[/\\][^/\\]+$")
+          r.display = filename
           if isFIDMuted(r.fileDataID) then
-            display = "|cff666666[muted]|r " .. display
+            r.display = "|cff666666" .. filename .. "|r"
           end
-          r.display = display
+          r.subdisplay = (parent and (parent .. "/  \194\183  ") or "") .. "#" .. r.fileDataID
         end
         muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
       end)
@@ -3633,7 +3662,7 @@ buildTab5_Ambient = function(ctx)
           doAmbSearch()
         end
       end,
-      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH, nil, math.floor(ROW_HEIGHT * 1.6)
+      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH
     )
     ctx.allDropdowns[#ctx.allDropdowns + 1] = ambSearchDD
 
@@ -3699,21 +3728,18 @@ buildTab5_Ambient = function(ctx)
         for _, r in ipairs(results) do
           local fid = r.fileDataID
           local zoneLabel = ambFIDZone[fid]
-          -- Strip the appended zone info from the path for display
           local cleanPath = r.path:match("^(sound/.-)%s") or r.path
           local filename = cleanPath:match("([^/\\]+)$") or cleanPath
           local parent = cleanPath:match("([^/\\]+)[/\\][^/\\]+$")
-          local line1 = filename .. "  |cff808080#" .. fid .. "|r"
-          if parent then line1 = filename .. "  |cff999999" .. parent .. "/|r  |cff808080#" .. fid .. "|r" end
-          local display = line1
-          if zoneLabel then
-            display = display .. "\n|cff66aacc" .. zoneLabel .. "|r"
-          end
+          r.display = filename
           if Resonance.db.profile.mute_file_data_ids[fid] then
-            display = "|cff666666[muted]|r " .. display
+            r.display = "|cff666666" .. filename .. "|r"
           end
-          r.display = display
-          r.hasZone = zoneLabel and true or false
+          local parts = {}
+          if parent then parts[#parts + 1] = parent .. "/" end
+          parts[#parts + 1] = "#" .. fid
+          if zoneLabel then parts[#parts + 1] = zoneLabel end
+          r.subdisplay = table.concat(parts, "  \194\183  ")
         end
         ambSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
       end)
