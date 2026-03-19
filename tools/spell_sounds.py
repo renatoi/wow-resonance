@@ -1567,17 +1567,17 @@ def generate_npc_data(ske_idx: dict, output_path: Path,
                 f"-- + {vo_npc_count} NPCs with voice-over dialogue "
                 f"({vo_fid_count} VO FIDs from listfile)\n\n")
 
-        # Searchable index: "Name#npcID" — deduplicated by (name, CSD)
-        # Searchable index: "EnglishName|locale names...#npcID"
-        # All unique locale names are packed after | so the search matches
-        # in any language.  Display code splits on | and shows [1] (English)
-        # or the user's locale name from the locale table.
-        f.write("-- Searchable NPC list: \"Name|altnames#npcID\" format\n")
+        # Searchable index: "EnglishName#npcID" (English only, compact)
+        # Locale names split into separate Resonance_NPCSoundL10N table
+        f.write("-- Searchable NPC list: \"EnglishName#npcID\" format\n")
         f.write("Resonance_NPCSoundIndex = {\n")
+        l10n_entries: dict[int, str] = {}  # rep_id -> "alt1|alt2|..."
         for entry in dedup_entries:
             rep_id = entry["rep_id"]
             en_name = entry["name"]
-            # Collect unique non-English names from ALL NPC IDs in the group
+            safe_en = en_name.replace("\\", "\\\\").replace('"', '\\"')
+            f.write(f'"{safe_en}#{rep_id}",\n')
+            # Collect unique non-English names for L10N table
             alt_names = []
             seen = {en_name.lower()}
             for nid in entry["all_ids"]:
@@ -1587,12 +1587,16 @@ def generate_npc_data(ske_idx: dict, output_path: Path,
                     if lname and lname.lower() not in seen:
                         alt_names.append(lname)
                         seen.add(lname.lower())
-            # Pack: "EnglishName|alt1|alt2#npcID"
-            search_str = en_name
             if alt_names:
-                search_str += "|" + "|".join(alt_names)
-            safe = search_str.replace("\\", "\\\\").replace('"', '\\"')
-            f.write(f'"{safe}#{rep_id}",\n')
+                l10n_entries[rep_id] = "|".join(alt_names)
+        f.write("}\n\n")
+
+        # Locale names table: npcID -> "locName1|locName2|..."
+        f.write(f"-- {len(l10n_entries)} NPCs with non-English locale names\n")
+        f.write("Resonance_NPCSoundL10N = {\n")
+        for rep_id in sorted(l10n_entries.keys()):
+            safe = l10n_entries[rep_id].replace("\\", "\\\\").replace('"', '\\"')
+            f.write(f'[{rep_id}]="{safe}",\n')
         f.write("}\n\n")
 
         # NPC ID → CSD ID mapping (ALL NPC IDs, not just representatives,

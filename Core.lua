@@ -53,16 +53,8 @@ if ADDON_VERSION:find("@") then ADDON_VERSION = "dev" end
 -- guaranteed set.  Data-addon globals (SpellMuteData, SpellSounds, etc.) may
 -- not exist yet if Resonance_Data hasn't been loaded (LoadOnDemand).
 Resonance.ClassTemplates      = Resonance_ClassTemplates;       Resonance_ClassTemplates      = nil
-Resonance.CreatureVoxData     = Resonance_CreatureVoxData;      Resonance_CreatureVoxData     = nil
-Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories; Resonance_CreatureVoxCategories = nil
 Resonance.ProfessionSoundData  = Resonance_ProfessionSoundData;  Resonance_ProfessionSoundData  = nil
 Resonance.ProfessionCategories = Resonance_ProfessionCategories;  Resonance_ProfessionCategories = nil
-Resonance.CreatureVoxExcludedFIDs = Resonance_CreatureVoxExcludedFIDs; Resonance_CreatureVoxExcludedFIDs = nil
-Resonance.NPCSoundIndex       = Resonance_NPCSoundIndex;        Resonance_NPCSoundIndex       = nil
-Resonance.NPCToCSD            = Resonance_NPCToCSD;              Resonance_NPCToCSD            = nil
-Resonance.NPCSoundCSD         = Resonance_NPCSoundCSD;          Resonance_NPCSoundCSD         = nil
-Resonance.NPCVoiceData        = Resonance_NPCVoiceData;          Resonance_NPCVoiceData        = nil
-Resonance.NPCRepCSDs          = Resonance_NPCRepCSDs;            Resonance_NPCRepCSDs          = nil
 
 -- Capture globals from Resonance_Data (may not exist yet if LoadOnDemand).
 -- Called at file load and again from loadDataAddon() after late loading.
@@ -75,7 +67,18 @@ local function captureDataAddonGlobals()
   if Resonance_AmbientSoundData then Resonance.AmbientSoundData = Resonance_AmbientSoundData; Resonance_AmbientSoundData = nil end
   if Resonance_AmbientSounds then Resonance.AmbientSounds = Resonance_AmbientSounds; Resonance_AmbientSounds = nil end
   if Resonance_SpellSounds then Resonance.SpellSounds = Resonance_SpellSounds; Resonance_SpellSounds = nil end
+  if Resonance_SpellSoundPrefixes then Resonance.SpellSoundPrefixes = Resonance_SpellSoundPrefixes; Resonance_SpellSoundPrefixes = nil end
   if Resonance_CharacterSounds then Resonance.CharacterSounds = Resonance_CharacterSounds; Resonance_CharacterSounds = nil end
+  if Resonance_CharacterSoundPrefixes then Resonance.CharacterSoundPrefixes = Resonance_CharacterSoundPrefixes; Resonance_CharacterSoundPrefixes = nil end
+  if Resonance_NPCSoundL10N then Resonance.NPCSoundL10N = Resonance_NPCSoundL10N; Resonance_NPCSoundL10N = nil end
+  if Resonance_CreatureVoxData then Resonance.CreatureVoxData = Resonance_CreatureVoxData; Resonance_CreatureVoxData = nil end
+  if Resonance_CreatureVoxCategories then Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories; Resonance_CreatureVoxCategories = nil end
+  if Resonance_CreatureVoxExcludedFIDs then Resonance.CreatureVoxExcludedFIDs = Resonance_CreatureVoxExcludedFIDs; Resonance_CreatureVoxExcludedFIDs = nil end
+  if Resonance_NPCSoundIndex then Resonance.NPCSoundIndex = Resonance_NPCSoundIndex; Resonance_NPCSoundIndex = nil end
+  if Resonance_NPCToCSD then Resonance.NPCToCSD = Resonance_NPCToCSD; Resonance_NPCToCSD = nil end
+  if Resonance_NPCSoundCSD then Resonance.NPCSoundCSD = Resonance_NPCSoundCSD; Resonance_NPCSoundCSD = nil end
+  if Resonance_NPCVoiceData then Resonance.NPCVoiceData = Resonance_NPCVoiceData; Resonance_NPCVoiceData = nil end
+  if Resonance_NPCRepCSDs then Resonance.NPCRepCSDs = Resonance_NPCRepCSDs; Resonance_NPCRepCSDs = nil end
 end
 captureDataAddonGlobals()
 
@@ -97,19 +100,13 @@ local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 
 -- Local aliases for hot-path access (core-addon data, always available)
 local ClassTemplates   = Resonance.ClassTemplates
-local CreatureVoxData  = Resonance.CreatureVoxData
-local CreatureVoxCategories = Resonance.CreatureVoxCategories
-local CreatureVoxExcludedFIDs = Resonance.CreatureVoxExcludedFIDs
 local ProfessionSoundData  = Resonance.ProfessionSoundData
 local ProfessionCategories = Resonance.ProfessionCategories
-local NPCToCSD             = Resonance.NPCToCSD
-local NPCSoundCSD          = Resonance.NPCSoundCSD
-local NPCVoiceData         = Resonance.NPCVoiceData
-local NPCRepCSDs           = Resonance.NPCRepCSDs
 
 -- Data-addon tables (SpellMuteData, RaceCSD, VoxFIDs, WeaponImpactFIDs,
--- AmbientSoundData, SpellSounds, CharacterSounds, AmbientSounds) live on
--- Resonance.X and are accessed there so that loadDataAddon() updates are
+-- AmbientSoundData, SpellSounds, CharacterSounds, AmbientSounds,
+-- CreatureVoxData, NPCSoundData) live on Resonance.X and are accessed
+-- there so that loadDataAddon() updates are
 -- visible without re-capturing locals.
 
 -- WoW's MuteSoundFile is refcounted; this ceiling covers the worst case of
@@ -217,6 +214,9 @@ local defaults = {
     _lastCreatureMutedFIDs = {},  -- same for creature vox mutes
     _lastProfessionMutedFIDs = {},  -- same for profession sound mutes
     _lastAmbientMutedFIDs = {},  -- same for ambient sound mutes
+    _lastNPCMutedFIDs = {},  -- same for NPC sound mutes
+    _lastVoxMutedFIDs = {},  -- same for vocalization mutes
+    _lastWeaponMutedFIDs = {},  -- same for weapon impact mutes
   },
 }
 
@@ -561,15 +561,32 @@ local function applyVoxMutes()
   local mode = getVoxMode()
   if mode == "off" then return end
   local count = 0
-  if mode == "mine" then
-    local voxEntry = getPlayerCSDEntry()
-    if voxEntry then
-      count = muteVoxEntry(voxEntry)
-    end
-  elseif mode == "all" then
-    if Resonance.VoxFIDs then
+  local hasData = Resonance.VoxFIDs and Resonance.RaceCSD
+  if hasData then
+    if mode == "mine" then
+      local voxEntry = getPlayerCSDEntry()
+      if voxEntry then
+        count = muteVoxEntry(voxEntry)
+      end
+    elseif mode == "all" then
       for _, voxEntry in pairs(Resonance.VoxFIDs) do
         count = count + muteVoxEntry(voxEntry)
+      end
+    end
+    -- Persist snapshot
+    local snapshot = {}
+    for fid in pairs(voxMutedFIDs) do snapshot[fid] = true end
+    db._lastVoxMutedFIDs = snapshot
+  else
+    -- Data addon not loaded — re-apply from snapshot
+    local snapshot = db._lastVoxMutedFIDs
+    if snapshot then
+      for fid in pairs(snapshot) do
+        if not voxMutedFIDs[fid] then
+          voxMutedFIDs[fid] = true
+          MuteSoundFile(fid)
+          count = count + 1
+        end
       end
     end
   end
@@ -587,6 +604,14 @@ local function clearVoxMutes()
     end
     count = count + 1
   end
+  if db and db._lastVoxMutedFIDs then
+    for fid in pairs(db._lastVoxMutedFIDs) do
+      if not voxMutedFIDs[fid] and not isMutedElsewhere(fid, voxMutedFIDs) then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+    wipe(db._lastVoxMutedFIDs)
+  end
   wipe(voxMutedFIDs)
   if count > 0 then
     msg(L["Cleared %d vocalization mutes."]:format(count))
@@ -602,13 +627,30 @@ end
 -- Global weapon impact mute
 ---------------------------------------------------------------------------
 local function applyWeaponMutes()
-  if not Resonance.WeaponImpactFIDs then return end
   local count = 0
-  for _, fid in ipairs(Resonance.WeaponImpactFIDs) do
-    if not weaponMutedFIDs[fid] then
-      weaponMutedFIDs[fid] = true
-      MuteSoundFile(fid)
-      count = count + 1
+  if Resonance.WeaponImpactFIDs then
+    for _, fid in ipairs(Resonance.WeaponImpactFIDs) do
+      if not weaponMutedFIDs[fid] then
+        weaponMutedFIDs[fid] = true
+        MuteSoundFile(fid)
+        count = count + 1
+      end
+    end
+    -- Persist snapshot
+    local snapshot = {}
+    for fid in pairs(weaponMutedFIDs) do snapshot[fid] = true end
+    db._lastWeaponMutedFIDs = snapshot
+  else
+    -- Data addon not loaded — re-apply from snapshot
+    local snapshot = db._lastWeaponMutedFIDs
+    if snapshot then
+      for fid in pairs(snapshot) do
+        if not weaponMutedFIDs[fid] then
+          weaponMutedFIDs[fid] = true
+          MuteSoundFile(fid)
+          count = count + 1
+        end
+      end
     end
   end
   if count > 0 then
@@ -623,6 +665,14 @@ local function clearWeaponMutes()
       UnmuteSoundFile(fid)
     end
     count = count + 1
+  end
+  if db and db._lastWeaponMutedFIDs then
+    for fid in pairs(db._lastWeaponMutedFIDs) do
+      if not weaponMutedFIDs[fid] and not isMutedElsewhere(fid, weaponMutedFIDs) then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+    wipe(db._lastWeaponMutedFIDs)
   end
   wipe(weaponMutedFIDs)
   if count > 0 then
@@ -640,52 +690,68 @@ local function hasAnyCreatureVoxEnabled()
 end
 
 local function applyCreatureVoxMutes()
-  if not CreatureVoxData or not db.muteCreatureVox then return end
+  if not db.muteCreatureVox then return end
+  local cvData = Resonance.CreatureVoxData
   local count = 0
-  for cat, enabled in pairs(db.muteCreatureVox) do
-    if enabled then
-      local packed = CreatureVoxData[cat]
-      if packed then
-        for s in packed:gmatch("%d+") do
-          local fid = tonumber(s)
-          if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
-            creatureMutedFIDs[fid] = true
-            MuteSoundFile(fid)
-            count = count + 1
+  if cvData then
+    for cat, enabled in pairs(db.muteCreatureVox) do
+      if enabled then
+        local packed = cvData[cat]
+        if packed then
+          for s in packed:gmatch("%d+") do
+            local fid = tonumber(s)
+            if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
+              creatureMutedFIDs[fid] = true
+              MuteSoundFile(fid)
+              count = count + 1
+            end
           end
         end
       end
     end
-  end
-  -- Unmute stale creature vox FIDs from previous session that are no longer
-  -- in CreatureVoxData (e.g. FIDs removed to avoid collateral spell muting).
-  -- MuteSoundFile persists across /reload but creatureMutedFIDs does not;
-  -- each reload with creature vox enabled added another MuteSoundFile call,
-  -- so we must call UnmuteSoundFile MAX_MUTE_DEPTH times to drain the
-  -- engine's internal refcount.
-  local stale = db._lastCreatureMutedFIDs
-  if stale then
-    for fid in pairs(stale) do
-      if not creatureMutedFIDs[fid] and not isMutedElsewhere(fid, creatureMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+    -- Unmute stale creature vox FIDs from previous session that are no longer
+    -- in CreatureVoxData (e.g. FIDs removed to avoid collateral spell muting).
+    -- MuteSoundFile persists across /reload but creatureMutedFIDs does not;
+    -- each reload with creature vox enabled added another MuteSoundFile call,
+    -- so we must call UnmuteSoundFile MAX_MUTE_DEPTH times to drain the
+    -- engine's internal refcount.
+    local stale = db._lastCreatureMutedFIDs
+    if stale then
+      for fid in pairs(stale) do
+        if not creatureMutedFIDs[fid] and not isMutedElsewhere(fid, creatureMutedFIDs) then
+          for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        end
+      end
+    end
+    -- Unconditionally unmute FIDs that were removed from CreatureVoxData to
+    -- avoid collateral spell muting.  Clears stale MuteSoundFile state from
+    -- sessions before _lastCreatureMutedFIDs tracking was added.
+    local cvExcluded = Resonance.CreatureVoxExcludedFIDs
+    if cvExcluded then
+      for s in cvExcluded:gmatch("%d+") do
+        local fid = tonumber(s)
+        if fid and not creatureMutedFIDs[fid] and not isMutedElsewhere(fid, creatureMutedFIDs) then
+          for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        end
+      end
+    end
+    -- Persist snapshot for next session's stale cleanup
+    local snapshot = {}
+    for fid in pairs(creatureMutedFIDs) do snapshot[fid] = true end
+    db._lastCreatureMutedFIDs = snapshot
+  else
+    -- Data addon not loaded — re-apply from snapshot
+    local snapshot = db._lastCreatureMutedFIDs
+    if snapshot then
+      for fid in pairs(snapshot) do
+        if not creatureMutedFIDs[fid] then
+          creatureMutedFIDs[fid] = true
+          MuteSoundFile(fid)
+          count = count + 1
+        end
       end
     end
   end
-  -- Unconditionally unmute FIDs that were removed from CreatureVoxData to
-  -- avoid collateral spell muting.  Clears stale MuteSoundFile state from
-  -- sessions before _lastCreatureMutedFIDs tracking was added.
-  if CreatureVoxExcludedFIDs then
-    for s in CreatureVoxExcludedFIDs:gmatch("%d+") do
-      local fid = tonumber(s)
-      if fid and not creatureMutedFIDs[fid] and not isMutedElsewhere(fid, creatureMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
-      end
-    end
-  end
-  -- Persist snapshot for next session's stale cleanup
-  local snapshot = {}
-  for fid in pairs(creatureMutedFIDs) do snapshot[fid] = true end
-  db._lastCreatureMutedFIDs = snapshot
   if count > 0 then
     msg(L["Muted %d creature vocalization sounds."]:format(count))
   end
@@ -958,15 +1024,34 @@ end
 
 local function applyNPCMutes()
   if not db.mutedNPCs then return end
+  local npcSoundCSD = Resonance.NPCSoundCSD
+  local npcRepCSDs = Resonance.NPCRepCSDs
+  local npcToCSD = Resonance.NPCToCSD
+  local npcVoiceData = Resonance.NPCVoiceData
   local count = 0
-  for npcID in pairs(db.mutedNPCs) do
-    -- CSD combat sounds — check multi-CSD table first, fall back to single CSD
-    if NPCSoundCSD then
-      local csdList = NPCRepCSDs and NPCRepCSDs[npcID]
-      if csdList then
-        -- Multi-CSD: NPC has different sound profiles across story phases
-        for cs in csdList:gmatch("%d+") do
-          local packed = NPCSoundCSD[tonumber(cs)]
+  if npcSoundCSD or npcVoiceData then
+    for npcID in pairs(db.mutedNPCs) do
+      -- CSD combat sounds — check multi-CSD table first, fall back to single CSD
+      if npcSoundCSD then
+        local csdList = npcRepCSDs and npcRepCSDs[npcID]
+        if csdList then
+          -- Multi-CSD: NPC has different sound profiles across story phases
+          for cs in csdList:gmatch("%d+") do
+            local packed = npcSoundCSD[tonumber(cs)]
+            if packed then
+              for s in packed:gmatch("%d+") do
+                local fid = tonumber(s)
+                if fid and not npcMutedFIDs[fid] then
+                  npcMutedFIDs[fid] = true
+                  MuteSoundFile(fid)
+                  count = count + 1
+                end
+              end
+            end
+          end
+        elseif npcToCSD then
+          local csd = npcToCSD[npcID]
+          local packed = csd and npcSoundCSD[csd]
           if packed then
             for s in packed:gmatch("%d+") do
               local fid = tonumber(s)
@@ -978,11 +1063,12 @@ local function applyNPCMutes()
             end
           end
         end
-      elseif NPCToCSD then
-        local csd = NPCToCSD[npcID]
-        local packed = csd and NPCSoundCSD[csd]
-        if packed then
-          for s in packed:gmatch("%d+") do
+      end
+      -- VO dialogue sounds (from listfile, separate from CSD)
+      if npcVoiceData then
+        local vo = npcVoiceData[npcID]
+        if vo then
+          for s in vo:gmatch("%d+") do
             local fid = tonumber(s)
             if fid and not npcMutedFIDs[fid] then
               npcMutedFIDs[fid] = true
@@ -993,17 +1079,19 @@ local function applyNPCMutes()
         end
       end
     end
-    -- VO dialogue sounds (from listfile, separate from CSD)
-    if NPCVoiceData then
-      local vo = NPCVoiceData[npcID]
-      if vo then
-        for s in vo:gmatch("%d+") do
-          local fid = tonumber(s)
-          if fid and not npcMutedFIDs[fid] then
-            npcMutedFIDs[fid] = true
-            MuteSoundFile(fid)
-            count = count + 1
-          end
+    -- Persist snapshot for next session
+    local snapshot = {}
+    for fid in pairs(npcMutedFIDs) do snapshot[fid] = true end
+    db._lastNPCMutedFIDs = snapshot
+  else
+    -- Data addon not loaded — re-apply from snapshot
+    local snapshot = db._lastNPCMutedFIDs
+    if snapshot then
+      for fid in pairs(snapshot) do
+        if not npcMutedFIDs[fid] then
+          npcMutedFIDs[fid] = true
+          MuteSoundFile(fid)
+          count = count + 1
         end
       end
     end
@@ -1020,6 +1108,15 @@ local function clearNPCMutes()
       UnmuteSoundFile(fid)
     end
     count = count + 1
+  end
+  -- Also unmute stale FIDs from previous session snapshot
+  if db and db._lastNPCMutedFIDs then
+    for fid in pairs(db._lastNPCMutedFIDs) do
+      if not npcMutedFIDs[fid] and not isMutedElsewhere(fid, npcMutedFIDs) then
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+    end
+    wipe(db._lastNPCMutedFIDs)
   end
   wipe(npcMutedFIDs)
   if count > 0 then
@@ -1735,9 +1832,26 @@ local function loadDataAddon()
   local loaded, reason = C_AddOns.LoadAddOn("Resonance_Data")
   if loaded then
     captureDataAddonGlobals()
-    -- Now do a full rebuild with the real SpellMuteData
+    -- Full rebuild with real data (replaces snapshot-based mutes)
     if Resonance.SpellMuteData then
       rebuildAutoMutes()
+    end
+    -- Rebuild data-dependent mute layers now that real tables are available
+    if Resonance.CreatureVoxData and hasAnyCreatureVoxEnabled() then
+      clearCreatureVoxMutes()
+      applyCreatureVoxMutes()
+    end
+    if Resonance.NPCSoundCSD and hasAnyNPCMuteEnabled() then
+      clearNPCMutes()
+      applyNPCMutes()
+    end
+    if Resonance.VoxFIDs and getVoxMode() ~= "off" then
+      clearVoxMutes()
+      applyVoxMutes()
+    end
+    if Resonance.WeaponImpactFIDs and db.muteWeaponImpacts then
+      clearWeaponMutes()
+      applyWeaponMutes()
     end
     dataLoaded = true
     return true
@@ -2222,8 +2336,8 @@ local function getGeneralOptions()
   }
 
   -- Add creature vox category toggles dynamically from data
-  if CreatureVoxCategories then
-    for i, cat in ipairs(CreatureVoxCategories) do
+  if Resonance.CreatureVoxCategories then
+    for i, cat in ipairs(Resonance.CreatureVoxCategories) do
       opts.args["creatureVox_" .. cat] = {
         type = "toggle",
         name = L[cat] or cat,
@@ -2461,10 +2575,10 @@ function Resonance:OnEnable()
   if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
   if hasAnyCreatureVoxEnabled() then
     applyCreatureVoxMutes()
-  elseif CreatureVoxExcludedFIDs then
+  elseif Resonance.CreatureVoxExcludedFIDs then
     -- Creature vox is off but stale MuteSoundFile state from previous
     -- sessions (before FIDs were excluded) still needs clearing.
-    for s in CreatureVoxExcludedFIDs:gmatch("%d+") do
+    for s in Resonance.CreatureVoxExcludedFIDs:gmatch("%d+") do
       local fid = tonumber(s)
       if fid and not isMutedElsewhere(fid) then
         for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
@@ -2797,10 +2911,10 @@ function Resonance:ChatCommand(input)
     msg("  Settings API: " .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
     msg("  Spell mute data: " .. (Resonance.SpellMuteData and "|cff00ff00loaded (string-packed)|r" or "|cffff0000NOT LOADED|r"))
     msg("  Vox data: " .. (Resonance.VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
-    msg("  Creature vox data: " .. (CreatureVoxData and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
-    if CreatureVoxCategories then
+    msg("  Creature vox data: " .. (Resonance.CreatureVoxData and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
+    if Resonance.CreatureVoxCategories then
       local enabledCats = {}
-      for _, cat in ipairs(CreatureVoxCategories) do
+      for _, cat in ipairs(Resonance.CreatureVoxCategories) do
         if db.muteCreatureVox and db.muteCreatureVox[cat] then
           enabledCats[#enabledCats + 1] = cat
         end

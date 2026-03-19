@@ -12,3 +12,5 @@ data/SpellSounds.lua
 data/CharacterSounds.lua
 data/AmbientSoundData.lua
 data/ClassicSpellSounds.lua
+data/CreatureVoxData.lua
+data/NPCSoundData.lua

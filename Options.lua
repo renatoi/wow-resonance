@@ -40,7 +40,7 @@ local function cancelSearch(key)
   end
 end
 
-local function searchDB(sourceDB, query, key, callback)
+local function searchDB(sourceDB, query, key, callback, prefixPool, l10nTable)
   cancelSearch(key)
   if not sourceDB then callback({}); return end
   local terms = {}
@@ -55,12 +55,36 @@ local function searchDB(sourceDB, query, key, callback)
   local co = coroutine.create(function()
     local results = {}
     for i, entry in ipairs(sourceDB) do
-      local path, fid = entry:match("([^#]+)#([^#]+)")
+      local path, fid, prefixIdx
+      if prefixPool then
+        -- Prefix-pooled format: "filename#FID#prefixIdx"
+        local fn, fidStr, pIdx = entry:match("([^#]+)#([^#]+)#([^#]+)")
+        if fn and fidStr and pIdx then
+          local idx = tonumber(pIdx)
+          local prefix = idx and prefixPool[idx] or ""
+          path = prefix .. fn
+          fid = fidStr
+        end
+      else
+        path, fid = entry:match("([^#]+)#([^#]+)")
+      end
       if path and fid then
         local lp = path:lower()
         local match = true
         for _, t in ipairs(terms) do
           if not lp:find(t, 1, true) then match = false; break end
+        end
+        -- For NPC search: also check L10N table if English name didn't match
+        if not match and l10nTable then
+          local npcID = tonumber(fid)
+          local l10n = npcID and l10nTable[npcID]
+          if l10n then
+            local ll = l10n:lower()
+            match = true
+            for _, t in ipairs(terms) do
+              if not ll:find(t, 1, true) then match = false; break end
+            end
+          end
         end
         if match then
           results[#results + 1] = { path = path, fileDataID = tonumber(fid) }
@@ -118,11 +142,27 @@ local fidPathCache
 local function lookupFIDPath(fid)
   if not fidPathCache then
     fidPathCache = {}
-    for _, db in ipairs({ Resonance.SpellSounds, Resonance.CharacterSounds }) do
-      if db then
-        for _, entry in ipairs(db) do
-          local path, id = entry:match("([^#]+)#([^#]+)")
-          if path and id then fidPathCache[tonumber(id)] = path end
+    local dbs = {
+      { Resonance.SpellSounds, Resonance.SpellSoundPrefixes },
+      { Resonance.CharacterSounds, Resonance.CharacterSoundPrefixes },
+    }
+    for _, pair in ipairs(dbs) do
+      local entries, prefixes = pair[1], pair[2]
+      if entries then
+        if prefixes then
+          for _, entry in ipairs(entries) do
+            local fn, id, pIdx = entry:match("([^#]+)#([^#]+)#([^#]+)")
+            if fn and id and pIdx then
+              local idx = tonumber(pIdx)
+              local prefix = idx and prefixes[idx] or ""
+              fidPathCache[tonumber(id)] = prefix .. fn
+            end
+          end
+        else
+          for _, entry in ipairs(entries) do
+            local path, id = entry:match("([^#]+)#([^#]+)")
+            if path and id then fidPathCache[tonumber(id)] = path end
+          end
         end
       end
     end
@@ -1461,7 +1501,7 @@ buildTab2_SpellSounds = function(ctx)
         r.subdisplay = (parent and (parent .. "/  \194\183  ") or "") .. "#" .. r.fileDataID
       end
       edBrowseDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
-    end)
+    end, Resonance.SpellSoundPrefixes)
   end
 
   local edBrowseClear = makeClearButton(edBrowseBox, function() edBrowseDD:Hide() end)
@@ -2312,9 +2352,8 @@ buildTab3_MutedSounds = function(ctx)
     if not npcNameCache then
       npcNameCache = {}
       for _, entry in ipairs(Resonance.NPCSoundIndex or {}) do
-        local raw, id = entry:match("^(.+)#(-?%d+)$")
-        if raw and id then
-          local name = raw:match("^([^|]+)") or raw
+        local name, id = entry:match("^(.+)#(-?%d+)$")
+        if name and id then
           npcNameCache[tonumber(id)] = name
         end
       end
@@ -2411,7 +2450,7 @@ buildTab3_MutedSounds = function(ctx)
         for _, r in ipairs(results) do
           local npcID = r.fileDataID
           local count = getNPCFIDCount(npcID)
-          local displayName = r.path:match("^([^|]+)") or r.path
+          local displayName = r.path
           r.display = displayName
           if isNPCMuted(npcID) then
             r.display = "|cff666666" .. displayName .. "|r"
@@ -2419,9 +2458,10 @@ buildTab3_MutedSounds = function(ctx)
           r.subdisplay = "NPC " .. npcID .. "  \194\183  " .. count .. " " .. L["sounds"]
         end
         muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
-      end)
+      end, nil, Resonance.NPCSoundL10N)
     else
       local searchTarget = (muteMode == "character") and Resonance.CharacterSounds or Resonance.SpellSounds
+      local prefixPool = (muteMode == "character") and Resonance.CharacterSoundPrefixes or Resonance.SpellSoundPrefixes
       searchDB(searchTarget, q, "muteSearch", function(results)
         for _, r in ipairs(results) do
           local filename = r.path:match("([^/\\]+)$") or r.path
@@ -2433,7 +2473,7 @@ buildTab3_MutedSounds = function(ctx)
           r.subdisplay = (parent and (parent .. "/  \194\183  ") or "") .. "#" .. r.fileDataID
         end
         muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
-      end)
+      end, prefixPool)
     end
   end
 
