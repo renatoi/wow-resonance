@@ -1506,6 +1506,7 @@ buildTab2_SpellSounds = function(ctx)
   edFileRndBtn:SetPoint("LEFT", edFileAddBtn, "RIGHT", 2, 0)
   addButtonTooltip(edFileRndBtn, L["Add to the random pool (1 picked at random per cast)"])
 
+  local edInputAnchor  -- forward-declared; created below duration section
   local function edSetSoundMode(isBrowse)
     edBrowseRadio:SetChecked(isBrowse)
     edFileRadio:SetChecked(not isBrowse)
@@ -1513,6 +1514,15 @@ buildTab2_SpellSounds = function(ctx)
     if edBrowseBox.clearBtn then edBrowseBox.clearBtn:SetShown(isBrowse and edBrowseBox:GetText() ~= "") end
     edFileFrame:SetShown(not isBrowse)
     if not isBrowse then edBrowseDD:Hide() end
+    -- Re-anchor input anchor below the active input area
+    if edInputAnchor then
+      edInputAnchor:ClearAllPoints()
+      if isBrowse then
+        edInputAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -8)
+      else
+        edInputAnchor:SetPoint("TOPLEFT", edFileFrame, "BOTTOMLEFT", 0, -8)
+      end
+    end
   end
   edBrowseRadio:SetScript("OnClick", function() edSetSoundMode(true) end)
   edFileRadio:SetScript("OnClick", function() edSetSoundMode(false) end)
@@ -1520,9 +1530,14 @@ buildTab2_SpellSounds = function(ctx)
   ---------------------------------------------------------------------------
   -- Duration control (stop sound after N seconds)
   ---------------------------------------------------------------------------
+  -- Anchor point below the active input area (browse or file-path)
+  edInputAnchor = CreateFrame("Frame", nil, editorFrame)
+  edInputAnchor:SetSize(CONTENT_WIDTH - 20, 1)
+  edInputAnchor:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -8)
+
   local edDurationFrame = CreateFrame("Frame", nil, editorFrame)
   edDurationFrame:SetSize(CONTENT_WIDTH - 20, 24)
-  edDurationFrame:SetPoint("TOPLEFT", edBrowseBox, "BOTTOMLEFT", 0, -8)
+  edDurationFrame:SetPoint("TOPLEFT", edInputAnchor, "TOPLEFT", 0, 0)
 
   local edDurationLabel = edDurationFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   edDurationLabel:SetPoint("LEFT", edDurationFrame, "LEFT", 0, 0)
@@ -3603,7 +3618,7 @@ buildTab5_Ambient = function(ctx)
           doAmbSearch()
         end
       end,
-      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH, nil, ROW_HEIGHT * 2
+      { label = L["Mute"], altLabels = { L["Unmute"] } }, CONTENT_WIDTH, nil, math.floor(ROW_HEIGHT * 1.6)
     )
     ctx.allDropdowns[#ctx.allDropdowns + 1] = ambSearchDD
 
@@ -3671,14 +3686,19 @@ buildTab5_Ambient = function(ctx)
           local zoneLabel = ambFIDZone[fid]
           -- Strip the appended zone info from the path for display
           local cleanPath = r.path:match("^(sound/.-)%s") or r.path
-          local display = formatSoundDisplay(cleanPath, fid)
+          local filename = cleanPath:match("([^/\\]+)$") or cleanPath
+          local parent = cleanPath:match("([^/\\]+)[/\\][^/\\]+$")
+          local line1 = filename .. "  |cff808080#" .. fid .. "|r"
+          if parent then line1 = filename .. "  |cff999999" .. parent .. "/|r  |cff808080#" .. fid .. "|r" end
+          local display = line1
           if zoneLabel then
-            display = display .. "\n    |cff66aacc" .. zoneLabel .. "|r"
+            display = display .. "\n|cff66aacc" .. zoneLabel .. "|r"
           end
           if Resonance.db.profile.mute_file_data_ids[fid] then
             display = "|cff666666[muted]|r " .. display
           end
           r.display = display
+          r.hasZone = zoneLabel and true or false
         end
         ambSearchDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
       end)
@@ -3751,19 +3771,27 @@ buildTab5_Ambient = function(ctx)
         entry.ehdr:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
         yOff = yOff - (ROW_HEIGHT + 4) - 2
         if expanded[entry.exp] then
+          -- Column-major layout: first half left, second half right
+          -- A | C
+          -- B | D
+          local n = #entry.zoneRows
+          local half = math.ceil(n / 2)
+          local startY = yOff
           for idx, row in ipairs(entry.zoneRows) do
             row:ClearAllPoints()
-            local col = (idx - 1) % 2  -- 0 = left, 1 = right
-            local xOff = 20 + col * ZONE_COL_WIDTH
-            row:SetPoint("TOPLEFT", zoneHeader, "BOTTOMLEFT", xOff, yOff)
-            if col == 1 then
-              yOff = yOff - ROW_HEIGHT - 2
+            local col, rowInCol
+            if idx <= half then
+              col = 0
+              rowInCol = idx - 1
+            else
+              col = 1
+              rowInCol = idx - half - 1
             end
+            local xOff = 20 + col * ZONE_COL_WIDTH
+            local rowY = startY - rowInCol * (ROW_HEIGHT + 2)
+            row:SetPoint("TOPLEFT", zoneHeader, "BOTTOMLEFT", xOff, rowY)
           end
-          -- If odd number of rows, advance Y after the last left-column row
-          if #entry.zoneRows % 2 == 1 then
-            yOff = yOff - ROW_HEIGHT - 2
-          end
+          yOff = startY - half * (ROW_HEIGHT + 2)
         end
       end
       recalcContentHeight(4)
