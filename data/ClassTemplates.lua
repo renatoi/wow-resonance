@@ -110,6 +110,7 @@ Resonance_ClassTemplates = {
     { spellID = 1329,   name = "Mutilate",          sound = 568080 },  -- mutilate_impact_chest.ogg
     { spellID = 5938,   name = "Shiv",              sound = 569098 },  -- DecisiveStrike.ogg
     { spellID = 185313, name = "Shadow Dance",      sound = 568653 },  -- rogue_shadowdance_state.ogg
+    { spellID = 185438, name = "Shadowstrike",       sound = 569766 },  -- ShadowCast.ogg
     { spellID = 8676,   name = "Ambush",            sound = 569059 },  -- Strike.ogg
     { spellID = 1943,   name = "Rupture",           sound = 568003 },  -- RendTarget.ogg
     { spellID = 703,    name = "Garrote",           sound = 568003 },  -- RendTarget.ogg

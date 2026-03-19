@@ -166,6 +166,8 @@ local function isFIDMuted(fid)
   if Resonance.weaponMutedFIDs and Resonance.weaponMutedFIDs[fid] then return true end
   if Resonance.creatureMutedFIDs and Resonance.creatureMutedFIDs[fid] then return true end
   if Resonance.professionMutedFIDs and Resonance.professionMutedFIDs[fid] then return true end
+  if Resonance.fishingMutedFIDs and Resonance.fishingMutedFIDs[fid] then return true end
+  if Resonance.npcMutedFIDs and Resonance.npcMutedFIDs[fid] then return true end
   return false
 end
 
@@ -188,6 +190,8 @@ local function safePlaySound(value)
         if Resonance.weaponMutedFIDs and Resonance.weaponMutedFIDs[fid] then MuteSoundFile(fid) end
         if Resonance.creatureMutedFIDs and Resonance.creatureMutedFIDs[fid] then MuteSoundFile(fid) end
         if Resonance.professionMutedFIDs and Resonance.professionMutedFIDs[fid] then MuteSoundFile(fid) end
+        if Resonance.fishingMutedFIDs and Resonance.fishingMutedFIDs[fid] then MuteSoundFile(fid) end
+        if Resonance.npcMutedFIDs and Resonance.npcMutedFIDs[fid] then MuteSoundFile(fid) end
       end)
     end
   else
@@ -2108,8 +2112,12 @@ local function buildLayout()
   muteCharRadio:SetPoint("LEFT", muteSpellRadio.label, "RIGHT", 10, 0)
   muteCharRadio.label:SetText(L["Character Sounds"])
 
+  local muteNPCRadio = makeRadio(muteTab)
+  muteNPCRadio:SetPoint("LEFT", muteCharRadio.label, "RIGHT", 10, 0)
+  muteNPCRadio.label:SetText(L["NPC"])
+
   local muteFidRadio = makeRadio(muteTab)
-  muteFidRadio:SetPoint("LEFT", muteCharRadio.label, "RIGHT", 10, 0)
+  muteFidRadio:SetPoint("LEFT", muteNPCRadio.label, "RIGHT", 10, 0)
   muteFidRadio.label:SetText(L["FID"])
 
   local muteMode = "spells"
@@ -2152,26 +2160,99 @@ local function buildLayout()
   end)
   muteFidAddBtn:SetPoint("LEFT", muteFidPlayBtn, "RIGHT", 2, 0)
 
+  -- NPC muting helpers
+  local npcNameCache
+  local function lookupNPCName(npcID)
+    if not npcNameCache then
+      npcNameCache = {}
+      for _, entry in ipairs(Resonance.NPCSoundIndex or {}) do
+        local raw, id = entry:match("^(.+)#(-?%d+)$")
+        if raw and id then
+          local name = raw:match("^([^|]+)") or raw
+          npcNameCache[tonumber(id)] = name
+        end
+      end
+    end
+    return npcNameCache[npcID] or tostring(npcID)
+  end
+
+  local function isNPCMuted(npcID)
+    return Resonance.db.profile.mutedNPCs and Resonance.db.profile.mutedNPCs[npcID]
+  end
+
+  local function getNPCFIDCount(npcID)
+    local n = 0
+    local NPCSoundCSD = Resonance.NPCSoundCSD
+    if NPCSoundCSD then
+      local NPCRepCSDs = Resonance.NPCRepCSDs
+      local csdList = NPCRepCSDs and NPCRepCSDs[npcID]
+      if csdList then
+        for cs in csdList:gmatch("%d+") do
+          local packed = NPCSoundCSD[tonumber(cs)]
+          if packed then
+            for _ in packed:gmatch("%d+") do n = n + 1 end
+          end
+        end
+      else
+        local NPCToCSD = Resonance.NPCToCSD
+        local csd = NPCToCSD and NPCToCSD[npcID]
+        local packed = csd and NPCSoundCSD[csd]
+        if packed then
+          for _ in packed:gmatch("%d+") do n = n + 1 end
+        end
+      end
+    end
+    local NPCVoiceData = Resonance.NPCVoiceData
+    if NPCVoiceData then
+      local vo = NPCVoiceData[npcID]
+      if vo then
+        for _ in vo:gmatch("%d+") do n = n + 1 end
+      end
+    end
+    return n
+  end
+
+  local function muteNPC(npcID)
+    local p = Resonance.db.profile
+    if not p.mutedNPCs then p.mutedNPCs = {} end
+    p.mutedNPCs[npcID] = true
+    Resonance.refreshNPCMutes()
+    refreshMuteList()
+  end
+
+  local function unmuteNPC(npcID)
+    local p = Resonance.db.profile
+    if p.mutedNPCs then p.mutedNPCs[npcID] = nil end
+    Resonance.refreshNPCMutes()
+    refreshMuteList()
+  end
+
   local muteDD
   muteDD = createAutocomplete(muteSearchBox,
     function(e) if e then return e.fileDataID end end,
     function(e)
       if e then
-        Resonance.db.profile.mute_file_data_ids[e.fileDataID] = true
-        MuteSoundFile(e.fileDataID)
-        refreshMuteList()
+        if muteMode == "npc" then
+          muteNPC(e.fileDataID)  -- fileDataID is actually npcID in NPC mode
+        else
+          Resonance.db.profile.mute_file_data_ids[e.fileDataID] = true
+          MuteSoundFile(e.fileDataID)
+          refreshMuteList()
+        end
       end
     end,
     { label = L["+ Mute"], altLabels = { L["Muted"] } }, CONTENT_WIDTH
   )
 
   function muteDD:onRowRefresh(row, entry)
-    local muted = isFIDMuted(entry.fileDataID)
-    row.actionBtn:SetEnabled(not muted)
-    if muted then
-      row.actionBtn:SetText(L["Muted"])
+    if muteMode == "npc" then
+      local muted = isNPCMuted(entry.fileDataID)
+      row.actionBtn:SetEnabled(not muted)
+      row.actionBtn:SetText(muted and L["Muted"] or L["+ Mute"])
     else
-      row.actionBtn:SetText(L["+ Mute"])
+      local muted = isFIDMuted(entry.fileDataID)
+      row.actionBtn:SetEnabled(not muted)
+      row.actionBtn:SetText(muted and L["Muted"] or L["+ Mute"])
     end
   end
 
@@ -2179,17 +2260,34 @@ local function buildLayout()
     if not muteSearchBox:HasFocus() then return end
     local q = muteSearchBox:GetText()
     if #q < 3 then muteDD:SetData({}, ""); muteDD:Hide(); return end
-    local searchTarget = (muteMode == "character") and Resonance.CharacterSounds or Resonance.SpellSounds
-    searchDB(searchTarget, q, "muteSearch", function(results)
-      for _, r in ipairs(results) do
-        local display = formatSoundDisplay(r.path, r.fileDataID)
-        if isFIDMuted(r.fileDataID) then
-          display = "|cff666666[muted]|r " .. display
+    if muteMode == "npc" then
+      searchDB(Resonance.NPCSoundIndex, q, "muteSearch", function(results)
+        for _, r in ipairs(results) do
+          local npcID = r.fileDataID
+          local count = getNPCFIDCount(npcID)
+          -- r.path is "EnglishName|alt1|alt2"; display just the first (English) name
+          local displayName = r.path:match("^([^|]+)") or r.path
+          local display = displayName .. " |cff888888(NPC " .. npcID .. ", " .. count .. " " .. L["sounds"] .. ")|r"
+          if isNPCMuted(npcID) then
+            display = "|cff666666[muted]|r " .. display
+          end
+          r.display = display
         end
-        r.display = display
-      end
-      muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
-    end)
+        muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+      end)
+    else
+      local searchTarget = (muteMode == "character") and Resonance.CharacterSounds or Resonance.SpellSounds
+      searchDB(searchTarget, q, "muteSearch", function(results)
+        for _, r in ipairs(results) do
+          local display = formatSoundDisplay(r.path, r.fileDataID)
+          if isFIDMuted(r.fileDataID) then
+            display = "|cff666666[muted]|r " .. display
+          end
+          r.display = display
+        end
+        muteDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+      end)
+    end
   end
 
   local muteSearchClear = makeClearButton(muteSearchBox, function() muteDD:Hide() end)
@@ -2216,14 +2314,21 @@ local function buildLayout()
     muteMode = mode
     muteSpellRadio:SetChecked(mode == "spells")
     muteCharRadio:SetChecked(mode == "character")
+    muteNPCRadio:SetChecked(mode == "npc")
     muteFidRadio:SetChecked(mode == "fid")
     muteSearchFrame:SetShown(mode ~= "fid")
     myVoxBtn:SetShown(mode == "character")
     muteFidFrame:SetShown(mode == "fid")
+    if mode == "npc" then
+      muteSearchBox.placeholder:SetText(L["Search NPC by name..."])
+    else
+      muteSearchBox.placeholder:SetText(L["Search sounds to mute..."])
+    end
     muteDD:Hide()
   end
   muteSpellRadio:SetScript("OnClick", function() setMuteMode("spells") end)
   muteCharRadio:SetScript("OnClick", function() setMuteMode("character") end)
+  muteNPCRadio:SetScript("OnClick", function() setMuteMode("npc") end)
   muteFidRadio:SetScript("OnClick", function() setMuteMode("fid") end)
 
   -- Muted sounds list
@@ -2706,6 +2811,69 @@ local function buildLayout()
             yOff = yOff + ROW_HEIGHT
           end
         end
+      end
+    end
+
+    -- Muted NPCs section
+    local mutedNPCs = profile.mutedNPCs
+    local npcEntries = {}
+    if mutedNPCs and Resonance.NPCToCSD then
+      for npcID in pairs(mutedNPCs) do
+        local name = lookupNPCName(npcID)
+        npcEntries[#npcEntries + 1] = { npcID = npcID, name = name, count = getNPCFIDCount(npcID) }
+      end
+      table.sort(npcEntries, function(a, b) return a.name:lower() < b.name:lower() end)
+    end
+
+    if #npcEntries > 0 then
+      -- NPC section header
+      rowIdx = rowIdx + 1
+      local npcLabel = getOrCreateMuteRow(rowIdx)
+      npcLabel:SetHeight(ROW_HEIGHT + 4)
+      npcLabel:ClearAllPoints()
+      npcLabel:SetPoint("TOPLEFT", muteListContainer, "TOPLEFT", 0, -yOff)
+      npcLabel:SetPoint("RIGHT", muteListContainer, "RIGHT", 0, 0)
+      npcLabel.text:SetFontObject(GameFontNormal)
+      npcLabel.text:SetPoint("LEFT", 0, 0)
+      npcLabel.text:SetPoint("RIGHT", npcLabel, "RIGHT", -4, 0)
+      npcLabel.text:SetText(L["Muted NPCs"])
+      npcLabel.playBtn:Hide()
+      npcLabel.removeBtn:Hide()
+      if npcLabel.muteToggle then npcLabel.muteToggle:Hide() end
+      if npcLabel.stripe then npcLabel.stripe:Hide() end
+      npcLabel:Show()
+      yOff = yOff + ROW_HEIGHT + 4
+
+      for ni, npcEntry in ipairs(npcEntries) do
+        rowIdx = rowIdx + 1
+        local row = getOrCreateMuteRow(rowIdx)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", muteListContainer, "TOPLEFT", 8, -yOff)
+        row:SetPoint("RIGHT", muteListContainer, "RIGHT", 0, 0)
+        row.text:SetFontObject(GameFontHighlightSmall)
+        row.text:SetText(npcEntry.name .. " |cff888888(NPC " .. npcEntry.npcID .. ", " .. npcEntry.count .. " " .. L["sounds"] .. ")|r")
+        row.playBtn:Hide()
+        row.removeBtn:Show()
+        row.removeBtn:SetEnabled(true)
+        if row.muteToggle then row.muteToggle:Hide() end
+        local capturedNpcID = npcEntry.npcID
+        row.removeBtn:SetScript("OnEnter", function(self)
+          GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+          GameTooltip:AddLine(L["Unmute"], 1, 1, 1)
+          GameTooltip:Show()
+        end)
+        row.removeBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        row.removeBtn:SetScript("OnClick", function()
+          unmuteNPC(capturedNpcID)
+        end)
+        if not row.stripe then
+          row.stripe = row:CreateTexture(nil, "BACKGROUND")
+          row.stripe:SetAllPoints()
+          row.stripe:SetColorTexture(1, 1, 1, 0.04)
+        end
+        row.stripe:SetShown(ni % 2 == 0)
+        row:Show()
+        yOff = yOff + ROW_HEIGHT
       end
     end
 

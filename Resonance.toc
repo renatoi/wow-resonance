@@ -27,6 +27,7 @@ data/CharacterSounds.lua
 data/SpellMuteData.lua
 data/CreatureVoxData.lua
 data/ProfessionSoundData.lua
+data/NPCSoundData.lua
 data/ClassTemplates.lua
 
 Locales.lua

@@ -1048,6 +1048,25 @@ def build_fid_to_creature_type(listfile_path: Path) -> dict[int, str]:
     return mapping
 
 
+# All sound columns in CreatureSoundData (comprehensive, for NPC muting)
+ALL_CSD_SOUND_COLS = [
+    "SoundExertionID", "SoundExertionCriticalID",
+    "SoundInjuryID", "SoundInjuryCriticalID", "SoundInjuryCrushingBlowID",
+    "SoundDeathID", "SoundStunID", "SoundStandID", "SoundFootstepID",
+    "SoundAlertID", "SoundAggroID",
+    "SoundFidget_0", "SoundFidget_1", "SoundFidget_2", "SoundFidget_3",
+    "SoundFidget_4",
+    "CustomAttack_0", "CustomAttack_1", "CustomAttack_2",
+    "LoopSoundID",
+    "SoundJumpStartID", "SoundJumpEndID",
+    "SpellCastDirectedSoundID",
+    "SubmergeSoundID", "SubmergedSoundID",
+    "BattleShoutSoundID", "BattleShoutCriticalSoundID",
+    "TauntSoundID",
+    "WindupSoundID", "WindupCriticalSoundID",
+    "ChargeSoundID",
+]
+
 # Vocalization columns to collect from CreatureSoundData
 CREATURE_VOX_COLS = [
     "SoundExertionID", "SoundExertionCriticalID",
@@ -1251,6 +1270,372 @@ def generate_creature_vox_data(ske_idx: dict, output_path: Path,
           f"{total_fids} FIDs across {len(CREATURE_CATEGORY_ORDER)} categories)")
 
 
+def generate_npc_data(ske_idx: dict, output_path: Path,
+                      build: str | None = None) -> None:
+    """Generate NPCSoundData.lua with per-NPC sound FileDataID mappings.
+
+    Walks Creature → CreatureDisplayInfo → CreatureSoundData → SoundKitEntry
+    to build a searchable NPC-name index and NPC-ID → packed-FID lookup.
+
+    Uses CSD-indexed storage: many NPCs share the same CreatureSoundData
+    entry, so FIDs are stored per-CSD and NPCs point to their CSD ID.
+    """
+    # Load tables — download Creature for each locale to get localized names
+    NPC_LOCALES = ["enUS", "ptBR", "deDE", "frFR", "esES", "itIT",
+                   "ruRU", "koKR", "zhCN", "zhTW"]
+    creature_rows = load_csv(download_csv("Creature", force=False, build=build))
+    print(f"  {len(creature_rows)} Creature entries")
+
+    # Build npcID → localized names from each locale
+    npc_locale_names: dict[int, dict[str, str]] = {}  # npcID → {locale → name}
+    for locale in NPC_LOCALES:
+        if locale == "enUS":
+            # Already have English from the main download
+            for row in creature_rows:
+                try:
+                    npc_id = int(row["ID"])
+                    name = row.get("Name_lang", "").strip()
+                    if name:
+                        npc_locale_names.setdefault(npc_id, {})["enUS"] = name
+                except (ValueError, KeyError):
+                    pass
+            continue
+        # Download locale-specific Creature CSV
+        cache_subdir = CACHE_DIR / (build or "retail")
+        locale_path = cache_subdir / f"Creature_{locale}.csv"
+        if not locale_path.exists():
+            url = f"{WAGO_BASE}/Creature/csv?locale={locale}"
+            if build:
+                url += f"&build={build}"
+            print(f"  Downloading Creature ({locale})...", end=" ", flush=True)
+            try:
+                req = urllib.request.Request(url, headers={
+                    "User-Agent": "Resonance-SpellLookup/1.0"})
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    data = resp.read()
+                locale_path.write_bytes(data)
+                size_mb = len(data) / (1024 * 1024)
+                print(f"OK ({size_mb:.1f} MB)")
+            except Exception as e:
+                print(f"FAILED: {e} (skipping {locale})")
+                continue
+        for row in load_csv(locale_path):
+            try:
+                npc_id = int(row["ID"])
+                name = row.get("Name_lang", "").strip()
+                if name:
+                    npc_locale_names.setdefault(npc_id, {})[locale] = name
+            except (ValueError, KeyError):
+                pass
+    locale_count = sum(1 for names in npc_locale_names.values()
+                       if len(names) > 1)
+    print(f"  {locale_count} NPCs have multi-locale names")
+
+    cdi_rows = load_csv(download_csv("CreatureDisplayInfo", force=False, build=build))
+    print(f"  {len(cdi_rows)} CreatureDisplayInfo entries")
+
+    cmd_rows = load_csv(download_csv("CreatureModelData", force=False, build=build))
+    csd_rows = load_csv(download_csv("CreatureSoundData", force=False, build=build))
+    print(f"  {len(csd_rows)} CreatureSoundData entries")
+
+    # Build indices
+    cdi_by_id: dict[int, dict] = {}
+    for row in cdi_rows:
+        try:
+            cdi_by_id[int(row["ID"])] = row
+        except (ValueError, KeyError):
+            pass
+
+    cmd_sound: dict[int, int] = {}
+    for row in cmd_rows:
+        try:
+            sid = int(row.get("SoundID", 0))
+            if sid:
+                cmd_sound[int(row["ID"])] = sid
+        except (ValueError, KeyError):
+            pass
+
+    csd_by_id: dict[int, dict] = {}
+    for row in csd_rows:
+        try:
+            csd_by_id[int(row["ID"])] = row
+        except (ValueError, KeyError):
+            pass
+
+    # Pre-compute CSD → FIDs for all CSDs with sound data
+    csd_fids: dict[int, list[int]] = {}
+    for csd_id, row in csd_by_id.items():
+        fids: list[int] = []
+        seen: set[int] = set()
+        for col in ALL_CSD_SOUND_COLS:
+            sk = int(row.get(col, 0))
+            if sk:
+                for entry in ske_idx.get(sk, []):
+                    fid = int(entry["FileDataID"])
+                    if fid and fid not in seen:
+                        fids.append(fid)
+                        seen.add(fid)
+        if fids:
+            csd_fids[csd_id] = sorted(fids)
+
+    print(f"  {len(csd_fids)} CSDs with sound data")
+
+    # Resolve Creature → CSD via DisplayID → CDI → CSD chain
+    npc_csd: dict[int, int] = {}  # npcID → csdID
+    npc_names: dict[int, str] = {}  # npcID → English name
+
+    for row in creature_rows:
+        try:
+            npc_id = int(row["ID"])
+        except (ValueError, KeyError):
+            continue
+
+        name = row.get("Name_lang", "").strip()
+        if not name:
+            continue
+
+        # Try each display variant (DisplayID_0 through DisplayID_3)
+        resolved_csd = None
+        for i in range(4):
+            display_id_str = row.get(f"DisplayID_{i}", "0")
+            try:
+                display_id = int(display_id_str)
+            except ValueError:
+                continue
+            if not display_id:
+                continue
+
+            cdi = cdi_by_id.get(display_id)
+            if not cdi:
+                continue
+
+            # CDI.SoundID → CSD
+            sound_id = int(cdi.get("SoundID", 0))
+            if not sound_id:
+                # Fallback: CDI.ModelID → CMD.SoundID
+                model_id = int(cdi.get("ModelID", 0))
+                if model_id:
+                    sound_id = cmd_sound.get(model_id, 0)
+
+            if sound_id and sound_id in csd_fids:
+                resolved_csd = sound_id
+                break
+
+        if resolved_csd:
+            npc_csd[npc_id] = resolved_csd
+            npc_names[npc_id] = name
+
+    print(f"  {len(npc_csd)} NPCs resolved to CSDs with sounds")
+
+    # Build VO (voice-over) FID index from the community listfile.
+    # Creature dialogue files live at sound/creature/{folder}/*.ogg and are
+    # NOT in CreatureSoundData.  We match folders to NPC names to merge
+    # dialogue FIDs with the CSD combat sounds.
+    listfile_path = download_listfile(build)
+    vo_folder_fids: dict[str, list[int]] = {}  # folder_name -> [fids]
+    with open(listfile_path, "r", encoding="utf-8", errors="replace") as lf:
+        for line in lf:
+            parts = line.strip().split(";", 1)
+            if len(parts) != 2:
+                continue
+            try:
+                fid = int(parts[0])
+            except ValueError:
+                continue
+            path = parts[1].lower()
+            if not path.startswith("sound/creature/") or not path.endswith(".ogg"):
+                continue
+            segments = path.split("/")
+            if len(segments) < 4:
+                continue
+            folder = segments[2]  # e.g. "valeera_sanguinar", "brann"
+            # Skip player character VO and generic test files
+            if folder.startswith("vo_pc") or folder == "vo_soundtest_01.ogg":
+                continue
+            vo_folder_fids.setdefault(folder, []).append(fid)
+
+    print(f"  {len(vo_folder_fids)} creature VO folders in listfile "
+          f"({sum(len(v) for v in vo_folder_fids.values())} files)")
+
+    # Match VO folders to NPC names.  Strategy:
+    #   1. Build normalized name -> npc_ids index
+    #   2. For each VO folder, try exact match, then first-word match
+    npc_name_index: dict[str, list[int]] = {}  # normalized_name -> [npc_ids]
+    for npc_id, name in npc_names.items():
+        key = name.lower().replace(" ", "_").replace("'", "").replace("-", "_")
+        npc_name_index.setdefault(key, []).append(npc_id)
+
+    # Also index first word for short-name folders like "brann" -> "Brann Bronzebeard"
+    first_word_index: dict[str, list[int]] = {}
+    for npc_id, name in npc_names.items():
+        first = name.split()[0].lower().replace("'", "")
+        first_word_index.setdefault(first, []).append(npc_id)
+
+    # Merge VO FIDs into npc_vo dict: npc_id -> set(fids)
+    npc_vo: dict[int, set[int]] = {}
+    vo_matched = 0
+    # Also track VO-only NPCs (have VO files but no CSD data)
+    vo_only_names: dict[str, list[int]] = {}  # folder_name -> [fids]
+    for folder, fids in vo_folder_fids.items():
+        matched_ids = npc_name_index.get(folder)
+        if not matched_ids:
+            # Try first-word match only if unambiguous
+            candidates = first_word_index.get(folder)
+            if candidates and len(set(npc_names[nid] for nid in candidates)) == 1:
+                matched_ids = candidates
+        if matched_ids:
+            vo_matched += 1
+            for npc_id in matched_ids:
+                npc_vo.setdefault(npc_id, set()).update(fids)
+        else:
+            # VO folder with no CSD match — store for VO-only entries
+            if len(fids) >= 5:  # skip tiny folders (sound effects, not dialogue)
+                vo_only_names[folder] = fids
+
+    print(f"  {vo_matched} VO folders matched to NPCs, "
+          f"{len(vo_only_names)} unmatched VO-only folders (>=5 files)")
+
+    # Filter junk NPCs: quest credit triggers, invisible bunnies, placeholders, etc.
+    JUNK_PATTERNS = re.compile(
+        r"credit|killcredit|tracking|trigger|invis|placeholder|bunny|stalker"
+        r"|generic .* target|test ?npc|^\d{2,}\s|^\(.*(bunny|trigger|invis)",
+        re.IGNORECASE)
+    pre_filter = len(npc_csd)
+    junk_ids = {nid for nid, name in npc_names.items() if JUNK_PATTERNS.search(name)}
+    for nid in junk_ids:
+        npc_csd.pop(nid, None)
+    print(f"  Filtered {len(junk_ids)} junk NPCs "
+          f"({pre_filter} → {len(npc_csd)})")
+
+    # Deduplicate by NAME only: merge all CSDs and VO FIDs for the same
+    # display name into one entry.  Users want "Anduin Wrynn" once, not
+    # separate entries per story phase / CSD variant.
+    name_groups: dict[str, list[int]] = {}
+    for npc_id in npc_csd:
+        name_groups.setdefault(npc_names[npc_id], []).append(npc_id)
+
+    dedup_entries: list[dict] = []
+    all_npc_ids: dict[int, int] = {}  # every npc_id → its CSD
+    rep_vo_fids: dict[int, set[int]] = {}  # rep_npc_id → merged VO FIDs
+    rep_csds: dict[int, set[int]] = {}  # rep_npc_id → all CSD IDs
+
+    for name, npc_ids in name_groups.items():
+        rep_id = min(npc_ids)
+        csds: set[int] = set()
+        merged_vo: set[int] = set()
+        for nid in npc_ids:
+            csd = npc_csd[nid]
+            csds.add(csd)
+            all_npc_ids[nid] = csd
+            if nid in npc_vo:
+                merged_vo |= npc_vo[nid]
+        dedup_entries.append({"name": name, "rep_id": rep_id,
+                              "all_ids": sorted(npc_ids)})
+        rep_csds[rep_id] = csds
+        if merged_vo:
+            rep_vo_fids[rep_id] = merged_vo
+
+    dedup_entries.sort(key=lambda e: e["name"].lower())
+
+    # Add VO-only entries (creatures with VO files but no CSD match)
+    vo_only_entries: list[dict] = []
+    vo_only_id_counter = -1
+    for folder, fids in sorted(vo_only_names.items()):
+        pretty = folder.replace("_", " ").title()
+        vo_only_entries.append({"name": pretty, "folder": folder,
+                                "id": vo_only_id_counter, "fids": fids})
+        vo_only_id_counter -= 1
+
+    # Count unique CSDs actually referenced by NPCs
+    used_csds = set(all_npc_ids.values())
+    vo_npc_count = len(rep_vo_fids)
+    vo_fid_count = sum(len(fids) for fids in rep_vo_fids.values())
+    print(f"  {len(used_csds)} unique CSDs used")
+    print(f"  {len(dedup_entries)} unique NPC names "
+          f"(deduped from {len(npc_csd)} NPC IDs)")
+    print(f"  {vo_npc_count} NPCs have VO dialogue data ({vo_fid_count} FIDs)")
+    print(f"  {len(vo_only_entries)} VO-only creatures (no CSD match)")
+
+    # Write output
+    total_csd_fids = sum(len(csd_fids[csd]) for csd in used_csds)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("-- Auto-generated by tools/spell_sounds.py "
+                "--generate-npc-data\n")
+        f.write(f"-- {len(dedup_entries)} unique NPCs (from {len(npc_csd)} "
+                f"creature entries), {len(used_csds)} CSD profiles, "
+                f"{total_csd_fids} CSD FIDs\n"
+                f"-- + {vo_npc_count} NPCs with voice-over dialogue "
+                f"({vo_fid_count} VO FIDs from listfile)\n\n")
+
+        # Searchable index: "Name#npcID" — deduplicated by (name, CSD)
+        # Searchable index: "EnglishName|locale names...#npcID"
+        # All unique locale names are packed after | so the search matches
+        # in any language.  Display code splits on | and shows [1] (English)
+        # or the user's locale name from the locale table.
+        f.write("-- Searchable NPC list: \"Name|altnames#npcID\" format\n")
+        f.write("Resonance_NPCSoundIndex = {\n")
+        for entry in dedup_entries:
+            rep_id = entry["rep_id"]
+            en_name = entry["name"]
+            # Collect unique non-English names from ALL NPC IDs in the group
+            alt_names = []
+            seen = {en_name.lower()}
+            for nid in entry["all_ids"]:
+                locale_data = npc_locale_names.get(nid, {})
+                for loc in NPC_LOCALES:
+                    lname = locale_data.get(loc, "")
+                    if lname and lname.lower() not in seen:
+                        alt_names.append(lname)
+                        seen.add(lname.lower())
+            # Pack: "EnglishName|alt1|alt2#npcID"
+            search_str = en_name
+            if alt_names:
+                search_str += "|" + "|".join(alt_names)
+            safe = search_str.replace("\\", "\\\\").replace('"', '\\"')
+            f.write(f'"{safe}#{rep_id}",\n')
+        f.write("}\n\n")
+
+        # NPC ID → CSD ID mapping (ALL NPC IDs, not just representatives,
+        # so muting works regardless of which ID the user encounters)
+        f.write("-- NPC ID -> CreatureSoundData ID (all creature variants)\n")
+        f.write("Resonance_NPCToCSD = {\n")
+        for npc_id in sorted(all_npc_ids.keys()):
+            f.write(f"[{npc_id}]={all_npc_ids[npc_id]},\n")
+        f.write("}\n\n")
+
+        # Representative NPC ID → all CSD IDs (for name-deduped NPCs
+        # that have multiple sound profiles across story phases)
+        f.write("-- Representative NPC ID -> all CSD IDs for this name\n")
+        f.write("Resonance_NPCRepCSDs = {\n")
+        for entry in dedup_entries:
+            csds = sorted(rep_csds.get(entry["rep_id"], set()))
+            if len(csds) > 1:
+                csd_str = ",".join(str(c) for c in csds)
+                f.write(f'[{entry["rep_id"]}]="{csd_str}",\n')
+        f.write("}\n\n")
+
+        # CSD ID → packed FIDs (only include CSDs referenced by NPCs)
+        f.write("-- CreatureSoundData ID -> comma-separated FileDataIDs\n")
+        f.write("Resonance_NPCSoundCSD = {\n")
+        for csd_id in sorted(used_csds):
+            fid_str = ",".join(str(fid) for fid in csd_fids[csd_id])
+            f.write(f'[{csd_id}]="{fid_str}",\n')
+        f.write("}\n\n")
+
+        # VO FIDs per representative NPC ID (dialogue from listfile,
+        # separate from CSD combat sounds)
+        f.write("-- NPC representative ID -> comma-separated voice-over FileDataIDs\n")
+        f.write("Resonance_NPCVoiceData = {\n")
+        for npc_id in sorted(rep_vo_fids.keys()):
+            fids = sorted(rep_vo_fids[npc_id])
+            fid_str = ",".join(str(fid) for fid in fids)
+            f.write(f'[{npc_id}]="{fid_str}",\n')
+        f.write("}\n")
+
+    size_kb = output_path.stat().st_size / 1024
+    print(f"  Written to {output_path} ({size_kb:.0f} KB)")
+
+
 def generate_profession_data(indices: dict, output_path: Path,
                              build: str | None = None) -> None:
     """Generate ProfessionSoundData.lua with per-profession sound FIDs.
@@ -1432,6 +1817,8 @@ def main():
                         help="Generate CreatureVoxData.lua with creature vocalization FIDs")
     parser.add_argument("--generate-profession-data", action="store_true",
                         help="Generate ProfessionSoundData.lua with per-profession sound FIDs")
+    parser.add_argument("--generate-npc-data", action="store_true",
+                        help="Generate NPCSoundData.lua with NPC name→sound FileDataID mappings")
     parser.add_argument("--generate-classic-reference", action="store_true",
                         help="Generate ClassicSpellSounds.lua from Classic Era DB2 data")
     parser.add_argument("--list-builds", action="store_true",
@@ -1499,6 +1886,15 @@ def main():
         indices, csv_paths = load_tables_and_build_indices(args)
         output_path = Path(__file__).parent.parent / "data" / "ProfessionSoundData.lua"
         generate_profession_data(indices, output_path, build=build)
+        return
+
+    if args.generate_npc_data:
+        build = resolve_build(args.build)
+        ske_path = download_csv("SoundKitEntry", force=args.refresh, build=build)
+        ske_rows = load_csv(ske_path)
+        ske_idx = build_index(ske_rows, "SoundKitID")
+        output_path = Path(__file__).parent.parent / "data" / "NPCSoundData.lua"
+        generate_npc_data(ske_idx, output_path, build=build)
         return
 
     if args.generate_classic_reference:
