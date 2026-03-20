@@ -584,7 +584,7 @@ local function clearVoxMutes()
   local count = 0
   for fid in pairs(voxMutedFIDs) do
     if not isMutedElsewhere(fid, voxMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     end
     count = count + 1
   end
@@ -644,9 +644,10 @@ end
 
 local function clearWeaponMutes()
   local count = 0
+  -- Fully unmute every FID (MAX_MUTE_DEPTH clears any accumulated refcount)
   for fid in pairs(weaponMutedFIDs) do
     if not isMutedElsewhere(fid, weaponMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     end
     count = count + 1
   end
@@ -745,7 +746,7 @@ local function clearCreatureVoxMutes()
   local count = 0
   for fid in pairs(creatureMutedFIDs) do
     if not isMutedElsewhere(fid, creatureMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     end
     count = count + 1
   end
@@ -818,7 +819,7 @@ local function clearProfessionMutes()
   local count = 0
   for fid in pairs(professionMutedFIDs) do
     if not isMutedElsewhere(fid, professionMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     end
     count = count + 1
   end
@@ -894,7 +895,7 @@ local function clearAmbientMutes()
   local count = 0
   for fid in pairs(ambientMutedFIDs) do
     if not isMutedElsewhere(fid, ambientMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     end
     count = count + 1
   end
@@ -938,7 +939,7 @@ local function clearAutoShotMutes()
   local count = 0
   for fid in pairs(autoShotMutedFIDs) do
     if not isMutedElsewhere(fid, autoShotMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     end
     count = count + 1
   end
@@ -1053,7 +1054,7 @@ local function clearNPCMutes()
   local count = 0
   for fid in pairs(npcMutedFIDs) do
     if not isMutedElsewhere(fid, npcMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
     end
     count = count + 1
   end
@@ -1297,13 +1298,13 @@ local function clearMutes()
   local count = 0
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
     if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       count = count + 1
     end
   end
   for fid, refcount in pairs(autoMutedFIDs) do
     if refcount > 0 and not isMutedElsewhere(fid, autoMutedFIDs) then
-      UnmuteSoundFile(fid)
+      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
       count = count + 1
     end
   end
