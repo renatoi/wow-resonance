@@ -10,6 +10,20 @@ Resonance_L = L
 local locale = GetLocale()
 
 ---------------------------------------------------------------------------
+-- English (US / GB) — explicit base locale definitions
+-- The metatable fallback already returns the key for any missing entry,
+-- but declaring them here ensures strict locale validators can find them.
+---------------------------------------------------------------------------
+if locale == "enUS" or locale == "enGB" then
+  -- Tab names
+  L["Muting"] = "Muting"
+  L["Sound Browser"] = "Sound Browser"
+  -- Section headers
+  L["Weapon & Combat"] = "Weapon & Combat"
+  L["Interrupt Alert"] = "Interrupt Alert"
+end
+
+---------------------------------------------------------------------------
 -- Portuguese (Brazil)
 ---------------------------------------------------------------------------
 if locale == "ptBR" then
@@ -105,12 +119,15 @@ if locale == "ptBR" then
   L["Spell Sounds"] = "Sons de Magias"
   L["Muted Sounds"] = "Sons Silenciados"
   L["Sound Browser"] = "Explorador de Sons"
+  L["Muting"] = "Silenciamento"
   L["Presets"] = "Predefinições"
   L["Profiles"] = "Perfis"
   -- Subcategory names
   L["Combat Sounds"] = "Sons de Combate"
+  L["Weapon & Combat"] = "Arma e Combate"
   L["Vocalizations"] = "Vocalizações"
   L["Interrupt"] = "Interrupção"
+  L["Interrupt Alert"] = "Alerta de Interrupção"
   L["Professions"] = "Profissões"
   L["Ambient"] = "Ambiente"
   L["Select a subcategory on the left to configure Resonance."] = "Selecione uma subcategoria à esquerda para configurar o Resonance."
@@ -342,12 +359,15 @@ elseif locale == "deDE" then
   L["Spell Sounds"] = "Zauberklänge"
   L["Muted Sounds"] = "Stummgeschaltete Klänge"
   L["Sound Browser"] = "Klang-Suche"
+  L["Muting"] = "Stummschaltung"
   L["Presets"] = "Voreinstellungen"
   L["Profiles"] = "Profile"
   -- Subcategory names
   L["Combat Sounds"] = "Kampfgeräusche"
+  L["Weapon & Combat"] = "Waffe & Kampf"
   L["Vocalizations"] = "Lautäußerungen"
   L["Interrupt"] = "Unterbrechung"
+  L["Interrupt Alert"] = "Unterbrechungsalarm"
   L["Professions"] = "Berufe"
   L["Ambient"] = "Umgebung"
   L["Select a subcategory on the left to configure Resonance."] = "Wähle links eine Unterkategorie, um Resonance zu konfigurieren."
@@ -572,12 +592,15 @@ elseif locale == "frFR" then
   L["Spell Sounds"] = "Sons de sorts"
   L["Muted Sounds"] = "Sons coupés"
   L["Sound Browser"] = "Navigateur de sons"
+  L["Muting"] = "Sourdine"
   L["Presets"] = "Préréglages"
   L["Profiles"] = "Profils"
   -- Subcategory names
   L["Combat Sounds"] = "Sons de combat"
+  L["Weapon & Combat"] = "Arme & Combat"
   L["Vocalizations"] = "Vocalisations"
   L["Interrupt"] = "Interruption"
+  L["Interrupt Alert"] = "Alerte d'interruption"
   L["Professions"] = "Métiers"
   L["Ambient"] = "Ambiance"
   L["Select a subcategory on the left to configure Resonance."] = "Sélectionnez une sous-catégorie à gauche pour configurer Resonance."
@@ -802,12 +825,15 @@ elseif locale == "esES" or locale == "esMX" then
   L["Spell Sounds"] = "Sonidos de hechizos"
   L["Muted Sounds"] = "Sonidos silenciados"
   L["Sound Browser"] = "Explorador de sonidos"
+  L["Muting"] = "Silenciado"
   L["Presets"] = "Predefinidos"
   L["Profiles"] = "Perfiles"
   -- Subcategory names
   L["Combat Sounds"] = "Sonidos de combate"
+  L["Weapon & Combat"] = "Arma y combate"
   L["Vocalizations"] = "Vocalizaciones"
   L["Interrupt"] = "Interrupción"
+  L["Interrupt Alert"] = "Alerta de interrupción"
   L["Professions"] = "Profesiones"
   L["Ambient"] = "Ambiental"
   L["Select a subcategory on the left to configure Resonance."] = "Selecciona una subcategoría a la izquierda para configurar Resonance."
@@ -1003,12 +1029,15 @@ elseif locale == "itIT" then
   L["Spell Sounds"] = "Suoni incantesimi"
   L["Muted Sounds"] = "Suoni silenziati"
   L["Sound Browser"] = "Sfoglia suoni"
+  L["Muting"] = "Silenziamento"
   L["Presets"] = "Preset"
   L["Profiles"] = "Profili"
   -- Subcategory names
   L["Combat Sounds"] = "Suoni di combattimento"
+  L["Weapon & Combat"] = "Arma e combattimento"
   L["Vocalizations"] = "Vocalizzazioni"
   L["Interrupt"] = "Interruzione"
+  L["Interrupt Alert"] = "Avviso interruzione"
   L["Professions"] = "Professioni"
   L["Ambient"] = "Ambiente"
   L["Select a subcategory on the left to configure Resonance."] = "Seleziona una sottocategoria a sinistra per configurare Resonance."
@@ -1232,12 +1261,15 @@ elseif locale == "ruRU" then
   L["Spell Sounds"] = "Звуки заклинаний"
   L["Muted Sounds"] = "Приглушённые звуки"
   L["Sound Browser"] = "Обозреватель звуков"
+  L["Muting"] = "Заглушение"
   L["Presets"] = "Шаблоны"
   L["Profiles"] = "Профили"
   -- Subcategory names
   L["Combat Sounds"] = "Боевые звуки"
+  L["Weapon & Combat"] = "Оружие и бой"
   L["Vocalizations"] = "Вокализации"
   L["Interrupt"] = "Прерывание"
+  L["Interrupt Alert"] = "Сигнал прерывания"
   L["Professions"] = "Профессии"
   L["Ambient"] = "Окружение"
   L["Select a subcategory on the left to configure Resonance."] = "Выберите подкатегорию слева для настройки Resonance."
@@ -1461,12 +1493,15 @@ elseif locale == "koKR" then
   L["Spell Sounds"] = "주문 소리"
   L["Muted Sounds"] = "음소거된 소리"
   L["Sound Browser"] = "사운드 브라우저"
+  L["Muting"] = "음소거"
   L["Presets"] = "프리셋"
   L["Profiles"] = "프로필"
   -- Subcategory names
   L["Combat Sounds"] = "전투 소리"
+  L["Weapon & Combat"] = "무기 & 전투"
   L["Vocalizations"] = "음성"
   L["Interrupt"] = "차단"
+  L["Interrupt Alert"] = "차단 알림"
   L["Professions"] = "전문 기술"
   L["Ambient"] = "환경음"
   L["Select a subcategory on the left to configure Resonance."] = "왼쪽에서 하위 카테고리를 선택하여 Resonance를 설정하세요."
@@ -1690,12 +1725,15 @@ elseif locale == "zhCN" then
   L["Spell Sounds"] = "法术音效"
   L["Muted Sounds"] = "已静音音效"
   L["Sound Browser"] = "音效浏览器"
+  L["Muting"] = "静音"
   L["Presets"] = "预设"
   L["Profiles"] = "配置文件"
   -- Subcategory names
   L["Combat Sounds"] = "战斗音效"
+  L["Weapon & Combat"] = "武器与战斗"
   L["Vocalizations"] = "角色叫声"
   L["Interrupt"] = "打断"
+  L["Interrupt Alert"] = "打断提示"
   L["Professions"] = "专业技能"
   L["Ambient"] = "环境音效"
   L["Select a subcategory on the left to configure Resonance."] = "在左侧选择一个子分类来配置 Resonance。"
@@ -1919,12 +1957,15 @@ elseif locale == "zhTW" then
   L["Spell Sounds"] = "法術音效"
   L["Muted Sounds"] = "已靜音音效"
   L["Sound Browser"] = "音效瀏覽器"
+  L["Muting"] = "靜音"
   L["Presets"] = "預設"
   L["Profiles"] = "設定檔"
   -- Subcategory names
   L["Combat Sounds"] = "戰鬥音效"
+  L["Weapon & Combat"] = "武器與戰鬥"
   L["Vocalizations"] = "角色叫聲"
   L["Interrupt"] = "打斷"
+  L["Interrupt Alert"] = "打斷提示"
   L["Professions"] = "專業技能"
   L["Ambient"] = "環境音效"
   L["Select a subcategory on the left to configure Resonance."] = "在左側選擇一個子分類來設定 Resonance。"
