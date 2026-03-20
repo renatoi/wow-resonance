@@ -2190,6 +2190,7 @@ local function getGeneralOptions()
       },
       fishingBobberCustom = {
         type = "input",
+        dialogControl = "Resonance_SoundEditBox",
         name = L["Custom sound"],
         desc = L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."],
         order = 13,
@@ -2250,6 +2251,7 @@ local function getGeneralOptions()
       },
       interruptAlertSound = {
         type = "input",
+        dialogControl = "Resonance_SoundEditBox",
         name = L["Alert sound (FID or file path)"],
         desc = L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"],
         order = 22,
@@ -2374,6 +2376,7 @@ local function getMutingOptions()
       },
       creatureVoxDesc = {
         type = "description",
+        fontSize = "medium",
         name = L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."],
         order = 21,
       },
@@ -2404,11 +2407,13 @@ local function getMutingOptions()
   }
   opts.args.professionDesc = {
     type = "description",
+    fontSize = "medium",
     name = L["Mute crafting, gathering, and other profession-related sounds by profession."],
     order = 51,
   }
   opts.args.sharedSoundsNote = {
     type = "description",
+    fontSize = "medium",
     name = "\n|cffaaaaaa" .. L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] .. "|r",
     order = 100,
   }

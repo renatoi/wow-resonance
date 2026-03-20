@@ -33,6 +33,11 @@ local zone_map = {
   { pat = "voidspireraid", name = "Voidspire Raid", exp = "Midnight", cat = "raid" },
   { pat = "karesh", name = "K'aresh", exp = "Midnight", cat = "zone" },
   { pat = "sunwell", name = "Sunwell", exp = "Midnight", cat = "zone" },
+  { pat = "windrunner", name = "Windrunner Spire", exp = "Midnight", cat = "dungeon" },
+  { pat = "murderrow", name = "Murder Row", exp = "Midnight", cat = "dungeon" },
+  { pat = "zulaman", name = "Zul'Aman", exp = "Midnight", cat = "zone" },
+  { pat = "nalorakk", name = "Zul'Aman", exp = "Midnight", cat = "zone" },
+  { pat = "harandar", name = "Harandar", exp = "Midnight", cat = "zone" },
 
   -- === The War Within (11.0) ===
   { pat = "11zone1", name = "Isle of Dorn", exp = "The War Within", cat = "zone" },
@@ -62,6 +67,16 @@ local zone_map = {
   { pat = "proveyourworth", name = "Prove Your Worth", exp = "The War Within", cat = "dungeon" },
   { pat = "palacenerubian", name = "Palace of the Nerubians", exp = "The War Within", cat = "raid" },
   { pat = "ecodomedungeon", name = "Ecodome Dungeon", exp = "The War Within", cat = "dungeon" },
+
+  -- TWW dungeons
+  { pat = "cinderbrewmeadery", name = "Cinderbrew Meadery", exp = "The War Within", cat = "dungeon" },
+  { pat = "cinderbrew", name = "Cinderbrew Meadery", exp = "The War Within", cat = "dungeon" },
+  { pat = "darkflamecleft", name = "Darkflame Cleft", exp = "The War Within", cat = "dungeon" },
+  { pat = "darkflame", name = "Darkflame Cleft", exp = "The War Within", cat = "dungeon" },
+  { pat = "prioryofthesacredflame", name = "Priory of the Sacred Flame", exp = "The War Within", cat = "dungeon" },
+  { pat = "priory", name = "Priory of the Sacred Flame", exp = "The War Within", cat = "dungeon" },
+  { pat = "rookery", name = "The Rookery", exp = "The War Within", cat = "dungeon" },
+  { pat = "floodgate", name = "Operation: Floodgate", exp = "The War Within", cat = "dungeon" },
 
   -- === Undermine (11.1) ===
   { pat = "undermine", name = "Undermine", exp = "The War Within", cat = "zone" },
@@ -108,6 +123,7 @@ local zone_map = {
   { pat = "houseofplagues", name = "House of Plagues", exp = "Shadowlands", cat = "dungeon" },
   { pat = "dominationsgrasp", name = "Domination's Grasp", exp = "Shadowlands", cat = "zone" },
   { pat = "landoftheprogenitors", name = "Zereth Mortis Interior", exp = "Shadowlands", cat = "zone" },
+  { pat = "theaterofpain", name = "Theater of Pain", exp = "Shadowlands", cat = "dungeon" },
 
   -- === BFA (8.0) ===
   { pat = "nazjatar", name = "Nazjatar", exp = "Battle for Azeroth", cat = "zone" },
@@ -127,6 +143,7 @@ local zone_map = {
   { pat = "uldir", name = "Uldir", exp = "Battle for Azeroth", cat = "raid" },
   { pat = "nzoth", name = "N'Zoth Visions", exp = "Battle for Azeroth", cat = "zone" },
   { pat = "80_zul", name = "Zul'Nazman", exp = "Battle for Azeroth", cat = "dungeon" },
+  { pat = "motherlode", name = "The MOTHERLODE!!", exp = "Battle for Azeroth", cat = "dungeon" },
   { pat = "arathikobyssisland", name = "Arathi Kobys Island", exp = "Battle for Azeroth", cat = "zone" },
 
   -- === Legion (7.0) ===
@@ -207,7 +224,9 @@ end
 zones = merged
 
 -- Generate Lua output
-local out = io.open("/Users/renatoi/repos/wow-resonance/data/AmbientSoundData.lua", "w")
+-- Resolve output path relative to the script's location
+local scriptDir = arg[0]:match("(.*/)")  or "./"
+local out = io.open(scriptDir .. "../data/AmbientSoundData.lua", "w")
 
 out:write("-- Ambient/environmental sound data for selective muting\n")
 out:write("-- Generated from wowdev/wow-listfile community data\n")

@@ -900,11 +900,13 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
       prevBtn = btn
     end
 
-    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
+    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22)
     wirePlayStop(row.playBtn, function()
       if row.entry then return onPlay(row.entry) end
     end)
     row.playBtn:SetPoint("RIGHT", prevBtn, "LEFT", -4, 0)
+    -- Use custom tip frame for tooltip (consistent with action button, avoids overlap)
+    addBtnTooltip(row.playBtn, L["Play / Stop"])
 
     row:Hide()
     dd.rows[i] = row
@@ -1012,10 +1014,253 @@ local function createAutocomplete(searchBox, onPlay, onAction, actionDef, dropdo
 end
 
 ---------------------------------------------------------------------------
+-- Custom AceGUI widget: EditBox with sound file autocomplete
+-- Used by AceConfig "input" options via dialogControl = "Resonance_SoundEditBox"
+---------------------------------------------------------------------------
+do
+  local WidgetType = "Resonance_SoundEditBox"
+  local WidgetVersion = 1
+  local AceGUI = LibStub("AceGUI-3.0")
+
+  local function SoundEditBox_OnEnterPressed(frame)
+    local self = frame.obj
+    local value = frame:GetText()
+    local cancel = self:Fire("OnEnterPressed", value)
+    if not cancel then
+      if self.dropdown then self.dropdown:Hide() end
+    end
+  end
+
+  local function SoundEditBox_OnEscapePressed(frame)
+    if frame.obj.dropdown then frame.obj.dropdown:Hide() end
+    AceGUI:ClearFocus()
+  end
+
+  local function SoundEditBox_OnFocusGained(frame)
+    AceGUI:SetFocus(frame.obj)
+    local self = frame.obj
+    if self.doSearch then self.doSearch() end
+  end
+
+  local function SoundEditBox_OnFocusLost(frame)
+    local self = frame.obj
+    if self.dropdown then
+      C_Timer.After(0.2, function()
+        if self.editbox and not self.editbox:HasFocus()
+           and self.dropdown and not self.dropdown:IsMouseOver() then
+          self.dropdown:Hide()
+        end
+      end)
+    end
+  end
+
+  local methods = {
+    ["OnAcquire"] = function(self)
+      self:SetWidth(200)
+      self:SetDisabled(false)
+      self:SetLabel()
+      self:SetText()
+      self:SetMaxLetters(0)
+    end,
+
+    ["OnRelease"] = function(self)
+      self:ClearFocus()
+      if self.dropdown then self.dropdown:Hide() end
+    end,
+
+    ["SetDisabled"] = function(self, disabled)
+      self.disabled = disabled
+      if disabled then
+        self.editbox:EnableMouse(false)
+        self.editbox:ClearFocus()
+        self.editbox:SetTextColor(0.5, 0.5, 0.5)
+        self.label:SetTextColor(0.5, 0.5, 0.5)
+      else
+        self.editbox:EnableMouse(true)
+        self.editbox:SetTextColor(1, 1, 1)
+        self.label:SetTextColor(1, 0.82, 0)
+      end
+    end,
+
+    ["SetText"] = function(self, text)
+      self.lasttext = text or ""
+      self.editbox:SetText(text or "")
+      self.editbox:SetCursorPosition(0)
+    end,
+
+    ["GetText"] = function(self)
+      return self.editbox:GetText()
+    end,
+
+    ["SetLabel"] = function(self, text)
+      if text and text ~= "" then
+        self.label:SetText(text)
+        self.label:Show()
+        self.editbox:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 7, -18)
+        self:SetHeight(44)
+        self.alignoffset = 30
+      else
+        self.label:SetText("")
+        self.label:Hide()
+        self.editbox:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 7, 0)
+        self:SetHeight(26)
+        self.alignoffset = 12
+      end
+    end,
+
+    ["SetMaxLetters"] = function(self, num)
+      self.editbox:SetMaxLetters(num or 0)
+    end,
+
+    ["ClearFocus"] = function(self)
+      self.editbox:ClearFocus()
+      self.frame:SetScript("OnShow", nil)
+    end,
+
+    ["SetFocus"] = function(self)
+      self.editbox:SetFocus()
+    end,
+
+    ["DisableButton"] = function(self, disabled)
+      -- no-op (no OK button in this widget)
+    end,
+
+    ["HighlightText"] = function(self, from, to)
+      self.editbox:HighlightText(from, to)
+    end,
+  }
+
+  local function Constructor()
+    local num = AceGUI:GetNextWidgetNum(WidgetType)
+    local frame = CreateFrame("Frame", nil, UIParent)
+    frame:Hide()
+
+    local editbox = CreateFrame("EditBox", "ResonanceSoundEditBox" .. num, frame, "InputBoxTemplate")
+    editbox:SetAutoFocus(false)
+    editbox:SetFontObject(ChatFontNormal)
+    editbox:SetScript("OnEnterPressed", SoundEditBox_OnEnterPressed)
+    editbox:SetScript("OnEscapePressed", SoundEditBox_OnEscapePressed)
+    editbox:SetScript("OnEditFocusGained", SoundEditBox_OnFocusGained)
+    editbox:SetScript("OnEditFocusLost", SoundEditBox_OnFocusLost)
+    editbox:SetTextInsets(0, 0, 3, 3)
+    editbox:SetMaxLetters(256)
+    editbox:SetPoint("BOTTOMLEFT", 6, 0)
+    editbox:SetPoint("BOTTOMRIGHT")
+    editbox:SetHeight(19)
+
+    local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    label:SetPoint("TOPLEFT", 0, -2)
+    label:SetPoint("TOPRIGHT", 0, -2)
+    label:SetJustifyH("LEFT")
+    label:SetHeight(18)
+
+    -- Autocomplete dropdown (reuses the same component as other search boxes)
+    local dd = createAutocomplete(editbox,
+      function(e) if e then return e.fileDataID end end,  -- onPlay: return FID
+      function(e)                                          -- onAction: select sound
+        if e then
+          editbox:SetText(tostring(e.fileDataID))
+          editbox:ClearFocus()
+          SoundEditBox_OnEnterPressed(editbox)
+          dd:Hide()
+        end
+      end,
+      { label = L["Use"], width = 36 },
+      nil  -- dropdown width will follow editbox
+    )
+
+    -- Search function
+    local function doSearch()
+      if not editbox:HasFocus() then return end
+      -- Don't show autocomplete when sound databases aren't loaded
+      if not hasSpellDB() then dd:Hide(); return end
+      local q = editbox:GetText()
+      -- Don't search if input looks like a pure FID or file path
+      if tonumber(q) then dd:SetData({}, ""); dd:Hide(); return end
+      if q:find("\\") or q:find("/") then dd:SetData({}, ""); dd:Hide(); return end
+      if #q < 3 then dd:SetData({}, ""); dd:Hide(); return end
+      searchDB(Resonance.SpellSounds, q, "soundWidget" .. num, function(results)
+        for _, r in ipairs(results) do
+          r.display = formatSoundDisplay(r.path, r.fileDataID)
+        end
+        dd:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+      end, Resonance.SpellSoundPrefixes)
+    end
+
+    editbox:SetScript("OnTextChanged", function(self)
+      local value = self:GetText()
+      local widget = self.obj
+      if tostring(value) ~= tostring(widget.lasttext) then
+        widget:Fire("OnTextChanged", value)
+        widget.lasttext = value
+      end
+      debounce("soundWidget" .. num, 0.3, doSearch)
+    end)
+
+    local widget = {
+      alignoffset = 30,
+      editbox     = editbox,
+      label       = label,
+      frame       = frame,
+      dropdown    = dd,
+      doSearch    = doSearch,
+      type        = WidgetType,
+    }
+    for method, func in pairs(methods) do
+      widget[method] = func
+    end
+    editbox.obj = widget
+
+    return AceGUI:RegisterAsWidget(widget)
+  end
+
+  AceGUI:RegisterWidgetType(WidgetType, Constructor, WidgetVersion)
+end
+
+---------------------------------------------------------------------------
 -- Panel builders (extracted into functions to stay under Lua 5.1's
 -- 200 local-variable limit).  Each receives a shared context table
 -- `ctx` and populates it with cross-panel references.
 ---------------------------------------------------------------------------
+
+-- Show a notice banner inside a scrollable content frame.
+-- Returns the banner frame so builders can anchor content below it.
+local function showDataUnavailableBanner(contentFrame, reason)
+  local banner = CreateFrame("Frame", nil, contentFrame, "BackdropTemplate")
+  banner:SetPoint("TOPLEFT", 0, 0)
+  banner:SetPoint("RIGHT", contentFrame, "RIGHT", -16, 0)
+  banner:SetHeight(48)
+  banner:SetBackdrop({
+    bgFile = "Interface\\BUTTONS\\WHITE8X8",
+    edgeFile = "Interface\\BUTTONS\\WHITE8X8",
+    edgeSize = 1,
+  })
+  banner:SetBackdropColor(0.3, 0.15, 0.05, 0.85)
+  banner:SetBackdropBorderColor(0.6, 0.3, 0.1, 0.8)
+  -- Warning icon
+  local icon = banner:CreateTexture(nil, "OVERLAY")
+  icon:SetSize(20, 20)
+  icon:SetPoint("LEFT", 10, 0)
+  icon:SetAtlas("services-icon-warning")
+  local text = banner:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  text:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+  text:SetPoint("RIGHT", -12, 0)
+  text:SetJustifyH("LEFT")
+  text:SetSpacing(3)
+  if reason == "DISABLED" then
+    text:SetText(L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."])
+  elseif reason == "MISSING" or reason == "NOT_INSTALLED" then
+    text:SetText(L["Resonance Data module not found. Reinstall Resonance to restore full functionality."])
+  else
+    text:SetText((L["Could not load Resonance Data: %s"]):format(reason or "unknown"))
+  end
+  -- Adjust height to fit text
+  banner:SetScript("OnShow", function(self)
+    local h = text:GetStringHeight()
+    self:SetHeight(math.max(40, h + 20))
+  end)
+  return banner
+end
 
 -- Forward declarations for the builder functions (defined below).
 local buildTab2_SpellSounds
@@ -1033,8 +1278,31 @@ buildTab2_SpellSounds = function(ctx)
 
   local spellTab = ctx.spellSoundsContent
 
+  -- Data unavailable banner (anchors content below it)
+  local spellBanner
+  if not ctx.dataLoaded then
+    spellBanner = showDataUnavailableBanner(spellTab, select(2, Resonance.loadDataAddon()))
+  end
+
+  -- Tab heading
+  local spellTabHdr = spellTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  spellTabHdr:SetPoint("TOPLEFT", spellBanner and spellBanner or spellTab, spellBanner and "BOTTOMLEFT" or "TOPLEFT", 16, spellBanner and -12 or -16)
+  spellTabHdr:SetText(L["Spell Sounds"])
+
+  local spellTabDesc = spellTab:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  spellTabDesc:SetPoint("TOPLEFT", spellTabHdr, "BOTTOMLEFT", 0, -6)
+  spellTabDesc:SetPoint("RIGHT", spellTab, "RIGHT", -16, 0)
+  spellTabDesc:SetJustifyH("LEFT")
+  spellTabDesc:SetSpacing(3)
+  spellTabDesc:SetText(L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."])
+
+  -- Anchor frame positioned after the heading + description
+  local spellBtnAnchor = CreateFrame("Frame", nil, spellTab)
+  spellBtnAnchor:SetSize(1, 1)
+  spellBtnAnchor:SetPoint("TOPLEFT", spellTabDesc, "BOTTOMLEFT", 0, -12)
+
   local clearAllSpellsBtn = makeButton(spellTab, L["Clear All"], 65, nil)
-  clearAllSpellsBtn:SetPoint("TOPRIGHT", spellTab, "TOPRIGHT", -16, -8)
+  clearAllSpellsBtn:SetPoint("TOPRIGHT", spellTabDesc, "BOTTOMRIGHT", 0, -12)
 
   local clearPresetsBtn = makeButton(spellTab, L["Clear Presets"], 90, nil)
   clearPresetsBtn:SetPoint("RIGHT", clearAllSpellsBtn, "LEFT", -4, 0)
@@ -1045,7 +1313,7 @@ buildTab2_SpellSounds = function(ctx)
   -- Table header
   local tableHeader = CreateFrame("Frame", nil, spellTab)
   tableHeader:SetHeight(ROW_HEIGHT)
-  tableHeader:SetPoint("TOPLEFT", spellTab, "TOPLEFT", 16, -(8 + 22 + 4))
+  tableHeader:SetPoint("TOPLEFT", spellBtnAnchor, "TOPLEFT", 0, -(26 + 6))
   tableHeader:SetPoint("RIGHT", spellTab, "RIGHT", -4, 0)
 
   local headerBg = tableHeader:CreateTexture(nil, "BACKGROUND")
@@ -2128,10 +2396,9 @@ buildTab2_SpellSounds = function(ctx)
     bg:SetAllPoints()
     bg:SetColorTexture(0.2, 0.2, 0.25, 0.5)
     hdr.bg = bg
-    hdr.arrow = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    hdr.arrow = hdr:CreateTexture(nil, "OVERLAY")
+    hdr.arrow:SetSize(16, 16)
     hdr.arrow:SetPoint("LEFT", 4, 0)
-    hdr.arrow:SetWidth(14)
-    hdr.arrow:SetJustifyH("LEFT")
     hdr.text = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     hdr.text:SetPoint("LEFT", hdr.arrow, "RIGHT", 2, 0)
     hdr.text:SetJustifyH("LEFT")
@@ -2254,7 +2521,7 @@ buildTab2_SpellSounds = function(ctx)
       else
         hdr.text:SetText(displayName)
       end
-      hdr.arrow:SetText(collapsed and "|cffaaaaaa+|r" or "|cffaaaaaa-|r")
+      hdr.arrow:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-UP" or "Interface\\Buttons\\UI-MinusButton-UP")
       hdr.count:SetText("(" .. #spells .. ")")
       local hdrKey = key
       hdr:SetScript("OnClick", function()
@@ -2377,8 +2644,26 @@ buildTab3_MutedSounds = function(ctx)
 
   local muteTab = ctx.mutedSoundsContent
 
+  -- Data unavailable banner
+  local muteBanner
+  if not ctx.dataLoaded then
+    muteBanner = showDataUnavailableBanner(muteTab, select(2, Resonance.loadDataAddon()))
+  end
+
+  -- Tab heading
+  local muteTabHdr = muteTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  muteTabHdr:SetPoint("TOPLEFT", muteBanner and muteBanner or muteTab, muteBanner and "BOTTOMLEFT" or "TOPLEFT", 16, muteBanner and -12 or -16)
+  muteTabHdr:SetText(L["Sound Browser"])
+
+  local muteTabDesc = muteTab:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  muteTabDesc:SetPoint("TOPLEFT", muteTabHdr, "BOTTOMLEFT", 0, -6)
+  muteTabDesc:SetPoint("RIGHT", muteTab, "RIGHT", -16, 0)
+  muteTabDesc:SetJustifyH("LEFT")
+  muteTabDesc:SetSpacing(3)
+  muteTabDesc:SetText(L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."])
+
   local muteSpellRadio = makeRadio(muteTab)
-  muteSpellRadio:SetPoint("TOPLEFT", muteTab, "TOPLEFT", 16, -10)
+  muteSpellRadio:SetPoint("TOPLEFT", muteTabDesc, "BOTTOMLEFT", 0, -12)
   muteSpellRadio.label:SetText(L["Spell Sounds"])
 
   local muteCharRadio = makeRadio(muteTab)
@@ -2677,10 +2962,9 @@ buildTab3_MutedSounds = function(ctx)
     bg:SetAllPoints()
     bg:SetColorTexture(0.2, 0.2, 0.25, 0.5)
     hdr.bg = bg
-    hdr.arrow = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    hdr.arrow = hdr:CreateTexture(nil, "OVERLAY")
+    hdr.arrow:SetSize(16, 16)
     hdr.arrow:SetPoint("LEFT", 4, 0)
-    hdr.arrow:SetWidth(14)
-    hdr.arrow:SetJustifyH("LEFT")
     hdr.text = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     hdr.text:SetPoint("LEFT", hdr.arrow, "RIGHT", 2, 0)
     hdr.text:SetJustifyH("LEFT")
@@ -2957,7 +3241,7 @@ buildTab3_MutedSounds = function(ctx)
       else
         hdr.text:SetText(displayName)
       end
-      hdr.arrow:SetText(collapsed and "|cffaaaaaa+|r" or "|cffaaaaaa-|r")
+      hdr.arrow:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-UP" or "Interface\\Buttons\\UI-MinusButton-UP")
       hdr.count:SetText("(" .. (classCount[classKey] or 0) .. ")")
       local hdrKey = classKey
       hdr:SetScript("OnClick", function()
@@ -3271,14 +3555,24 @@ buildTab4_Presets = function(ctx)
   end)
 
   -- Presets tab layout
-  local presetDesc = presetTab:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  presetDesc:SetPoint("TOPLEFT", presetTab, "TOPLEFT", 16, -12)
+  local presetBanner
+  if not ctx.dataLoaded then
+    presetBanner = showDataUnavailableBanner(presetTab, select(2, Resonance.loadDataAddon()))
+  end
+
+  local presetTabHdr = presetTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  presetTabHdr:SetPoint("TOPLEFT", presetBanner and presetBanner or presetTab, presetBanner and "BOTTOMLEFT" or "TOPLEFT", 16, presetBanner and -12 or -16)
+  presetTabHdr:SetText(L["Presets"])
+
+  local presetDesc = presetTab:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  presetDesc:SetPoint("TOPLEFT", presetTabHdr, "BOTTOMLEFT", 0, -6)
   presetDesc:SetWidth(CONTENT_WIDTH)
   presetDesc:SetJustifyH("LEFT")
+  presetDesc:SetSpacing(3)
   presetDesc:SetText(L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."])
 
   local presetSaveBtn = makeButton(presetTab, L["Save Current Config"], 130, nil)
-  presetSaveBtn:SetPoint("TOPLEFT", presetDesc, "BOTTOMLEFT", 0, -8)
+  presetSaveBtn:SetPoint("TOPLEFT", presetDesc, "BOTTOMLEFT", 0, -12)
 
   local presetImportBtn = makeButton(presetTab, L["Import"], 54, nil)
   presetImportBtn:SetPoint("LEFT", presetSaveBtn, "RIGHT", 6, 0)
@@ -3741,21 +4035,29 @@ buildTab5_Ambient = function(ctx)
   ctx.refreshAmbientTab = (function()
     local ambTab = ctx.ambientContent
     local ASD = Resonance.AmbientSoundData
+
+    -- Data unavailable banner
+    local ambBanner
+    if not ctx.dataLoaded then
+      ambBanner = showDataUnavailableBanner(ambTab, select(2, Resonance.loadDataAddon()))
+    end
+
     if not ASD then
       local noData = ambTab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-      noData:SetPoint("TOPLEFT", 16, -16)
+      noData:SetPoint("TOPLEFT", ambBanner and ambBanner or ambTab, ambBanner and "BOTTOMLEFT" or "TOPLEFT", 16, ambBanner and -12 or -16)
       noData:SetText(L["No ambient sound data available."])
       return function() end
     end
 
     local hdr = ambTab:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    hdr:SetPoint("TOPLEFT", 16, -16)
-    hdr:SetText(L["Mute ambient sounds by zone"])
+    hdr:SetPoint("TOPLEFT", ambBanner and ambBanner or ambTab, ambBanner and "BOTTOMLEFT" or "TOPLEFT", 16, ambBanner and -12 or -16)
+    hdr:SetText(L["Ambient"])
 
-    local desc = ambTab:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local desc = ambTab:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     desc:SetPoint("TOPLEFT", hdr, "BOTTOMLEFT", 0, -6)
     desc:SetPoint("RIGHT", ambTab, "RIGHT", -16, 0)
     desc:SetJustifyH("LEFT")
+    desc:SetSpacing(3)
     desc:SetText(L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."])
 
     -- Search box for individual ambient sounds
@@ -3773,14 +4075,30 @@ buildTab5_Ambient = function(ctx)
       function(e)
         if e then
           local p = Resonance.db.profile
-          if p.mute_file_data_ids[e.fileDataID] then
-            p.mute_file_data_ids[e.fileDataID] = nil
-            UnmuteSoundFile(e.fileDataID)
+          local fid = e.fileDataID
+          if p.mute_file_data_ids[fid] then
+            p.mute_file_data_ids[fid] = nil
+            UnmuteSoundFile(fid)
+            Resonance.msg(L["Unmuted FID %d"]:format(fid))
           else
-            p.mute_file_data_ids[e.fileDataID] = true
-            MuteSoundFile(e.fileDataID)
+            p.mute_file_data_ids[fid] = true
+            MuteSoundFile(fid)
+            Resonance.msg(L["Re-muted FID %d"]:format(fid))
           end
-          doAmbSearch()
+          -- Refresh dropdown in-place (doAmbSearch has a focus guard that
+          -- would skip the refresh when clicking the button steals focus)
+          if ambSearchDD.data then
+            for _, r in ipairs(ambSearchDD.data) do
+              local f = r.fileDataID
+              local filename = r.path:match("([^/\\]+)$") or r.path
+              if p.mute_file_data_ids[f] then
+                r.display = "|cff888888" .. filename .. "|r"
+              else
+                r.display = filename
+              end
+            end
+            ambSearchDD:SetData(ambSearchDD.data, ambSearchDD.statusText:GetText())
+          end
         end
       end,
       { label = L["Mute"], icon = "Interface\\Buttons\\UI-GroupLoot-Pass-Down" }, CONTENT_WIDTH
@@ -3790,11 +4108,13 @@ buildTab5_Ambient = function(ctx)
     function ambSearchDD:onRowRefresh(row, entry)
       local muted = Resonance.db.profile.mute_file_data_ids[entry.fileDataID]
       row.actionBtn.tooltipText = muted and L["Unmute"] or L["Mute"]
-      -- Visual feedback: tint icon red when muted, normal when not
+      -- Visual feedback: red + reduced alpha when muted, bright when not
       if muted then
         row.actionBtn.icon:SetVertexColor(1, 0.3, 0.3)
+        row.actionBtn.icon:SetAlpha(0.6)
       else
-        row.actionBtn.icon:SetVertexColor(1, 1, 1)
+        row.actionBtn.icon:SetVertexColor(0.8, 0.8, 0.8)
+        row.actionBtn.icon:SetAlpha(1)
       end
     end
 
@@ -3961,9 +4281,10 @@ buildTab5_Ambient = function(ctx)
         local bg = ehdr:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
         bg:SetColorTexture(0.18, 0.18, 0.18, 0.8)
-        local arrow = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        local arrow = ehdr:CreateTexture(nil, "OVERLAY")
+        arrow:SetSize(16, 16)
         arrow:SetPoint("LEFT", 8, 0)
-        arrow:SetText(">")
+        arrow:SetTexture("Interface\\Buttons\\UI-PlusButton-UP")
         local title = ehdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         title:SetPoint("LEFT", arrow, "RIGHT", 4, 0)
         title:SetText(L[exp] or exp)
@@ -3972,7 +4293,7 @@ buildTab5_Ambient = function(ctx)
         for _, packed in pairs(data) do zc = zc + 1; fc = fc + countFIDs(packed) end
         local info = ehdr:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         info:SetPoint("LEFT", title, "RIGHT", 8, 0)
-        info:SetText("(" .. zc .. " zones, " .. fc .. " sounds)")
+        info:SetText("(" .. L["%d zones, %d sounds"]:format(zc, fc) .. ")")
 
         local sorted = {}
         for z in pairs(data) do sorted[#sorted + 1] = z end
@@ -3989,7 +4310,7 @@ buildTab5_Ambient = function(ctx)
         expanded[exp] = false
         ehdr:SetScript("OnClick", function()
           expanded[exp] = not expanded[exp]
-          arrow:SetText(expanded[exp] and "v" or ">")
+          arrow:SetTexture(expanded[exp] and "Interface\\Buttons\\UI-MinusButton-UP" or "Interface\\Buttons\\UI-PlusButton-UP")
           for _, r in ipairs(zoneRows) do r:SetShown(expanded[exp]) end
           relayoutExpansions()
         end)
@@ -4096,14 +4417,45 @@ local function recalcContentHeight(contentOrIndex)
 end
 
 -- Helper to embed an AceConfig table into a subcategory panel
-local function buildAceConfigPanel(parentFrame, aceConfigName)
+local function buildAceConfigPanel(parentFrame, aceConfigName, title, description)
   local aceGUI = LibStub("AceGUI-3.0")
   local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
+  local yOffset = -16
+  if title then
+    local hdr = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    hdr:SetPoint("TOPLEFT", 16, -16)
+    hdr:SetText(title)
+    yOffset = -16
+    if description then
+      local desc = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+      desc:SetPoint("TOPLEFT", hdr, "BOTTOMLEFT", 0, -6)
+      desc:SetPoint("RIGHT", parentFrame, "RIGHT", -16, 0)
+      desc:SetJustifyH("LEFT")
+      desc:SetSpacing(3)
+      desc:SetText(description)
+      -- Defer measuring until the font string has been laid out
+      parentFrame:SetScript("OnShow", function(self)
+        local descH = desc:GetStringHeight() or 14
+        local hdrH = hdr:GetStringHeight() or 16
+        local aceContainer = self._aceContainer
+        if aceContainer then
+          aceContainer:ClearAllPoints()
+          aceContainer:SetPoint("TOPLEFT", 16, -(16 + hdrH + 6 + descH + 12))
+          aceContainer:SetPoint("TOPRIGHT", -16, 0)
+        end
+      end)
+      yOffset = -(16 + 16 + 6 + 14 + 12)  -- approximate; OnShow refines it
+    else
+      yOffset = -(16 + 16 + 12)
+    end
+  end
+
   local aceContainer = CreateFrame("Frame", nil, parentFrame)
-  aceContainer:SetPoint("TOPLEFT", 16, -16)
+  aceContainer:SetPoint("TOPLEFT", 16, yOffset)
   aceContainer:SetPoint("TOPRIGHT", -16, 0)
   aceContainer:SetHeight(400)
+  parentFrame._aceContainer = aceContainer
 
   local container = aceGUI:Create("SimpleGroup")
   container:SetLayout("Fill")
@@ -4122,7 +4474,8 @@ local function buildSubcategoryContent(name, panel)
   if not entry or entry.built then return end
   entry.built = true
 
-  Resonance.loadDataAddon()
+  local dataLoaded, dataReason = Resonance.loadDataAddon()
+  ctx.dataLoaded = dataLoaded
 
   -- AceConfig-based panels
   if name == "General" or name == "Muting" or name == "Profiles" then
@@ -4131,7 +4484,17 @@ local function buildSubcategoryContent(name, panel)
       ["Muting"]   = "Resonance_Muting",
       ["Profiles"] = "Resonance_Profiles",
     })[name]
-    buildAceConfigPanel(panel, aceKey)
+    local aceTitle = ({
+      ["General"]  = L["General"],
+      ["Muting"]   = L["Muting"],
+      ["Profiles"] = L["Profiles"],
+    })[name]
+    local aceDesc = ({
+      ["General"]  = L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."],
+      ["Muting"]   = L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."],
+      ["Profiles"] = L["Manage saved profiles. Copy settings between characters or switch configurations."],
+    })[name]
+    buildAceConfigPanel(panel, aceKey, aceTitle, aceDesc)
     return
   end
 
