@@ -46,6 +46,9 @@ if locale == "enUS" or locale == "enGB" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Stop the alert sound after this many seconds. Leave blank to let it play fully."
   L["Test"] = "Test"
   L["Play the configured interrupt alert sound."] = "Play the configured interrupt alert sound."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."
+  L["Play the configured replacement fishing bobber sound."] = "Play the configured replacement fishing bobber sound."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Mute ambient sounds by zone"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."
@@ -348,6 +351,9 @@ if locale == "ptBR" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Parar o som de alerta após essa quantidade de segundos. Deixe em branco para tocar completamente."
   L["Test"] = "Testar"
   L["Play the configured interrupt alert sound."] = "Tocar o som de alerta de interrupção configurado."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Toca um som de alerta adicional quando sua conjuração é interrompida. Isso não silencia nem substitui o som padrão de interrupção do jogo — ele toca junto."
+  L["Play the configured replacement fishing bobber sound."] = "Tocar o som substituto configurado para a bóia de pesca."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados. Você também pode usar seus próprios arquivos de som — coloque-os em Interface/AddOns/Resonance_Sounds/ (crie esta pasta) para protegê-los de atualizações do addon, e insira o caminho completo como som substituto."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenciar sons ambientes por zona"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Silenciar sons ambientais/de ambiente para zonas específicas. Útil para silenciar zumbidos irritantes, feixes ou áudio ambiente opressivo."
@@ -635,6 +641,9 @@ elseif locale == "deDE" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Den Alarmklang nach dieser Anzahl Sekunden stoppen. Leer lassen für vollständige Wiedergabe."
   L["Test"] = "Testen"
   L["Play the configured interrupt alert sound."] = "Den konfigurierten Unterbrechungs-Alarmklang abspielen."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Spielt einen zusätzlichen Alarmklang ab, wenn dein Zauber unterbrochen wird. Dies schaltet den Standard-Unterbrechungsklang des Spiels nicht stumm und ersetzt ihn nicht — er wird zusätzlich abgespielt."
+  L["Play the configured replacement fishing bobber sound."] = "Den konfigurierten Ersatz-Angelklang abspielen."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu. Du kannst auch eigene Klangdateien verwenden — lege sie in Interface/AddOns/Resonance_Sounds/ ab (erstelle diesen Ordner), um sie vor Addon-Updates zu schützen, und gib den vollständigen Pfad als Ersatzklang ein."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Umgebungsklänge nach Zone stummschalten"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Umgebungs-/Ambientklänge für bestimmte Zonen stummschalten. Nützlich zum Stummschalten störender Drohnen, Strahlen oder bedrückender Hintergrundgeräusche."
@@ -922,6 +931,9 @@ elseif locale == "frFR" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Arrêter le son d'alerte après ce nombre de secondes. Laisser vide pour le laisser jouer entièrement."
   L["Test"] = "Tester"
   L["Play the configured interrupt alert sound."] = "Jouer le son d'alerte d'interruption configuré."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Joue un son d'alerte supplémentaire lorsque votre incantation est interrompue. Cela ne coupe pas et ne remplace pas le son d'interruption par défaut du jeu — il se joue en plus."
+  L["Play the configured replacement fishing bobber sound."] = "Jouer le son de remplacement configuré pour le bouchon de pêche."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés. Vous pouvez aussi utiliser vos propres fichiers sonores — placez-les dans Interface/AddOns/Resonance_Sounds/ (créez ce dossier) pour les protéger des mises à jour, puis entrez le chemin complet comme son de remplacement."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Couper les sons ambiants par zone"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Couper les sons ambiants/environnementaux pour des zones spécifiques. Utile pour faire taire les bourdonnements, faisceaux ou sons ambiants oppressants."
@@ -1209,6 +1221,9 @@ elseif locale == "esES" or locale == "esMX" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Parar el sonido de alerta después de estos segundos. Dejar vacío para que se reproduzca completamente."
   L["Test"] = "Probar"
   L["Play the configured interrupt alert sound."] = "Reproducir el sonido de alerta de interrupción configurado."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Reproduce un sonido de alerta adicional cuando tu lanzamiento es interrumpido. Esto no silencia ni reemplaza el sonido de interrupción predeterminado del juego — se reproduce encima de él."
+  L["Play the configured replacement fishing bobber sound."] = "Reproducir el sonido de reemplazo configurado para el flotador de pesca."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados. También puedes usar tus propios archivos de sonido — colócalos en Interface/AddOns/Resonance_Sounds/ (crea esta carpeta) para protegerlos de actualizaciones del addon, e introduce la ruta completa como sonido de reemplazo."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenciar sonidos ambientales por zona"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Silenciar sonidos ambientales para zonas específicas. Útil para silenciar zumbidos molestos, rayos o audio ambiental opresivo."
@@ -1495,6 +1510,9 @@ elseif locale == "itIT" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Ferma il suono di avviso dopo questi secondi. Lascia vuoto per riprodurlo completamente."
   L["Test"] = "Prova"
   L["Play the configured interrupt alert sound."] = "Riproduce il suono di avviso interruzione configurato."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Riproduce un suono di avviso aggiuntivo quando il tuo lancio viene interrotto. Questo non silenzia né sostituisce il suono di interruzione predefinito del gioco — viene riprodotto in aggiunta."
+  L["Play the configured replacement fishing bobber sound."] = "Riproduce il suono sostitutivo configurato per il galleggiante da pesca."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati. Puoi anche usare i tuoi file audio — posizionali in Interface/AddOns/Resonance_Sounds/ (crea questa cartella) per proteggerli dagli aggiornamenti dell'addon, poi inserisci il percorso completo come suono sostitutivo."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenzia suoni ambientali per zona"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Silenzia i suoni ambientali per zone specifiche. Utile per silenziare ronzii fastidiosi, raggi o audio ambientale opprimente."
@@ -1781,6 +1799,9 @@ elseif locale == "ruRU" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Остановить звук оповещения через это количество секунд. Оставьте пустым для полного воспроизведения."
   L["Test"] = "Тест"
   L["Play the configured interrupt alert sound."] = "Воспроизвести настроенный звук оповещения о прерывании."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Воспроизводит дополнительный звук оповещения при прерывании вашего каста. Стандартный звук прерывания игры не заглушается и не заменяется — этот звук воспроизводится поверх него."
+  L["Play the configured replacement fishing bobber sound."] = "Воспроизвести настроенный замещающий звук поплавка."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы. Вы также можете использовать собственные звуковые файлы — поместите их в Interface/AddOns/Resonance_Sounds/ (создайте эту папку) для защиты от обновлений аддона, затем введите полный путь как замещающий звук."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Заглушить окружающие звуки по зоне"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Заглушить звуки окружения для определённых зон. Полезно для подавления раздражающего гула, лучей или давящего фонового звука."
@@ -2067,6 +2088,9 @@ elseif locale == "koKR" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "이 시간(초) 후 알림 소리를 중지합니다. 전체 재생하려면 비워 두세요."
   L["Test"] = "테스트"
   L["Play the configured interrupt alert sound."] = "설정된 차단 알림 소리를 재생합니다."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "시전이 차단되었을 때 추가 알림 소리를 재생합니다. 게임의 기본 차단 소리를 음소거하거나 대체하지 않으며 — 그 위에 추가로 재생됩니다."
+  L["Play the configured replacement fishing bobber sound."] = "설정된 대체 낚시 찌 소리를 재생합니다."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다. 자신의 사운드 파일도 사용할 수 있습니다 — Interface/AddOns/Resonance_Sounds/ 폴더를 만들어 파일을 넣으면 애드온 업데이트로부터 안전하게 보호되며, 전체 경로를 대체 소리로 입력하세요."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "지역별 환경음 음소거"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "특정 지역의 환경/배경 소리를 음소거합니다. 성가신 웅웅거림, 빔 소리, 또는 압도적인 배경 오디오를 제거하는 데 유용합니다."
@@ -2353,6 +2377,9 @@ elseif locale == "zhCN" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "在此秒数后停止警报声音。留空则完整播放。"
   L["Test"] = "测试"
   L["Play the configured interrupt alert sound."] = "播放已配置的打断警报声音。"
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "当你的施法被打断时播放额外的警报声音。这不会静音或替换游戏默认的打断声音——它在其之上播放。"
+  L["Play the configured replacement fishing bobber sound."] = "播放已配置的替换钓鱼浮标声音。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。你也可以使用自己的声音文件——将它们放在Interface/AddOns/Resonance_Sounds/文件夹中（创建此文件夹）以防止插件更新时丢失，然后输入完整路径作为替换声音。"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "按区域静音环境声音"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "静音特定区域的环境声音。适用于消除烦人的嗡嗡声、光束声或压抑的环境音效。"
@@ -2639,6 +2666,9 @@ elseif locale == "zhTW" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "在此秒數後停止警示聲音。留空則完整播放。"
   L["Test"] = "測試"
   L["Play the configured interrupt alert sound."] = "播放已設定的打斷警示聲音。"
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "當你的施法被打斷時播放額外的警示聲音。這不會靜音或替換遊戲預設的打斷聲音——它在其之上播放。"
+  L["Play the configured replacement fishing bobber sound."] = "播放已設定的替換釣魚浮標聲音。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。你也可以使用自己的聲音檔案——將它們放在Interface/AddOns/Resonance_Sounds/資料夾中（建立此資料夾）以防止插件更新時遺失，然後輸入完整路徑作為替換聲音。"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "按區域靜音環境聲音"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "靜音特定區域的環境聲音。適用於消除煩人的嗡嗡聲、光束聲或壓迫性的環境音效。"

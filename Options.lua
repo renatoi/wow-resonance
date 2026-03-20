@@ -1155,7 +1155,8 @@ do
     label:SetHeight(18)
 
     -- Autocomplete dropdown (reuses the same component as other search boxes)
-    local dd = createAutocomplete(editbox,
+    local dd
+    dd = createAutocomplete(editbox,
       function(e) if e then return e.fileDataID end end,  -- onPlay: return FID
       function(e)                                          -- onAction: select sound
         if e then
@@ -1294,7 +1295,7 @@ buildTab2_SpellSounds = function(ctx)
   spellTabDesc:SetPoint("RIGHT", spellTab, "RIGHT", -16, 0)
   spellTabDesc:SetJustifyH("LEFT")
   spellTabDesc:SetSpacing(3)
-  spellTabDesc:SetText(L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."])
+  spellTabDesc:SetText(L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."])
 
   -- Anchor frame positioned after the heading + description
   local spellBtnAnchor = CreateFrame("Frame", nil, spellTab)
@@ -4490,7 +4491,7 @@ local function buildSubcategoryContent(name, panel)
       ["Profiles"] = L["Profiles"],
     })[name]
     local aceDesc = ({
-      ["General"]  = L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."],
+      ["General"]  = L["Toggle features, configure the interrupt alert sound, and choose the replacement sound channel."],
       ["Muting"]   = L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."],
       ["Profiles"] = L["Manage saved profiles. Copy settings between characters or switch configurations."],
     })[name]

@@ -120,7 +120,6 @@ local weaponMutedFIDs = {}    -- runtime-only: FIDs muted by weapon impact toggl
 local creatureMutedFIDs = {}  -- runtime-only: FIDs muted by creature vox toggle
 local autoShotMutedFIDs = {}  -- runtime-only: FIDs muted by classic auto-shot toggle
 local professionMutedFIDs = {} -- runtime-only: FIDs muted by profession sound toggle
-local fishingMutedFIDs = {}    -- runtime-only: FIDs muted by classic fishing sounds toggle
 local npcMutedFIDs = {}        -- runtime-only: FIDs muted by NPC sound muting
 local lastInterruptInfo = nil  -- { time, spellID } set by CLEU SPELL_INTERRUPT
 local activeAlertHandle = nil  -- sound handle for debouncing interrupt alerts
@@ -137,7 +136,6 @@ local function isMutedElsewhere(fid, skip)
   if creatureMutedFIDs[fid] and creatureMutedFIDs ~= skip then return true end
   if autoShotMutedFIDs[fid] and autoShotMutedFIDs ~= skip then return true end
   if professionMutedFIDs[fid] and professionMutedFIDs ~= skip then return true end
-  if fishingMutedFIDs[fid] and fishingMutedFIDs ~= skip then return true end
   if npcMutedFIDs[fid] and npcMutedFIDs ~= skip then return true end
   if ambientMutedFIDs[fid] and ambientMutedFIDs ~= skip then return true end
   return false
@@ -171,11 +169,6 @@ local AUTO_SHOT_MUTE_FIDS = {
 local CLASSIC_BOW_FIDS = { 567674, 567673, 567682 }   -- bowrelease 1-3
 local CLASSIC_GUN_FIDS = { 567721, 567718, 567722 }   -- gunfire 1-3
 
--- Modern fishing bobber splash FIDs to mute (FishingBobber_ver2 1-3)
-local FISHING_BOBBER_MUTE_FIDS = { 568970, 569044, 569285 }
--- Classic replacement sound: FishBite.ogg
-local CLASSIC_FISHING_BOBBER_FID = 569816
-
 -- Name-based index: lowercase spell name -> spell_config entry.
 -- Handles variant spell IDs (e.g., Balance Moonfire 155625 vs base 8921)
 -- that share sounds with a configured spell but have a different ID.
@@ -203,8 +196,6 @@ local defaults = {
     muteProfessionSounds = {},  -- { ["Blacksmithing"] = true, ... }
     muteAmbientSounds = {},  -- { ["Midnight|Silvermoon City"] = true, ... }
     classicAutoShot = false,
-    classicFishingSounds = false,
-    fishingBobberSound = nil,  -- nil = classic default (569816); number = FileDataID; string = file path
     mutedNPCs = {},  -- { [npcID] = true } NPCs whose sounds are muted
     interruptAlert = false,
     interruptAlertSound = nil,
@@ -320,7 +311,7 @@ end
 
 local function playOneSoundWithUnmute(snd, dbg, duration)
   local isNum = type(snd) == "number"
-  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd] or autoShotMutedFIDs[snd] or professionMutedFIDs[snd] or fishingMutedFIDs[snd] or npcMutedFIDs[snd] or ambientMutedFIDs[snd])
+  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd] or autoShotMutedFIDs[snd] or professionMutedFIDs[snd] or npcMutedFIDs[snd] or ambientMutedFIDs[snd])
   if dbg then msg(("  Playing: %s (muted: %s, duration: %s)"):format(tostring(snd), tostring(isMuted and true or false), duration and ("%.2fs"):format(duration) or "full")) end
   local handle
   if isMuted then
@@ -349,7 +340,6 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
       if creatureMutedFIDs[fid] then MuteSoundFile(fid) end
       if autoShotMutedFIDs[fid] then MuteSoundFile(fid) end
       if professionMutedFIDs[fid] then MuteSoundFile(fid) end
-      if fishingMutedFIDs[fid] then MuteSoundFile(fid) end
       if npcMutedFIDs[fid] then MuteSoundFile(fid) end
       if ambientMutedFIDs[fid] then MuteSoundFile(fid) end
     end)
@@ -694,7 +684,7 @@ local function applyCreatureVoxMutes()
         if packed then
           for s in packed:gmatch("%d+") do
             local fid = tonumber(s)
-            if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
+            if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
               creatureMutedFIDs[fid] = true
               MuteSoundFile(fid)
               count = count + 1
@@ -969,42 +959,6 @@ local function getEquippedRangedType()
   if subclassID == 2 or subclassID == 18 then return "bow" end  -- Bows / Crossbows
   if subclassID == 3 then return "gun" end                       -- Guns
   return nil
-end
-
----------------------------------------------------------------------------
--- Classic fishing sounds: mute modern bobber splash, play classic on catch
----------------------------------------------------------------------------
-local function applyFishingMutes()
-  local count = 0
-  for _, fid in ipairs(FISHING_BOBBER_MUTE_FIDS) do
-    if not fishingMutedFIDs[fid] then
-      fishingMutedFIDs[fid] = true
-      MuteSoundFile(fid)
-      count = count + 1
-    end
-  end
-  if count > 0 then
-    msg(L["Muted %d fishing bobber sounds."]:format(count))
-  end
-end
-
-local function clearFishingMutes()
-  local count = 0
-  for fid in pairs(fishingMutedFIDs) do
-    if not isMutedElsewhere(fid, fishingMutedFIDs) then
-      UnmuteSoundFile(fid)
-    end
-    count = count + 1
-  end
-  wipe(fishingMutedFIDs)
-  if count > 0 then
-    msg(L["Cleared %d fishing bobber mutes."]:format(count))
-  end
-end
-
-local function refreshFishingMutes()
-  clearFishingMutes()
-  if db.enabled and db.classicFishingSounds then applyFishingMutes() end
 end
 
 ---------------------------------------------------------------------------
@@ -1342,7 +1296,7 @@ end
 local function clearMutes()
   local count = 0
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
-    if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not fishingMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
+    if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
       UnmuteSoundFile(fid)
       count = count + 1
     end
@@ -1833,7 +1787,6 @@ Resonance.weaponMutedFIDs = weaponMutedFIDs
 Resonance.creatureMutedFIDs = creatureMutedFIDs
 Resonance.autoShotMutedFIDs = autoShotMutedFIDs
 Resonance.professionMutedFIDs = professionMutedFIDs
-Resonance.fishingMutedFIDs = fishingMutedFIDs
 Resonance.npcMutedFIDs = npcMutedFIDs
 Resonance.ambientMutedFIDs = ambientMutedFIDs
 Resonance.refreshAmbientMutes = refreshAmbientMutes
@@ -2076,22 +2029,18 @@ local function getGeneralOptions()
             if hasAnyNPCMuteEnabled() then applyNPCMutes() end
             if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
             if db.classicAutoShot then applyAutoShotMutes() end
-            if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
           else
             cancelActiveLoop()
             db.muteWeaponImpacts = false
             db.muteVocalizations = "off"
             db.classicAutoShot = false
-            db.classicFishingSounds = false
             if db.muteCreatureVox then wipe(db.muteCreatureVox) end
             if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
             if db.mutedNPCs then wipe(db.mutedNPCs) end
             if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
             clearAutoShotMutes()
-            clearFishingMutes()
             clearNPCMutes()
             clearAmbientMutes()
-            Resonance:UnregisterEvent("LOOT_READY")
             Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
             Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
             clearInterruptAlertState()
@@ -2140,94 +2089,16 @@ local function getGeneralOptions()
         get = function() return db.soundChannel end,
         set = function(_, v) db.soundChannel = v end,
       },
-      fishingHeader = {
-        type = "header",
-        name = L["Fishing"],
-        order = 10,
-      },
-      classicFishingSounds = {
-        type = "toggle",
-        name = L["Replace fishing bobber sound"],
-        desc = L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."],
-        order = 11,
-        width = "full",
-        disabled = function() return not db.enabled end,
-        get = function() return db.classicFishingSounds end,
-        set = function(_, v)
-          db.classicFishingSounds = v
-          if v then
-            if db.enabled then applyFishingMutes() end
-            Resonance:RegisterEvent("LOOT_READY")
-          else
-            clearFishingMutes()
-            Resonance:UnregisterEvent("LOOT_READY")
-          end
-        end,
-      },
-      fishingBobberMode = {
-        type = "select",
-        name = L["Replacement sound"],
-        desc = L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."],
-        order = 12,
-        hidden = function() return not db.classicFishingSounds end,
-        disabled = function() return not db.enabled end,
-        values = {
-          classic = L["Classic (FishBite)"],
-          custom = L["Custom"],
-        },
-        sorting = { "classic", "custom" },
-        get = function()
-          if db.fishingBobberSound == nil then return "classic" end
-          return "custom"
-        end,
-        set = function(_, v)
-          if v == "classic" then
-            db.fishingBobberSound = nil
-          elseif not db.fishingBobberSound then
-            db.fishingBobberSound = ""
-          end
-        end,
-      },
-      fishingBobberCustom = {
-        type = "input",
-        dialogControl = "Resonance_SoundEditBox",
-        name = L["Custom sound"],
-        desc = L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."],
-        order = 13,
-        width = "double",
-        hidden = function() return not db.classicFishingSounds or db.fishingBobberSound == nil end,
-        disabled = function() return not db.enabled end,
-        get = function()
-          local v = db.fishingBobberSound
-          return (v and v ~= "") and tostring(v) or ""
-        end,
-        set = function(_, v)
-          v = v and v:match("^%s*(.-)%s*$") or ""
-          if v == "" then
-            db.fishingBobberSound = ""
-          else
-            local num = tonumber(v)
-            db.fishingBobberSound = num or v
-          end
-        end,
-      },
-      fishingBobberPreview = {
-        type = "execute",
-        name = L["Preview"],
-        desc = L["Preview the replacement fishing bobber sound."],
-        order = 14,
-        hidden = function() return not db.classicFishingSounds end,
-        disabled = function() return not db.enabled end,
-        func = function()
-          local snd = db.fishingBobberSound
-          if not snd or snd == "" then snd = CLASSIC_FISHING_BOBBER_FID end
-          playOneSoundWithUnmute(snd, db.debug)
-        end,
-      },
       interruptAlertHeader = {
         type = "header",
         name = L["Interrupt Alert"],
         order = 20,
+      },
+      interruptAlertDesc = {
+        type = "description",
+        fontSize = "medium",
+        name = L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."],
+        order = 20.5,
       },
       interruptAlert = {
         type = "toggle",
@@ -2252,7 +2123,7 @@ local function getGeneralOptions()
       interruptAlertSound = {
         type = "input",
         dialogControl = "Resonance_SoundEditBox",
-        name = L["Alert sound (FID or file path)"],
+        name = L["Custom sound"],
         desc = L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"],
         order = 22,
         width = "double",
@@ -2459,22 +2330,18 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         if hasAnyNPCMuteEnabled() then applyNPCMutes() end
         if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
         if db.classicAutoShot then applyAutoShotMutes() end
-        if db.classicFishingSounds then applyFishingMutes(); Resonance:RegisterEvent("LOOT_READY") end
       else
         cancelActiveLoop()
         db.muteWeaponImpacts = false
         db.muteVocalizations = "off"
         db.classicAutoShot = false
-        db.classicFishingSounds = false
         if db.muteCreatureVox then wipe(db.muteCreatureVox) end
         if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
         if db.mutedNPCs then wipe(db.mutedNPCs) end
         if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
         clearAutoShotMutes()
-        clearFishingMutes()
         clearNPCMutes()
         clearAmbientMutes()
-        Resonance:UnregisterEvent("LOOT_READY")
         Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
         Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
         clearInterruptAlertState()
@@ -2553,7 +2420,6 @@ function Resonance:OnInitialize()
   local function onProfileChanged()
     cancelActiveLoop()
     clearAutoShotMutes()
-    clearFishingMutes()
     clearNPCMutes()
     clearAmbientMutes()
     clearProfessionMutes()
@@ -2579,12 +2445,6 @@ function Resonance:OnInitialize()
     if hasAnyNPCMuteEnabled() then applyNPCMutes() end
     if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
     if db.classicAutoShot then applyAutoShotMutes() end
-    if db.classicFishingSounds then
-      applyFishingMutes()
-      self:RegisterEvent("LOOT_READY")
-    else
-      self:UnregisterEvent("LOOT_READY")
-    end
     if db.interruptAlert then
       self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
       self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
@@ -2635,10 +2495,6 @@ function Resonance:OnEnable()
   if getVoxMode() ~= "off" then applyVoxMutes() end
   if db.muteWeaponImpacts then applyWeaponMutes() end
   if db.classicAutoShot then applyAutoShotMutes() end
-  if db.classicFishingSounds then
-    applyFishingMutes()
-    self:RegisterEvent("LOOT_READY")
-  end
   if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
   if hasAnyNPCMuteEnabled() then applyNPCMutes() end
   if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
@@ -2660,13 +2516,6 @@ end
 ---------------------------------------------------------------------------
 -- Event handler
 ---------------------------------------------------------------------------
-function Resonance:LOOT_READY()
-  if not db.classicFishingSounds then return end
-  if not IsFishingLoot or not IsFishingLoot() then return end
-  local snd = db.fishingBobberSound
-  if not snd or snd == "" then snd = CLASSIC_FISHING_BOBBER_FID end
-  playOneSoundWithUnmute(snd, db.debug)
-end
 
 local function resolveSpellConfig(spellID)
   local spell_config = db.spell_config
@@ -2800,7 +2649,6 @@ function Resonance:ChatCommand(input)
     if hasAnyNPCMuteEnabled() then applyNPCMutes() end
     if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
     if db.classicAutoShot then applyAutoShotMutes() end
-    if db.classicFishingSounds then applyFishingMutes(); self:RegisterEvent("LOOT_READY") end
     msg(L["Enabled."])
   elseif cmd == "off" then
     cancelActiveLoop()
@@ -2808,14 +2656,11 @@ function Resonance:ChatCommand(input)
     db.muteWeaponImpacts = false
     db.muteVocalizations = "off"
     db.classicAutoShot = false
-    db.classicFishingSounds = false
     if db.muteCreatureVox then wipe(db.muteCreatureVox) end
     if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
     if db.mutedNPCs then wipe(db.mutedNPCs) end
     if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
     clearAutoShotMutes()
-    clearFishingMutes()
-    self:UnregisterEvent("LOOT_READY")
     self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
     self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     clearInterruptAlertState()
