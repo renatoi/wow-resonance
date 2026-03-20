@@ -1,0 +1,30 @@
+name: Lint & Format
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install luacheck
+        run: sudo apt-get install -y lua-check
+
+      - name: Install StyLua
+        run: |
+          curl -sL https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
+          unzip stylua.zip -d /usr/local/bin
+          chmod +x /usr/local/bin/stylua
+
+      - name: Download WoW API globals
+        run: python3 tools/update_wow_globals.py
+
+      - name: Luacheck
+        run: luacheck Core.lua Options.lua Locales.lua data/
+
+      - name: StyLua check
+        run: stylua --check Core.lua Options.lua Locales.lua data/

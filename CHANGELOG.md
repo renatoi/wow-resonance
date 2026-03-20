@@ -31,7 +31,7 @@
 
 ### Tooling
 - `/res checkfid <id>` diagnostic command to inspect which muting systems affect a given FileDataID.
-- `scripts/generate_ambient_data.lua` for generating ambient sound data.
+- `tools/generate_ambient_data.lua` for generating ambient sound data.
 
 ## v1.2.0
 

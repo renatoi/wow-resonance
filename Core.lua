@@ -29,77 +29,140 @@ Resonance = LibStub("AceAddon-3.0"):NewAddon("Resonance", "AceConsole-3.0", "Ace
 -- Localize Lua built-ins to avoid per-call _G hash lookups.
 -- Standard WoW addon practice; each access through _G costs ~20-50 ns
 -- which adds up on rapid-fire spell casts and bulk mute operations.
-local type      = type
-local tostring  = tostring
-local tonumber  = tonumber
-local pairs     = pairs
-local ipairs    = ipairs
-local select    = select
-local pcall     = pcall
-local wipe      = wipe
-local math      = math
-local string    = string
-local table     = table
-local bit       = bit
+local type = type
+local tostring = tostring
+local tonumber = tonumber
+local pairs = pairs
+local ipairs = ipairs
+local select = select
+local pcall = pcall
+local wipe = wipe
+local math = math
+local string = string
+local table = table
+local bit = bit
 
 local L = Resonance_L
 local ADDON_ROOT = "Interface\\AddOns\\Resonance\\"
 
 local ADDON_VERSION = C_AddOns and C_AddOns.GetAddOnMetadata("Resonance", "Version") or "unknown"
-if ADDON_VERSION:find("@") then ADDON_VERSION = "dev" end
+if ADDON_VERSION:find("@") then
+  ADDON_VERSION = "dev"
+end
 
 -- Capture data globals into addon namespace, then release them from _G.
 -- Core-addon data files load before Core.lua (see .toc order) so these are
 -- guaranteed set.  Data-addon globals (SpellMuteData, SpellSounds, etc.) may
 -- not exist yet if Resonance_Data hasn't been loaded (LoadOnDemand).
-Resonance.ClassTemplates      = Resonance_ClassTemplates;       Resonance_ClassTemplates      = nil
-Resonance.ProfessionSoundData  = Resonance_ProfessionSoundData;  Resonance_ProfessionSoundData  = nil
-Resonance.ProfessionCategories = Resonance_ProfessionCategories;  Resonance_ProfessionCategories = nil
+Resonance.ClassTemplates = Resonance_ClassTemplates
+Resonance_ClassTemplates = nil
+Resonance.ProfessionSoundData = Resonance_ProfessionSoundData
+Resonance_ProfessionSoundData = nil
+Resonance.ProfessionCategories = Resonance_ProfessionCategories
+Resonance_ProfessionCategories = nil
 
 -- Capture globals from Resonance_Data (may not exist yet if LoadOnDemand).
 -- Called at file load and again from loadDataAddon() after late loading.
 local function captureDataAddonGlobals()
-  if Resonance_SpellMuteData then Resonance.SpellMuteData = Resonance_SpellMuteData; Resonance_SpellMuteData = nil end
-  if Resonance_RaceCSD then Resonance.RaceCSD = Resonance_RaceCSD; Resonance_RaceCSD = nil end
-  if Resonance_VoxFIDs then Resonance.VoxFIDs = Resonance_VoxFIDs; Resonance_VoxFIDs = nil end
-  if Resonance_WeaponImpactFIDs then Resonance.WeaponImpactFIDs = Resonance_WeaponImpactFIDs; Resonance_WeaponImpactFIDs = nil end
-  if Resonance_ExcludedFIDs then Resonance.ExcludedFIDs = Resonance_ExcludedFIDs; Resonance_ExcludedFIDs = nil end
-  if Resonance_AmbientSoundData then Resonance.AmbientSoundData = Resonance_AmbientSoundData; Resonance_AmbientSoundData = nil end
-  if Resonance_AmbientSounds then Resonance.AmbientSounds = Resonance_AmbientSounds; Resonance_AmbientSounds = nil end
-  if Resonance_SpellSounds then Resonance.SpellSounds = Resonance_SpellSounds; Resonance_SpellSounds = nil end
-  if Resonance_SpellSoundPrefixes then Resonance.SpellSoundPrefixes = Resonance_SpellSoundPrefixes; Resonance_SpellSoundPrefixes = nil end
-  if Resonance_CharacterSounds then Resonance.CharacterSounds = Resonance_CharacterSounds; Resonance_CharacterSounds = nil end
-  if Resonance_CharacterSoundPrefixes then Resonance.CharacterSoundPrefixes = Resonance_CharacterSoundPrefixes; Resonance_CharacterSoundPrefixes = nil end
-  if Resonance_NPCSoundL10N then Resonance.NPCSoundL10N = Resonance_NPCSoundL10N; Resonance_NPCSoundL10N = nil end
-  if Resonance_CreatureVoxData then Resonance.CreatureVoxData = Resonance_CreatureVoxData; Resonance_CreatureVoxData = nil end
-  if Resonance_CreatureVoxCategories then Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories; Resonance_CreatureVoxCategories = nil end
-  if Resonance_CreatureVoxExcludedFIDs then Resonance.CreatureVoxExcludedFIDs = Resonance_CreatureVoxExcludedFIDs; Resonance_CreatureVoxExcludedFIDs = nil end
-  if Resonance_NPCSoundIndex then Resonance.NPCSoundIndex = Resonance_NPCSoundIndex; Resonance_NPCSoundIndex = nil end
-  if Resonance_NPCToCSD then Resonance.NPCToCSD = Resonance_NPCToCSD; Resonance_NPCToCSD = nil end
-  if Resonance_NPCSoundCSD then Resonance.NPCSoundCSD = Resonance_NPCSoundCSD; Resonance_NPCSoundCSD = nil end
-  if Resonance_NPCVoiceData then Resonance.NPCVoiceData = Resonance_NPCVoiceData; Resonance_NPCVoiceData = nil end
-  if Resonance_NPCRepCSDs then Resonance.NPCRepCSDs = Resonance_NPCRepCSDs; Resonance_NPCRepCSDs = nil end
+  if Resonance_SpellMuteData then
+    Resonance.SpellMuteData = Resonance_SpellMuteData
+    Resonance_SpellMuteData = nil
+  end
+  if Resonance_RaceCSD then
+    Resonance.RaceCSD = Resonance_RaceCSD
+    Resonance_RaceCSD = nil
+  end
+  if Resonance_VoxFIDs then
+    Resonance.VoxFIDs = Resonance_VoxFIDs
+    Resonance_VoxFIDs = nil
+  end
+  if Resonance_WeaponImpactFIDs then
+    Resonance.WeaponImpactFIDs = Resonance_WeaponImpactFIDs
+    Resonance_WeaponImpactFIDs = nil
+  end
+  if Resonance_ExcludedFIDs then
+    Resonance.ExcludedFIDs = Resonance_ExcludedFIDs
+    Resonance_ExcludedFIDs = nil
+  end
+  if Resonance_AmbientSoundData then
+    Resonance.AmbientSoundData = Resonance_AmbientSoundData
+    Resonance_AmbientSoundData = nil
+  end
+  if Resonance_AmbientSounds then
+    Resonance.AmbientSounds = Resonance_AmbientSounds
+    Resonance_AmbientSounds = nil
+  end
+  if Resonance_SpellSounds then
+    Resonance.SpellSounds = Resonance_SpellSounds
+    Resonance_SpellSounds = nil
+  end
+  if Resonance_SpellSoundPrefixes then
+    Resonance.SpellSoundPrefixes = Resonance_SpellSoundPrefixes
+    Resonance_SpellSoundPrefixes = nil
+  end
+  if Resonance_CharacterSounds then
+    Resonance.CharacterSounds = Resonance_CharacterSounds
+    Resonance_CharacterSounds = nil
+  end
+  if Resonance_CharacterSoundPrefixes then
+    Resonance.CharacterSoundPrefixes = Resonance_CharacterSoundPrefixes
+    Resonance_CharacterSoundPrefixes = nil
+  end
+  if Resonance_NPCSoundL10N then
+    Resonance.NPCSoundL10N = Resonance_NPCSoundL10N
+    Resonance_NPCSoundL10N = nil
+  end
+  if Resonance_CreatureVoxData then
+    Resonance.CreatureVoxData = Resonance_CreatureVoxData
+    Resonance_CreatureVoxData = nil
+  end
+  if Resonance_CreatureVoxCategories then
+    Resonance.CreatureVoxCategories = Resonance_CreatureVoxCategories
+    Resonance_CreatureVoxCategories = nil
+  end
+  if Resonance_CreatureVoxExcludedFIDs then
+    Resonance.CreatureVoxExcludedFIDs = Resonance_CreatureVoxExcludedFIDs
+    Resonance_CreatureVoxExcludedFIDs = nil
+  end
+  if Resonance_NPCSoundIndex then
+    Resonance.NPCSoundIndex = Resonance_NPCSoundIndex
+    Resonance_NPCSoundIndex = nil
+  end
+  if Resonance_NPCToCSD then
+    Resonance.NPCToCSD = Resonance_NPCToCSD
+    Resonance_NPCToCSD = nil
+  end
+  if Resonance_NPCSoundCSD then
+    Resonance.NPCSoundCSD = Resonance_NPCSoundCSD
+    Resonance_NPCSoundCSD = nil
+  end
+  if Resonance_NPCVoiceData then
+    Resonance.NPCVoiceData = Resonance_NPCVoiceData
+    Resonance_NPCVoiceData = nil
+  end
+  if Resonance_NPCRepCSDs then
+    Resonance.NPCRepCSDs = Resonance_NPCRepCSDs
+    Resonance_NPCRepCSDs = nil
+  end
 end
 captureDataAddonGlobals()
 
 -- Localize frequently-called WoW API functions.  Global lookups are
 -- measurably slower in Lua 5.1's interpreter and these are called on
 -- every spell cast and during bulk mute operations.
-local MuteSoundFile   = MuteSoundFile
+local MuteSoundFile = MuteSoundFile
 local UnmuteSoundFile = UnmuteSoundFile
-local PlaySoundFile   = PlaySoundFile
-local IsPlayerSpell   = IsPlayerSpell
-local UnitRace        = UnitRace
-local UnitSex         = UnitSex
-local UnitClass       = UnitClass
-local StopSound       = StopSound
-local C_Timer         = C_Timer
-local UnitGUID        = UnitGUID
-local GetTime         = GetTime
+local PlaySoundFile = PlaySoundFile
+local IsPlayerSpell = IsPlayerSpell
+local UnitRace = UnitRace
+local UnitSex = UnitSex
+local UnitClass = UnitClass
+local StopSound = StopSound
+local C_Timer = C_Timer
 
 -- Local aliases for hot-path access (core-addon data, always available)
-local ClassTemplates   = Resonance.ClassTemplates
-local ProfessionSoundData  = Resonance.ProfessionSoundData
+local ClassTemplates = Resonance.ClassTemplates
+local ProfessionSoundData = Resonance.ProfessionSoundData
 local ProfessionCategories = Resonance.ProfessionCategories
 
 -- Data-addon tables (SpellMuteData, RaceCSD, VoxFIDs, WeaponImpactFIDs,
@@ -112,30 +175,48 @@ local ProfessionCategories = Resonance.ProfessionCategories
 -- stale mute state accumulated across reloads/multiple spells sharing FIDs.
 local MAX_MUTE_DEPTH = 20
 
-local db          -- shortcut to self.db.profile, set in OnInitialize
-local autoMutedFIDs = {}      -- runtime-only refcounted mute table (not saved)
-local voxMutedFIDs = {}       -- runtime-only: FIDs muted by global vox toggle
-local weaponMutedFIDs = {}    -- runtime-only: FIDs muted by weapon impact toggle
-local creatureMutedFIDs = {}  -- runtime-only: FIDs muted by creature vox toggle
-local autoShotMutedFIDs = {}  -- runtime-only: FIDs muted by classic auto-shot toggle
+local db -- shortcut to self.db.profile, set in OnInitialize
+local autoMutedFIDs = {} -- runtime-only refcounted mute table (not saved)
+local voxMutedFIDs = {} -- runtime-only: FIDs muted by global vox toggle
+local weaponMutedFIDs = {} -- runtime-only: FIDs muted by weapon impact toggle
+local creatureMutedFIDs = {} -- runtime-only: FIDs muted by creature vox toggle
+local autoShotMutedFIDs = {} -- runtime-only: FIDs muted by classic auto-shot toggle
 local professionMutedFIDs = {} -- runtime-only: FIDs muted by profession sound toggle
-local npcMutedFIDs = {}        -- runtime-only: FIDs muted by NPC sound muting
-local activeAlertHandle = nil  -- sound handle for debouncing interrupt alerts
-local ambientMutedFIDs = {}   -- runtime-only: FIDs muted by ambient sound toggles
+local npcMutedFIDs = {} -- runtime-only: FIDs muted by NPC sound muting
+local activeAlertHandle = nil -- sound handle for debouncing interrupt alerts
+local ambientMutedFIDs = {} -- runtime-only: FIDs muted by ambient sound toggles
 
 -- Returns true if a FID is held muted by manual mutes or any runtime layer
 -- OTHER than the specified skip table.  Used when clearing one layer to avoid
 -- unmuting sounds still needed elsewhere.
 local function isMutedElsewhere(fid, skip)
-  if db.mute_file_data_ids[fid] then return true end
-  if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 and autoMutedFIDs ~= skip then return true end
-  if voxMutedFIDs[fid] and voxMutedFIDs ~= skip then return true end
-  if weaponMutedFIDs[fid] and weaponMutedFIDs ~= skip then return true end
-  if creatureMutedFIDs[fid] and creatureMutedFIDs ~= skip then return true end
-  if autoShotMutedFIDs[fid] and autoShotMutedFIDs ~= skip then return true end
-  if professionMutedFIDs[fid] and professionMutedFIDs ~= skip then return true end
-  if npcMutedFIDs[fid] and npcMutedFIDs ~= skip then return true end
-  if ambientMutedFIDs[fid] and ambientMutedFIDs ~= skip then return true end
+  if db.mute_file_data_ids[fid] then
+    return true
+  end
+  if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 and autoMutedFIDs ~= skip then
+    return true
+  end
+  if voxMutedFIDs[fid] and voxMutedFIDs ~= skip then
+    return true
+  end
+  if weaponMutedFIDs[fid] and weaponMutedFIDs ~= skip then
+    return true
+  end
+  if creatureMutedFIDs[fid] and creatureMutedFIDs ~= skip then
+    return true
+  end
+  if autoShotMutedFIDs[fid] and autoShotMutedFIDs ~= skip then
+    return true
+  end
+  if professionMutedFIDs[fid] and professionMutedFIDs ~= skip then
+    return true
+  end
+  if npcMutedFIDs[fid] and npcMutedFIDs ~= skip then
+    return true
+  end
+  if ambientMutedFIDs[fid] and ambientMutedFIDs ~= skip then
+    return true
+  end
   return false
 end
 
@@ -149,23 +230,60 @@ local AUTO_SHOT_SPELL_ID = 75
 -- Gun: blunderbuss, shoot_cast_oneshot (TWW), shoot_cast_oneshot alt (TWW)
 local AUTO_SHOT_MUTE_FIDS = {
   -- spell_hu_bowpullback_01-08
-  925291, 925293, 925295, 925297, 925299, 925301, 925303, 925305,
+  925291,
+  925293,
+  925295,
+  925297,
+  925299,
+  925301,
+  925303,
+  925305,
   -- spell_hu_bowrelease_01-05
-  922086, 922088, 922090, 922092, 922094,
+  922086,
+  922088,
+  922090,
+  922092,
+  922094,
   -- bow_cast_oneshot (TWW)
-  5913903, 5913905, 5913907, 5913909, 5913911, 5913913, 5913915,
+  5913903,
+  5913905,
+  5913907,
+  5913909,
+  5913911,
+  5913913,
+  5913915,
   -- spell_hu_blunderbuss_weaponfire_01-06
-  921248, 921250, 921252, 921254, 921256, 921258,
+  921248,
+  921250,
+  921252,
+  921254,
+  921256,
+  921258,
   -- shoot_cast_oneshot (TWW)
-  5923734, 5923860, 5923862, 5923864, 5923866,
+  5923734,
+  5923860,
+  5923862,
+  5923864,
+  5923866,
   -- shoot_cast_oneshot alt (TWW)
-  6256085, 6256087, 6256089, 6256091, 6256093, 6256095, 6256097,
-  6256099, 6256101, 6256103, 6256105, 6256107, 6256109,
+  6256085,
+  6256087,
+  6256089,
+  6256091,
+  6256093,
+  6256095,
+  6256097,
+  6256099,
+  6256101,
+  6256103,
+  6256105,
+  6256107,
+  6256109,
 }
 
 -- Classic replacement sounds (random pool per weapon type)
-local CLASSIC_BOW_FIDS = { 567674, 567673, 567682 }   -- bowrelease 1-3
-local CLASSIC_GUN_FIDS = { 567721, 567718, 567722 }   -- gunfire 1-3
+local CLASSIC_BOW_FIDS = { 567674, 567673, 567682 } -- bowrelease 1-3
+local CLASSIC_GUN_FIDS = { 567721, 567718, 567722 } -- gunfire 1-3
 
 -- Name-based index: lowercase spell name -> spell_config entry.
 -- Handles variant spell IDs (e.g., Balance Moonfire 155625 vs base 8921)
@@ -186,26 +304,26 @@ local defaults = {
     local_file_overrides_by_spell_name = {},
     spell_to_play_file_data_id = {},
     spell_config = {},
-    preset_spells = {},   -- { [spellID] = presetName } tracks which spells came from presets
-    saved_presets = {},   -- { [name] = { spells = {[sid]={sound,muteExclusions}}, mutes = {[fid]=true} } }
+    preset_spells = {}, -- { [spellID] = presetName } tracks which spells came from presets
+    saved_presets = {}, -- { [name] = { spells = {[sid]={sound,muteExclusions}}, mutes = {[fid]=true} } }
     muteVocalizations = "off",
     muteWeaponImpacts = false,
-    muteCreatureVox = {},  -- { ["Beast"] = true, ["Demon"] = true, ... }
-    muteProfessionSounds = {},  -- { ["Blacksmithing"] = true, ... }
-    muteAmbientSounds = {},  -- { ["Midnight|Silvermoon City"] = true, ... }
+    muteCreatureVox = {}, -- { ["Beast"] = true, ["Demon"] = true, ... }
+    muteProfessionSounds = {}, -- { ["Blacksmithing"] = true, ... }
+    muteAmbientSounds = {}, -- { ["Midnight|Silvermoon City"] = true, ... }
     classicAutoShot = false,
-    mutedNPCs = {},  -- { [npcID] = true } NPCs whose sounds are muted
+    mutedNPCs = {}, -- { [npcID] = true } NPCs whose sounds are muted
     interruptAlert = false,
     interruptAlertSound = nil,
     interruptAlertDuration = nil,
     minimap = { hide = false },
-    _lastAutoMutedFIDs = {},  -- persisted snapshot for stale-mute cleanup across /reload
-    _lastCreatureMutedFIDs = {},  -- same for creature vox mutes
-    _lastProfessionMutedFIDs = {},  -- same for profession sound mutes
-    _lastAmbientMutedFIDs = {},  -- same for ambient sound mutes
-    _lastNPCMutedFIDs = {},  -- same for NPC sound mutes
-    _lastVoxMutedFIDs = {},  -- same for vocalization mutes
-    _lastWeaponMutedFIDs = {},  -- same for weapon impact mutes
+    _lastAutoMutedFIDs = {}, -- persisted snapshot for stale-mute cleanup across /reload
+    _lastCreatureMutedFIDs = {}, -- same for creature vox mutes
+    _lastProfessionMutedFIDs = {}, -- same for profession sound mutes
+    _lastAmbientMutedFIDs = {}, -- same for ambient sound mutes
+    _lastNPCMutedFIDs = {}, -- same for NPC sound mutes
+    _lastVoxMutedFIDs = {}, -- same for vocalization mutes
+    _lastWeaponMutedFIDs = {}, -- same for weapon impact mutes
   },
 }
 
@@ -228,7 +346,9 @@ local function invalidateSpellNameIndex()
 end
 
 local function getSpellNameIndex()
-  if not spellNameIndexDirty then return spellNameIndex end
+  if not spellNameIndexDirty then
+    return spellNameIndex
+  end
   wipe(spellNameIndex)
   for sid, cfg in pairs(db and db.spell_config or {}) do
     if cfg.sound then
@@ -243,15 +363,19 @@ local function getSpellNameIndex()
 end
 
 local function sanitizeFilename(name)
-  name = name:gsub("[\\/:*?\"<>|]", "")
+  name = name:gsub('[\\/:*?"<>|]', "")
   name = name:gsub("%s+$", "")
   return name
 end
 
 local function normalizePath(p)
-  if not p or p == "" then return nil end
+  if not p or p == "" then
+    return nil
+  end
   p = p:gsub("/", "\\")
-  if p:lower():match("^interface\\") then return p end
+  if p:lower():match("^interface\\") then
+    return p
+  end
   return ADDON_ROOT .. p
 end
 
@@ -259,10 +383,11 @@ end
 local VANILLA_SOUND_BASE = ADDON_ROOT .. "sounds\\vanilla\\"
 
 local function resolveLocalFileForSpellName(spellName)
-  if not spellName or spellName == "" then return nil end
+  if not spellName or spellName == "" then
+    return nil
+  end
 
-  local mapped = db.local_file_overrides_by_spell_name
-              and db.local_file_overrides_by_spell_name[spellName]
+  local mapped = db.local_file_overrides_by_spell_name and db.local_file_overrides_by_spell_name[spellName]
   if mapped then
     return normalizePath(mapped)
   end
@@ -276,7 +401,9 @@ local function getChannel()
 end
 
 local function previewSound(value)
-  if not value then return false end
+  if not value then
+    return false
+  end
   local ch = getChannel()
   if type(value) == "number" then
     return PlaySoundFile(value, ch)
@@ -302,19 +429,42 @@ local activePlaybackFIDs = {}
 
 local function scheduleStopSound(handle, duration)
   if duration and handle then
-    C_Timer.After(duration, function() StopSound(handle, 0) end)
+    C_Timer.After(duration, function()
+      StopSound(handle, 0)
+    end)
   end
 end
 
 local function playOneSoundWithUnmute(snd, dbg, duration)
   local isNum = type(snd) == "number"
-  local isMuted = isNum and (db.mute_file_data_ids[snd] or autoMutedFIDs[snd] or voxMutedFIDs[snd] or weaponMutedFIDs[snd] or creatureMutedFIDs[snd] or autoShotMutedFIDs[snd] or professionMutedFIDs[snd] or npcMutedFIDs[snd] or ambientMutedFIDs[snd])
-  if dbg then msg(("  Playing: %s (muted: %s, duration: %s)"):format(tostring(snd), tostring(isMuted and true or false), duration and ("%.2fs"):format(duration) or "full")) end
+  local isMuted = isNum
+    and (
+      db.mute_file_data_ids[snd]
+      or autoMutedFIDs[snd]
+      or voxMutedFIDs[snd]
+      or weaponMutedFIDs[snd]
+      or creatureMutedFIDs[snd]
+      or autoShotMutedFIDs[snd]
+      or professionMutedFIDs[snd]
+      or npcMutedFIDs[snd]
+      or ambientMutedFIDs[snd]
+    )
+  if dbg then
+    msg(
+      ("  Playing: %s (muted: %s, duration: %s)"):format(
+        tostring(snd),
+        tostring(isMuted and true or false),
+        duration and ("%.2fs"):format(duration) or "full"
+      )
+    )
+  end
   local handle
   if isMuted then
     local fid = snd
     local ch = db.soundChannel or "Master"
-    for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+    for _ = 1, MAX_MUTE_DEPTH do
+      UnmuteSoundFile(fid)
+    end
     activePlaybackFIDs[fid] = (activePlaybackFIDs[fid] or 0) + 1
     _, handle = PlaySoundFile(fid, ch)
     -- Re-mute symmetrically (same count as unmutes) to restore WoW's internal
@@ -330,15 +480,33 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
       -- The MAX_MUTE_DEPTH unmutes above guaranteed clearing to 0;
       -- re-muting per source restores only the depth the addon originally set,
       -- preventing refcount inflation that would leave sounds permanently muted.
-      if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then MuteSoundFile(fid) end
-      if db.mute_file_data_ids[fid] then MuteSoundFile(fid) end
-      if weaponMutedFIDs[fid] then MuteSoundFile(fid) end
-      if voxMutedFIDs[fid] then MuteSoundFile(fid) end
-      if creatureMutedFIDs[fid] then MuteSoundFile(fid) end
-      if autoShotMutedFIDs[fid] then MuteSoundFile(fid) end
-      if professionMutedFIDs[fid] then MuteSoundFile(fid) end
-      if npcMutedFIDs[fid] then MuteSoundFile(fid) end
-      if ambientMutedFIDs[fid] then MuteSoundFile(fid) end
+      if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then
+        MuteSoundFile(fid)
+      end
+      if db.mute_file_data_ids[fid] then
+        MuteSoundFile(fid)
+      end
+      if weaponMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
+      if voxMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
+      if creatureMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
+      if autoShotMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
+      if professionMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
+      if npcMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
+      if ambientMutedFIDs[fid] then
+        MuteSoundFile(fid)
+      end
     end)
   elseif isNum then
     _, handle = PlaySoundFile(snd, db.soundChannel or "Master")
@@ -349,29 +517,39 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
 end
 
 -- Active sound loop state: cancelled on next cast or when iterations exhausted.
-local activeLoop = nil  -- { ticker = C_Timer ticker, cancel = function }
+local activeLoop = nil -- { ticker = C_Timer ticker, cancel = function }
 
 local function cancelActiveLoop()
   if activeLoop then
-    if activeLoop.ticker then activeLoop.ticker:Cancel() end
+    if activeLoop.ticker then
+      activeLoop.ticker:Cancel()
+    end
     activeLoop = nil
   end
 end
 
 local function playSoundCollection(soundData, dbg, duration)
-  if not soundData then return end
+  if not soundData then
+    return
+  end
   if type(soundData) == "table" then
-    if dbg then msg(("  spell_config: %d sound(s), channel: %s"):format(#soundData, getChannel())) end
+    if dbg then
+      msg(("  spell_config: %d sound(s), channel: %s"):format(#soundData, getChannel()))
+    end
     for _, snd in ipairs(soundData) do
       playOneSoundWithUnmute(snd, dbg, duration)
     end
     if soundData.random and #soundData.random > 0 then
       local pick = soundData.random[math.random(1, #soundData.random)]
-      if dbg then msg(("  Random pool (%d): picked %s"):format(#soundData.random, tostring(pick))) end
+      if dbg then
+        msg(("  Random pool (%d): picked %s"):format(#soundData.random, tostring(pick)))
+      end
       playOneSoundWithUnmute(pick, dbg, duration)
     end
   else
-    if dbg then msg(("  spell_config: 1 sound, channel: %s"):format(getChannel())) end
+    if dbg then
+      msg(("  spell_config: 1 sound, channel: %s"):format(getChannel()))
+    end
     playOneSoundWithUnmute(soundData, dbg, duration)
   end
 end
@@ -382,7 +560,9 @@ end
 local function playSoundCollectionWithLoop(soundData, dbg, duration, loop)
   cancelActiveLoop()
   playSoundCollection(soundData, dbg, duration)
-  if not loop or not duration or duration <= 0 then return end
+  if not loop or not duration or duration <= 0 then
+    return
+  end
   local maxIter = (type(loop) == "number") and loop or 999
   local iter = 0
   local ticker
@@ -401,7 +581,9 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
   -- Hot-path callers pass cfg and dbg to avoid redundant lookups;
   -- other callers (e.g., /res testspell) can omit them.
   -- phase: nil/"cast" = cast complete (default), "precast" = cast bar start
-  if dbg == nil then dbg = db.debug end
+  if dbg == nil then
+    dbg = db.debug
+  end
   phase = phase or "cast"
 
   -- 0) spell_config: unified per-spell configuration
@@ -418,7 +600,9 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
     end
     if spellName ~= "" then
       cfg = getSpellNameIndex()[spellName:lower()]
-      if dbg and cfg then msg(("  Variant matched by name: \"%s\""):format(spellName)) end
+      if dbg and cfg then
+        msg(('  Variant matched by name: "%s"'):format(spellName))
+      end
     end
   end
 
@@ -427,7 +611,9 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
 
   if cfg and cfg.sound == false then
     -- Mute only — original sounds are auto-muted, no replacement plays
-    if dbg then msg("  spell_config: mute only (no replacement)") end
+    if dbg then
+      msg("  spell_config: mute only (no replacement)")
+    end
     return true
   elseif cfg and cfg.sound then
     -- Determine which phase this config triggers on:
@@ -450,12 +636,16 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
       -- phase == "cast": fall through to play cfg.sound below
     elseif trigger == "precast" then
       if phase ~= "precast" then
-        if dbg then msg("  spell_config: trigger=precast, skipping cast phase") end
+        if dbg then
+          msg("  spell_config: trigger=precast, skipping cast phase")
+        end
         return true
       end
     else -- trigger == "cast" (default)
       if phase ~= "cast" then
-        if dbg then msg("  spell_config: trigger=cast, skipping precast phase") end
+        if dbg then
+          msg("  spell_config: trigger=cast, skipping precast phase")
+        end
         return true
       end
     end
@@ -469,7 +659,9 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
   end
 
   -- Fallback paths only apply to the "cast" phase
-  if phase ~= "cast" then return false end
+  if phase ~= "cast" then
+    return false
+  end
 
   -- Fallback paths need spellName; resolve lazily (skipped on the
   -- common path above where cfg.sound existed and returned early).
@@ -482,19 +674,24 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
   local wav, ogg = resolveLocalFileForSpellName(spellName)
   if wav then
     local ok = PlaySoundFile(wav, ch)
-    if ok then return true end
+    if ok then
+      return true
+    end
   end
   if ogg then
     local ok = PlaySoundFile(ogg, ch)
-    if ok then return true end
+    if ok then
+      return true
+    end
   end
 
   -- 2) Fallback to an in-client FileDataID mapping (user-provided)
-  local fid = db.spell_to_play_file_data_id
-          and db.spell_to_play_file_data_id[spellID]
+  local fid = db.spell_to_play_file_data_id and db.spell_to_play_file_data_id[spellID]
   if fid then
     local ok = PlaySoundFile(fid, ch)
-    if ok then return true end
+    if ok then
+      return true
+    end
   end
 
   return false
@@ -509,19 +706,27 @@ end
 ---------------------------------------------------------------------------
 local function getPlayerCSDEntry()
   local raceCSD = Resonance.RaceCSD
-  if not raceCSD or not Resonance.VoxFIDs then return nil end
+  if not raceCSD or not Resonance.VoxFIDs then
+    return nil
+  end
   local raceID = select(3, UnitRace("player"))
   local sex = (UnitSex("player") == 3) and "1" or "0"
   local csdID = raceCSD[tostring(raceID) .. ":" .. sex]
-  if not csdID then return nil end
+  if not csdID then
+    return nil
+  end
   return Resonance.VoxFIDs[csdID]
 end
 
 local function getVoxMode()
   local v = db.muteVocalizations
-  if v == true then return "mine" end
-  if v == false or v == "off" then return "off" end
-  return v  -- "mine" or "all"
+  if v == true then
+    return "mine"
+  end
+  if v == false or v == "off" then
+    return "off"
+  end
+  return v -- "mine" or "all"
 end
 
 local function muteVoxEntry(voxEntry)
@@ -540,7 +745,9 @@ end
 
 local function applyVoxMutes()
   local mode = getVoxMode()
-  if mode == "off" then return end
+  if mode == "off" then
+    return
+  end
   local count = 0
   local hasData = Resonance.VoxFIDs and Resonance.RaceCSD
   if hasData then
@@ -556,7 +763,9 @@ local function applyVoxMutes()
     end
     -- Persist snapshot
     local snapshot = {}
-    for fid in pairs(voxMutedFIDs) do snapshot[fid] = true end
+    for fid in pairs(voxMutedFIDs) do
+      snapshot[fid] = true
+    end
     db._lastVoxMutedFIDs = snapshot
   else
     -- Data addon not loaded — re-apply from snapshot
@@ -581,14 +790,18 @@ local function clearVoxMutes()
   local count = 0
   for fid in pairs(voxMutedFIDs) do
     if not isMutedElsewhere(fid, voxMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
     end
     count = count + 1
   end
   if db and db._lastVoxMutedFIDs then
     for fid in pairs(db._lastVoxMutedFIDs) do
       if not voxMutedFIDs[fid] and not isMutedElsewhere(fid, voxMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
     wipe(db._lastVoxMutedFIDs)
@@ -601,7 +814,9 @@ end
 
 local function refreshVoxMutes()
   clearVoxMutes()
-  if db.enabled then applyVoxMutes() end
+  if db.enabled then
+    applyVoxMutes()
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -619,7 +834,9 @@ local function applyWeaponMutes()
     end
     -- Persist snapshot
     local snapshot = {}
-    for fid in pairs(weaponMutedFIDs) do snapshot[fid] = true end
+    for fid in pairs(weaponMutedFIDs) do
+      snapshot[fid] = true
+    end
     db._lastWeaponMutedFIDs = snapshot
   else
     -- Data addon not loaded — re-apply from snapshot
@@ -644,14 +861,18 @@ local function clearWeaponMutes()
   -- Fully unmute every FID (MAX_MUTE_DEPTH clears any accumulated refcount)
   for fid in pairs(weaponMutedFIDs) do
     if not isMutedElsewhere(fid, weaponMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
     end
     count = count + 1
   end
   if db and db._lastWeaponMutedFIDs then
     for fid in pairs(db._lastWeaponMutedFIDs) do
       if not weaponMutedFIDs[fid] and not isMutedElsewhere(fid, weaponMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
     wipe(db._lastWeaponMutedFIDs)
@@ -666,13 +887,16 @@ end
 -- Creature vocalization mute
 ---------------------------------------------------------------------------
 local function hasAnyCreatureVoxEnabled()
-  if not db.muteCreatureVox then return false end
-  for _ in pairs(db.muteCreatureVox) do return true end
-  return false
+  if not db.muteCreatureVox then
+    return false
+  end
+  return next(db.muteCreatureVox) ~= nil
 end
 
 local function applyCreatureVoxMutes()
-  if not db.muteCreatureVox then return end
+  if not db.muteCreatureVox then
+    return
+  end
   local cvData = Resonance.CreatureVoxData
   local count = 0
   if cvData then
@@ -682,7 +906,14 @@ local function applyCreatureVoxMutes()
         if packed then
           for s in packed:gmatch("%d+") do
             local fid = tonumber(s)
-            if fid and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
+            if
+              fid
+              and not creatureMutedFIDs[fid]
+              and not autoShotMutedFIDs[fid]
+              and not professionMutedFIDs[fid]
+              and not npcMutedFIDs[fid]
+              and not ambientMutedFIDs[fid]
+            then
               creatureMutedFIDs[fid] = true
               MuteSoundFile(fid)
               count = count + 1
@@ -701,7 +932,9 @@ local function applyCreatureVoxMutes()
     if stale then
       for fid in pairs(stale) do
         if not creatureMutedFIDs[fid] and not isMutedElsewhere(fid, creatureMutedFIDs) then
-          for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+          for _ = 1, MAX_MUTE_DEPTH do
+            UnmuteSoundFile(fid)
+          end
         end
       end
     end
@@ -713,13 +946,17 @@ local function applyCreatureVoxMutes()
       for s in cvExcluded:gmatch("%d+") do
         local fid = tonumber(s)
         if fid and not creatureMutedFIDs[fid] and not isMutedElsewhere(fid, creatureMutedFIDs) then
-          for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+          for _ = 1, MAX_MUTE_DEPTH do
+            UnmuteSoundFile(fid)
+          end
         end
       end
     end
     -- Persist snapshot for next session's stale cleanup
     local snapshot = {}
-    for fid in pairs(creatureMutedFIDs) do snapshot[fid] = true end
+    for fid in pairs(creatureMutedFIDs) do
+      snapshot[fid] = true
+    end
     db._lastCreatureMutedFIDs = snapshot
   else
     -- Data addon not loaded — re-apply from snapshot
@@ -743,7 +980,9 @@ local function clearCreatureVoxMutes()
   local count = 0
   for fid in pairs(creatureMutedFIDs) do
     if not isMutedElsewhere(fid, creatureMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
     end
     count = count + 1
   end
@@ -751,7 +990,9 @@ local function clearCreatureVoxMutes()
   if db and db._lastCreatureMutedFIDs then
     for fid in pairs(db._lastCreatureMutedFIDs) do
       if not creatureMutedFIDs[fid] and not isMutedElsewhere(fid, creatureMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
     wipe(db._lastCreatureMutedFIDs)
@@ -764,20 +1005,25 @@ end
 
 local function refreshCreatureVoxMutes()
   clearCreatureVoxMutes()
-  if db.enabled and hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
+  if db.enabled and hasAnyCreatureVoxEnabled() then
+    applyCreatureVoxMutes()
+  end
 end
 
 ---------------------------------------------------------------------------
 -- Profession sound mute
 ---------------------------------------------------------------------------
 local function hasAnyProfessionMuteEnabled()
-  if not db.muteProfessionSounds then return false end
-  for _ in pairs(db.muteProfessionSounds) do return true end
-  return false
+  if not db.muteProfessionSounds then
+    return false
+  end
+  return next(db.muteProfessionSounds) ~= nil
 end
 
 local function applyProfessionMutes()
-  if not ProfessionSoundData or not db.muteProfessionSounds then return end
+  if not ProfessionSoundData or not db.muteProfessionSounds then
+    return
+  end
   local count = 0
   for cat, enabled in pairs(db.muteProfessionSounds) do
     if enabled then
@@ -799,13 +1045,17 @@ local function applyProfessionMutes()
   if stale then
     for fid in pairs(stale) do
       if not professionMutedFIDs[fid] and not isMutedElsewhere(fid, professionMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
   end
   -- Persist snapshot for next session
   local snapshot = {}
-  for fid in pairs(professionMutedFIDs) do snapshot[fid] = true end
+  for fid in pairs(professionMutedFIDs) do
+    snapshot[fid] = true
+  end
   db._lastProfessionMutedFIDs = snapshot
   if count > 0 then
     msg(L["Muted %d profession sounds."]:format(count))
@@ -816,14 +1066,18 @@ local function clearProfessionMutes()
   local count = 0
   for fid in pairs(professionMutedFIDs) do
     if not isMutedElsewhere(fid, professionMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
     end
     count = count + 1
   end
   if db and db._lastProfessionMutedFIDs then
     for fid in pairs(db._lastProfessionMutedFIDs) do
       if not professionMutedFIDs[fid] and not isMutedElsewhere(fid, professionMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
     wipe(db._lastProfessionMutedFIDs)
@@ -836,23 +1090,31 @@ end
 
 local function refreshProfessionMutes()
   clearProfessionMutes()
-  if db.enabled and hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
+  if db.enabled and hasAnyProfessionMuteEnabled() then
+    applyProfessionMutes()
+  end
 end
 
 ---------------------------------------------------------------------------
 -- Ambient sound mute
 ---------------------------------------------------------------------------
 local function hasAnyAmbientMuteEnabled()
-  if not db.muteAmbientSounds then return false end
+  if not db.muteAmbientSounds then
+    return false
+  end
   for _, v in pairs(db.muteAmbientSounds) do
-    if v then return true end
+    if v then
+      return true
+    end
   end
   return false
 end
 
 local function applyAmbientMutes()
   local ambientData = Resonance.AmbientSoundData
-  if not ambientData or not db.muteAmbientSounds then return end
+  if not ambientData or not db.muteAmbientSounds then
+    return
+  end
   local count = 0
   for key, enabled in pairs(db.muteAmbientSounds) do
     if enabled then
@@ -875,13 +1137,17 @@ local function applyAmbientMutes()
   if stale then
     for fid in pairs(stale) do
       if not ambientMutedFIDs[fid] and not isMutedElsewhere(fid, ambientMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
   end
   -- Persist snapshot for next session
   local snapshot = {}
-  for fid in pairs(ambientMutedFIDs) do snapshot[fid] = true end
+  for fid in pairs(ambientMutedFIDs) do
+    snapshot[fid] = true
+  end
   db._lastAmbientMutedFIDs = snapshot
   if count > 0 then
     msg(L["Muted %d ambient sounds."]:format(count))
@@ -892,14 +1158,18 @@ local function clearAmbientMutes()
   local count = 0
   for fid in pairs(ambientMutedFIDs) do
     if not isMutedElsewhere(fid, ambientMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
     end
     count = count + 1
   end
   if db and db._lastAmbientMutedFIDs then
     for fid in pairs(db._lastAmbientMutedFIDs) do
       if not ambientMutedFIDs[fid] and not isMutedElsewhere(fid, ambientMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
     wipe(db._lastAmbientMutedFIDs)
@@ -912,7 +1182,9 @@ end
 
 local function refreshAmbientMutes()
   clearAmbientMutes()
-  if db.enabled and hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
+  if db.enabled and hasAnyAmbientMuteEnabled() then
+    applyAmbientMutes()
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -936,7 +1208,9 @@ local function clearAutoShotMutes()
   local count = 0
   for fid in pairs(autoShotMutedFIDs) do
     if not isMutedElsewhere(fid, autoShotMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
     end
     count = count + 1
   end
@@ -951,11 +1225,19 @@ end
 local C_Item_GetItemInfoInstant = C_Item and C_Item.GetItemInfoInstant
 local function getEquippedRangedType()
   local itemID = GetInventoryItemID("player", 16)
-  if not itemID or not C_Item_GetItemInfoInstant then return nil end
+  if not itemID or not C_Item_GetItemInfoInstant then
+    return nil
+  end
   local _, _, _, _, _, classID, subclassID = C_Item_GetItemInfoInstant(itemID)
-  if classID ~= 2 then return nil end   -- not a weapon
-  if subclassID == 2 or subclassID == 18 then return "bow" end  -- Bows / Crossbows
-  if subclassID == 3 then return "gun" end                       -- Guns
+  if classID ~= 2 then
+    return nil
+  end -- not a weapon
+  if subclassID == 2 or subclassID == 18 then
+    return "bow"
+  end -- Bows / Crossbows
+  if subclassID == 3 then
+    return "gun"
+  end -- Guns
   return nil
 end
 
@@ -963,13 +1245,16 @@ end
 -- NPC sound mute
 ---------------------------------------------------------------------------
 local function hasAnyNPCMuteEnabled()
-  if not db.mutedNPCs then return false end
-  for _ in pairs(db.mutedNPCs) do return true end
-  return false
+  if not db.mutedNPCs then
+    return false
+  end
+  return next(db.mutedNPCs) ~= nil
 end
 
 local function applyNPCMutes()
-  if not db.mutedNPCs then return end
+  if not db.mutedNPCs then
+    return
+  end
   local npcSoundCSD = Resonance.NPCSoundCSD
   local npcRepCSDs = Resonance.NPCRepCSDs
   local npcToCSD = Resonance.NPCToCSD
@@ -1027,7 +1312,9 @@ local function applyNPCMutes()
     end
     -- Persist snapshot for next session
     local snapshot = {}
-    for fid in pairs(npcMutedFIDs) do snapshot[fid] = true end
+    for fid in pairs(npcMutedFIDs) do
+      snapshot[fid] = true
+    end
     db._lastNPCMutedFIDs = snapshot
   else
     -- Data addon not loaded — re-apply from snapshot
@@ -1051,7 +1338,9 @@ local function clearNPCMutes()
   local count = 0
   for fid in pairs(npcMutedFIDs) do
     if not isMutedElsewhere(fid, npcMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
     end
     count = count + 1
   end
@@ -1059,7 +1348,9 @@ local function clearNPCMutes()
   if db and db._lastNPCMutedFIDs then
     for fid in pairs(db._lastNPCMutedFIDs) do
       if not npcMutedFIDs[fid] and not isMutedElsewhere(fid, npcMutedFIDs) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
     wipe(db._lastNPCMutedFIDs)
@@ -1072,7 +1363,9 @@ end
 
 local function refreshNPCMutes()
   clearNPCMutes()
-  if db.enabled and hasAnyNPCMuteEnabled() then applyNPCMutes() end
+  if db.enabled and hasAnyNPCMuteEnabled() then
+    applyNPCMutes()
+  end
 end
 
 -- Expose for Options.lua
@@ -1090,18 +1383,27 @@ local function getSpellMuteFIDs(sid)
   local cfg = db and db.spell_config and db.spell_config[sid]
   local explicit = cfg and cfg.muteFIDs
   local val = Resonance.SpellMuteData and Resonance.SpellMuteData[sid]
-  if not explicit and not val then return nil end
-  wipe(_smf_fids); wipe(_smf_seen)
+  if not explicit and not val then
+    return nil
+  end
+  wipe(_smf_fids)
+  wipe(_smf_seen)
   local fids, seen = _smf_fids, _smf_seen
   if explicit then
     for _, fid in ipairs(explicit) do
-      if not seen[fid] then fids[#fids + 1] = fid; seen[fid] = true end
+      if not seen[fid] then
+        fids[#fids + 1] = fid
+        seen[fid] = true
+      end
     end
   end
   if val then
     for s in val:gmatch("%d+") do
       local fid = tonumber(s)
-      if not seen[fid] then fids[#fids + 1] = fid; seen[fid] = true end
+      if not seen[fid] then
+        fids[#fids + 1] = fid
+        seen[fid] = true
+      end
     end
   end
   return #fids > 0 and fids or nil
@@ -1111,14 +1413,18 @@ end
 -- Auto-mute management (runtime refcounts in autoMutedFIDs)
 ---------------------------------------------------------------------------
 local function addAutoMuteFIDs(fids)
-  if not fids then return end
+  if not fids then
+    return
+  end
   for _, fid in ipairs(fids) do
     autoMutedFIDs[fid] = (autoMutedFIDs[fid] or 0) + 1
   end
 end
 
 local function removeAutoMuteFIDs(fids)
-  if not fids then return end
+  if not fids then
+    return
+  end
   for _, fid in ipairs(fids) do
     local count = (autoMutedFIDs[fid] or 0) - 1
     if count <= 0 then
@@ -1140,7 +1446,9 @@ end
 local _filtered = {}
 
 local function filterExclusions(fids, exclusions)
-  if not exclusions then return fids end
+  if not exclusions then
+    return fids
+  end
   wipe(_filtered)
   local filtered = _filtered
   for _, fid in ipairs(fids) do
@@ -1160,8 +1468,12 @@ local _, playerClassToken = UnitClass("player")
 -- with no benefit since UNIT_SPELLCAST_SUCCEEDED only fires for "player".
 local function shouldAutoMuteSpell(spellID)
   local source = db.preset_spells and db.preset_spells[spellID]
-  if not source then return true end                    -- custom spell, always mute
-  if not (ClassTemplates and ClassTemplates[source]) then return true end  -- saved preset (not a class key)
+  if not source then
+    return true
+  end -- custom spell, always mute
+  if not (ClassTemplates and ClassTemplates[source]) then
+    return true
+  end -- saved preset (not a class key)
   return source == playerClassToken
 end
 
@@ -1170,11 +1482,17 @@ local _deferSnapshot = false
 local function persistAutoMutedSnapshot()
   -- Save current auto-muted FIDs so stale mutes can be cleaned on next /reload.
   -- MuteSoundFile persists across /reload but autoMutedFIDs (runtime table) does not.
-  if _deferSnapshot then return end
-  if not db then return end
+  if _deferSnapshot then
+    return
+  end
+  if not db then
+    return
+  end
   local snapshot = {}
   for fid, rc in pairs(autoMutedFIDs) do
-    if rc > 0 then snapshot[fid] = true end
+    if rc > 0 then
+      snapshot[fid] = true
+    end
   end
   db._lastAutoMutedFIDs = snapshot
 end
@@ -1183,7 +1501,9 @@ local function reapplyAutoMutesFromSnapshot()
   -- Fast path for login: re-mute from saved snapshot without SpellMuteData.
   -- Full rebuild happens when Resonance_Data is loaded (Options open).
   local snapshot = db and db._lastAutoMutedFIDs
-  if not snapshot then return end
+  if not snapshot then
+    return
+  end
   local count = 0
   for fid in pairs(snapshot) do
     if not autoMutedFIDs[fid] or autoMutedFIDs[fid] <= 0 then
@@ -1221,7 +1541,9 @@ local function rebuildAutoMutes()
   for fid in pairs(stale) do
     if not autoMutedFIDs[fid] or autoMutedFIDs[fid] <= 0 then
       if not isMutedElsewhere(fid) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
   end
@@ -1234,7 +1556,9 @@ local function rebuildAutoMutes()
     for s in excludedFIDs:gmatch("%d+") do
       local fid = tonumber(s)
       if fid and not db.mute_file_data_ids[fid] then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
   end
@@ -1244,9 +1568,13 @@ end
 local _newFIDs = {}
 
 local function applyAutoMutesForSpell(spellID)
-  if not shouldAutoMuteSpell(spellID) then return end
+  if not shouldAutoMuteSpell(spellID) then
+    return
+  end
   local fids = getSpellMuteFIDs(spellID)
-  if not fids then return end
+  if not fids then
+    return
+  end
   fids = filterExclusions(fids, getExclusions(spellID))
   -- Only call MuteSoundFile for FIDs not already muted (avoid inflating WoW's internal refcount)
   wipe(_newFIDs)
@@ -1260,14 +1588,18 @@ local function applyAutoMutesForSpell(spellID)
   end
   addAutoMuteFIDs(fids)
   if db.enabled then
-    for _, fid in ipairs(newFIDs) do MuteSoundFile(fid) end
+    for _, fid in ipairs(newFIDs) do
+      MuteSoundFile(fid)
+    end
   end
   persistAutoMutedSnapshot()
 end
 
 local function removeAutoMutesForSpell(spellID)
   local fids = getSpellMuteFIDs(spellID)
-  if not fids then return end
+  if not fids then
+    return
+  end
   removeAutoMuteFIDs(filterExclusions(fids, getExclusions(spellID)))
   persistAutoMutedSnapshot()
 end
@@ -1294,14 +1626,27 @@ end
 local function clearMutes()
   local count = 0
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
-    if enabled and not voxMutedFIDs[fid] and not weaponMutedFIDs[fid] and not creatureMutedFIDs[fid] and not autoShotMutedFIDs[fid] and not professionMutedFIDs[fid] and not npcMutedFIDs[fid] and not ambientMutedFIDs[fid] then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+    if
+      enabled
+      and not voxMutedFIDs[fid]
+      and not weaponMutedFIDs[fid]
+      and not creatureMutedFIDs[fid]
+      and not autoShotMutedFIDs[fid]
+      and not professionMutedFIDs[fid]
+      and not npcMutedFIDs[fid]
+      and not ambientMutedFIDs[fid]
+    then
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
       count = count + 1
     end
   end
   for fid, refcount in pairs(autoMutedFIDs) do
     if refcount > 0 and not isMutedElsewhere(fid, autoMutedFIDs) then
-      for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      for _ = 1, MAX_MUTE_DEPTH do
+        UnmuteSoundFile(fid)
+      end
       count = count + 1
     end
   end
@@ -1315,18 +1660,23 @@ end
 ---------------------------------------------------------------------------
 local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local b64lookup = {}
-for i = 1, 64 do b64lookup[b64chars:byte(i)] = i - 1 end
+for i = 1, 64 do
+  b64lookup[b64chars:byte(i)] = i - 1
+end
 
 local function b64encode(data)
   local out = {}
   for i = 1, #data, 3 do
     local a, b, c = data:byte(i, i + 2)
-    b = b or 0; c = c or 0
+    b = b or 0
+    c = c or 0
     local n = a * 65536 + b * 256 + c
     local remaining = #data - i + 1
     out[#out + 1] = b64chars:sub(bit.rshift(n, 18) + 1, bit.rshift(n, 18) + 1)
     out[#out + 1] = b64chars:sub(bit.band(bit.rshift(n, 12), 63) + 1, bit.band(bit.rshift(n, 12), 63) + 1)
-    out[#out + 1] = remaining > 1 and b64chars:sub(bit.band(bit.rshift(n, 6), 63) + 1, bit.band(bit.rshift(n, 6), 63) + 1) or "="
+    out[#out + 1] = remaining > 1
+        and b64chars:sub(bit.band(bit.rshift(n, 6), 63) + 1, bit.band(bit.rshift(n, 6), 63) + 1)
+      or "="
     out[#out + 1] = remaining > 2 and b64chars:sub(bit.band(n, 63) + 1, bit.band(n, 63) + 1) or "="
   end
   return table.concat(out)
@@ -1342,8 +1692,12 @@ local function b64decode(data)
     local d = b64lookup[data:byte(i + 3)] or 0
     local n = a * 262144 + b * 4096 + c * 64 + d
     out[#out + 1] = string.char(bit.band(bit.rshift(n, 16), 255))
-    if data:sub(i + 2, i + 2) ~= "=" then out[#out + 1] = string.char(bit.band(bit.rshift(n, 8), 255)) end
-    if data:sub(i + 3, i + 3) ~= "=" then out[#out + 1] = string.char(bit.band(n, 255)) end
+    if data:sub(i + 2, i + 2) ~= "=" then
+      out[#out + 1] = string.char(bit.band(bit.rshift(n, 8), 255))
+    end
+    if data:sub(i + 3, i + 3) ~= "=" then
+      out[#out + 1] = string.char(bit.band(n, 255))
+    end
   end
   return table.concat(out)
 end
@@ -1354,10 +1708,14 @@ end
 local function encodeSoundValue(sound)
   if type(sound) == "table" then
     local parts = {}
-    for _, s in ipairs(sound) do parts[#parts + 1] = tostring(s) end
+    for _, s in ipairs(sound) do
+      parts[#parts + 1] = tostring(s)
+    end
     if sound.random then
       local rParts = {}
-      for _, s in ipairs(sound.random) do rParts[#rParts + 1] = tostring(s) end
+      for _, s in ipairs(sound.random) do
+        rParts[#rParts + 1] = tostring(s)
+      end
       parts[#parts + 1] = "R" .. table.concat(rParts, "|")
     end
     return table.concat(parts, ",")
@@ -1369,9 +1727,13 @@ local function encodeSoundValue(sound)
 end
 
 local function decodeSoundValue(val)
-  if not val or val == "" then return nil end
+  if not val or val == "" then
+    return nil
+  end
   local quoted = val:match('^"(.*)"$')
-  if quoted then return quoted end
+  if quoted then
+    return quoted
+  end
   if val:find(",") then
     local sound = {}
     for part in val:gmatch("[^,]+") do
@@ -1383,12 +1745,20 @@ local function decodeSoundValue(val)
         end
       else
         local n = tonumber(part)
-        if n then sound[#sound + 1] = n end
+        if n then
+          sound[#sound + 1] = n
+        end
       end
     end
-    if sound.random and #sound.random == 0 then sound.random = nil end
-    if #sound == 1 and not sound.random then sound = sound[1] end
-    if #sound == 0 and not sound.random then sound = nil end
+    if sound.random and #sound.random == 0 then
+      sound.random = nil
+    end
+    if #sound == 1 and not sound.random then
+      sound = sound[1]
+    end
+    if #sound == 0 and not sound.random then
+      sound = nil
+    end
     return sound
   end
   return tonumber(val)
@@ -1409,14 +1779,18 @@ local function encodePresetData(name, spells, mutes)
     end
     if cfg.muteExclusions then
       local excl = {}
-      for fid in pairs(cfg.muteExclusions) do excl[#excl + 1] = tostring(fid) end
+      for fid in pairs(cfg.muteExclusions) do
+        excl[#excl + 1] = tostring(fid)
+      end
       if #excl > 0 then
         lines[#lines + 1] = "X" .. sid .. ":" .. table.concat(excl, ",")
       end
     end
     if cfg.muteFIDs then
       local parts = {}
-      for _, fid in ipairs(cfg.muteFIDs) do parts[#parts + 1] = tostring(fid) end
+      for _, fid in ipairs(cfg.muteFIDs) do
+        parts[#parts + 1] = tostring(fid)
+      end
       if #parts > 0 then
         lines[#lines + 1] = "F" .. sid .. ":" .. table.concat(parts, ",")
       end
@@ -1445,7 +1819,9 @@ local function encodePresetData(name, spells, mutes)
 end
 
 local function decodePresetString(str)
-  if not str or str == "" then return nil, L["Empty import string."] end
+  if not str or str == "" then
+    return nil, L["Empty import string."]
+  end
   str = str:match("^%s*(.-)%s*$")
   if str:sub(1, 11) ~= "!Resonance!" then
     return nil, L["Invalid format: missing !Resonance! prefix."]
@@ -1500,7 +1876,9 @@ local function decodePresetString(str)
         for fidStr in fidList:gmatch("(%d+)") do
           mfids[#mfids + 1] = tonumber(fidStr)
         end
-        if #mfids > 0 then spells[sid].muteFIDs = mfids end
+        if #mfids > 0 then
+          spells[sid].muteFIDs = mfids
+        end
       end
     elseif tag == "D" then
       local sid, dur = line:match("^D(%d+):(.+)$")
@@ -1517,7 +1895,9 @@ local function decodePresetString(str)
           spells[sid].loop = true
         else
           local n = tonumber(val)
-          if n then spells[sid].loop = n end
+          if n then
+            spells[sid].loop = n
+          end
         end
       end
     elseif tag == "T" then
@@ -1543,7 +1923,9 @@ local function decodePresetString(str)
       end
     elseif tag == "M" then
       local fid = tonumber(line:sub(2))
-      if fid then mutes[fid] = true end
+      if fid then
+        mutes[fid] = true
+      end
     end
   end
   return name, { spells = spells, mutes = mutes }
@@ -1581,7 +1963,9 @@ function Resonance:ExportConfig(name)
   end
   local mutes = {}
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
-    if enabled then mutes[fid] = true end
+    if enabled then
+      mutes[fid] = true
+    end
   end
   return encodePresetData(name, spells, mutes)
 end
@@ -1600,7 +1984,16 @@ function Resonance:ImportConfig(str)
     if db.spell_config[sid] then
       skipped = skipped + 1
     else
-      db.spell_config[sid] = { sound = cfg.sound, muteExclusions = cfg.muteExclusions, muteFIDs = cfg.muteFIDs, duration = cfg.duration, loop = cfg.loop, trigger = cfg.trigger, precastSound = cfg.precastSound, precastDuration = cfg.precastDuration }
+      db.spell_config[sid] = {
+        sound = cfg.sound,
+        muteExclusions = cfg.muteExclusions,
+        muteFIDs = cfg.muteFIDs,
+        duration = cfg.duration,
+        loop = cfg.loop,
+        trigger = cfg.trigger,
+        precastSound = cfg.precastSound,
+        precastDuration = cfg.precastDuration,
+      }
       applyAutoMutesForSpell(sid)
       added = added + 1
     end
@@ -1642,7 +2035,9 @@ function Resonance:ImportToPreset(str)
 end
 
 function Resonance:SaveCurrentAsPreset(name)
-  if not name or name == "" then return false end
+  if not name or name == "" then
+    return false
+  end
   local preset = { spells = {}, mutes = {} }
   for sid, cfg in pairs(db.spell_config or {}) do
     local entry = { sound = cfg.sound }
@@ -1673,7 +2068,9 @@ function Resonance:SaveCurrentAsPreset(name)
     preset.spells[sid] = entry
   end
   for fid, enabled in pairs(db.mute_file_data_ids or {}) do
-    if enabled then preset.mutes[fid] = true end
+    if enabled then
+      preset.mutes[fid] = true
+    end
   end
   db.saved_presets[name] = preset
   return true
@@ -1681,7 +2078,9 @@ end
 
 function Resonance:ApplySavedPreset(name)
   local preset = db.saved_presets[name]
-  if not preset then return 0, 0, 0 end
+  if not preset then
+    return 0, 0, 0
+  end
   local added, skipped, addedMutes = 0, 0, 0
   _deferSnapshot = true
   for sid, cfg in pairs(preset.spells or {}) do
@@ -1735,7 +2134,9 @@ function Resonance:ApplySavedPreset(name)
 end
 
 function Resonance:DeleteSavedPreset(name)
-  if not name then return end
+  if not name then
+    return
+  end
   db.saved_presets[name] = nil
 end
 
@@ -1745,7 +2146,9 @@ end
 
 function Resonance:ClassPresetToData(classKey)
   local template = ClassTemplates and ClassTemplates[classKey]
-  if not template then return nil end
+  if not template then
+    return nil
+  end
   local data = { spells = {}, mutes = {} }
   for _, entry in ipairs(template) do
     local spell = { sound = entry.sound }
@@ -1756,7 +2159,7 @@ function Resonance:ClassPresetToData(classKey)
       end
     end
     if entry.muteFIDs then
-      spell.muteFIDs = {unpack(entry.muteFIDs)}
+      spell.muteFIDs = { unpack(entry.muteFIDs) }
     end
     data.spells[entry.spellID] = spell
   end
@@ -1796,7 +2199,9 @@ Resonance.invalidateSpellNameIndex = invalidateSpellNameIndex
 local dataLoaded = false
 
 local function loadDataAddon()
-  if dataLoaded then return true end
+  if dataLoaded then
+    return true
+  end
   local loaded, reason = C_AddOns.LoadAddOn("Resonance_Data")
   if loaded then
     captureDataAddonGlobals()
@@ -1831,7 +2236,9 @@ Resonance.loadDataAddon = loadDataAddon
 
 function Resonance:ApplyClassTemplate(classKey)
   local template = ClassTemplates and ClassTemplates[classKey]
-  if not template then return 0, 0 end
+  if not template then
+    return 0, 0
+  end
   local added, skipped = 0, 0
   _deferSnapshot = true
   for _, entry in ipairs(template) do
@@ -1847,7 +2254,7 @@ function Resonance:ApplyClassTemplate(classKey)
         end
       end
       if entry.muteFIDs then
-        cfg.muteFIDs = {unpack(entry.muteFIDs)}
+        cfg.muteFIDs = { unpack(entry.muteFIDs) }
       end
       if entry.duration then
         cfg.duration = entry.duration
@@ -1882,7 +2289,9 @@ end
 -- Updates sound and muteExclusions from template; preserves user's additional unmutes
 -- Also auto-adds new template spells for classes the user has already loaded
 local function refreshPresetsFromTemplates()
-  if not ClassTemplates then return end
+  if not ClassTemplates then
+    return
+  end
   local updated, added = 0, 0
   _deferSnapshot = true
 
@@ -1911,7 +2320,7 @@ local function refreshPresetsFromTemplates()
               cfg.muteExclusions = nil
             end
             if entry.muteFIDs then
-              cfg.muteFIDs = {unpack(entry.muteFIDs)}
+              cfg.muteFIDs = { unpack(entry.muteFIDs) }
             else
               cfg.muteFIDs = nil
             end
@@ -1938,7 +2347,7 @@ local function refreshPresetsFromTemplates()
             end
           end
           if entry.muteFIDs then
-            cfg.muteFIDs = {unpack(entry.muteFIDs)}
+            cfg.muteFIDs = { unpack(entry.muteFIDs) }
           end
           if entry.duration then
             cfg.duration = entry.duration
@@ -2015,27 +2424,51 @@ local function getGeneralOptions()
         desc = L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."],
         order = 1,
         width = "full",
-        get = function() return db.enabled end,
+        get = function()
+          return db.enabled
+        end,
         set = function(_, v)
           db.enabled = v
           if v then
             applyMutes()
-            if getVoxMode() ~= "off" then applyVoxMutes() end
-            if db.muteWeaponImpacts then applyWeaponMutes() end
-            if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
-            if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
-            if hasAnyNPCMuteEnabled() then applyNPCMutes() end
-            if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
-            if db.classicAutoShot then applyAutoShotMutes() end
+            if getVoxMode() ~= "off" then
+              applyVoxMutes()
+            end
+            if db.muteWeaponImpacts then
+              applyWeaponMutes()
+            end
+            if hasAnyCreatureVoxEnabled() then
+              applyCreatureVoxMutes()
+            end
+            if hasAnyProfessionMuteEnabled() then
+              applyProfessionMutes()
+            end
+            if hasAnyNPCMuteEnabled() then
+              applyNPCMutes()
+            end
+            if hasAnyAmbientMuteEnabled() then
+              applyAmbientMutes()
+            end
+            if db.classicAutoShot then
+              applyAutoShotMutes()
+            end
           else
             cancelActiveLoop()
             db.muteWeaponImpacts = false
             db.muteVocalizations = "off"
             db.classicAutoShot = false
-            if db.muteCreatureVox then wipe(db.muteCreatureVox) end
-            if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
-            if db.mutedNPCs then wipe(db.mutedNPCs) end
-            if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
+            if db.muteCreatureVox then
+              wipe(db.muteCreatureVox)
+            end
+            if db.muteProfessionSounds then
+              wipe(db.muteProfessionSounds)
+            end
+            if db.mutedNPCs then
+              wipe(db.mutedNPCs)
+            end
+            if db.muteAmbientSounds then
+              wipe(db.muteAmbientSounds)
+            end
             clearAutoShotMutes()
             clearNPCMutes()
             clearAmbientMutes()
@@ -2055,9 +2488,15 @@ local function getGeneralOptions()
         desc = L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."],
         order = 2,
         width = "full",
-        disabled = function() return not db.enabled end,
-        get = function() return db.debug end,
-        set = function(_, v) db.debug = v end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.debug
+        end,
+        set = function(_, v)
+          db.debug = v
+        end,
       },
       showMinimap = {
         type = "toggle",
@@ -2065,16 +2504,24 @@ local function getGeneralOptions()
         desc = L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."],
         order = 3,
         width = "full",
-        disabled = function() return not db.enabled end,
-        get = function() return not db.minimap.hide end,
-        set = function(_, v) Resonance.toggleMinimapButton(v) end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return not db.minimap.hide
+        end,
+        set = function(_, v)
+          Resonance.toggleMinimapButton(v)
+        end,
       },
       soundChannel = {
         type = "select",
         name = L["Replacement sound channel"],
         desc = L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."],
         order = 4,
-        disabled = function() return not db.enabled end,
+        disabled = function()
+          return not db.enabled
+        end,
         values = {
           Master = "Master",
           SFX = "SFX",
@@ -2083,8 +2530,12 @@ local function getGeneralOptions()
           Dialog = "Dialog",
         },
         sorting = { "Master", "SFX", "Music", "Ambience", "Dialog" },
-        get = function() return db.soundChannel end,
-        set = function(_, v) db.soundChannel = v end,
+        get = function()
+          return db.soundChannel
+        end,
+        set = function(_, v)
+          db.soundChannel = v
+        end,
       },
       interruptAlertHeader = {
         type = "header",
@@ -2103,8 +2554,12 @@ local function getGeneralOptions()
         desc = L["Play a custom alert sound when your cast is interrupted by another player or NPC."],
         order = 21,
         width = "full",
-        disabled = function() return not db.enabled end,
-        get = function() return db.interruptAlert end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.interruptAlert
+        end,
         set = function(_, v)
           db.interruptAlert = v
           if v then
@@ -2122,9 +2577,15 @@ local function getGeneralOptions()
         desc = L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"],
         order = 22,
         width = "double",
-        hidden = function() return not db.interruptAlert end,
-        disabled = function() return not db.enabled end,
-        get = function() return db.interruptAlertSound and tostring(db.interruptAlertSound) or "" end,
+        hidden = function()
+          return not db.interruptAlert
+        end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.interruptAlertSound and tostring(db.interruptAlertSound) or ""
+        end,
         set = function(_, v)
           if v == "" then
             db.interruptAlertSound = nil
@@ -2139,15 +2600,23 @@ local function getGeneralOptions()
         name = L["Duration cutoff (seconds)"],
         desc = L["Stop the alert sound after this many seconds. Leave blank to let it play fully."],
         order = 23,
-        hidden = function() return not db.interruptAlert end,
-        disabled = function() return not db.enabled end,
-        get = function() return db.interruptAlertDuration and tostring(db.interruptAlertDuration) or "" end,
+        hidden = function()
+          return not db.interruptAlert
+        end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.interruptAlertDuration and tostring(db.interruptAlertDuration) or ""
+        end,
         set = function(_, v)
           if v == "" then
             db.interruptAlertDuration = nil
           else
             local n = tonumber(v)
-            if n and n > 0 then db.interruptAlertDuration = n end
+            if n and n > 0 then
+              db.interruptAlertDuration = n
+            end
           end
           if db.interruptAlert and db.enabled then
             Resonance:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
@@ -2159,11 +2628,17 @@ local function getGeneralOptions()
         name = L["Test"],
         desc = L["Play the configured interrupt alert sound."],
         order = 24,
-        hidden = function() return not db.interruptAlert end,
-        disabled = function() return not db.enabled or not db.interruptAlertSound end,
+        hidden = function()
+          return not db.interruptAlert
+        end,
+        disabled = function()
+          return not db.enabled or not db.interruptAlertSound
+        end,
         func = function()
           local sound = db.interruptAlertSound
-          if not sound then return end
+          if not sound then
+            return
+          end
           local ok, handle = previewSound(sound)
           if ok then
             scheduleStopSound(handle, db.interruptAlertDuration)
@@ -2190,11 +2665,21 @@ local function getMutingOptions()
         desc = L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."],
         order = 2,
         width = "full",
-        disabled = function() return not db.enabled end,
-        get = function() return db.muteWeaponImpacts end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.muteWeaponImpacts
+        end,
         set = function(_, v)
           db.muteWeaponImpacts = v
-          if v then if db.enabled then applyWeaponMutes() end else clearWeaponMutes() end
+          if v then
+            if db.enabled then
+              applyWeaponMutes()
+            end
+          else
+            clearWeaponMutes()
+          end
         end,
       },
       classicAutoShot = {
@@ -2203,12 +2688,24 @@ local function getMutingOptions()
         desc = L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."],
         order = 3,
         width = "full",
-        hidden = function() return playerClassToken ~= "HUNTER" end,
-        disabled = function() return not db.enabled end,
-        get = function() return db.classicAutoShot end,
+        hidden = function()
+          return playerClassToken ~= "HUNTER"
+        end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.classicAutoShot
+        end,
         set = function(_, v)
           db.classicAutoShot = v
-          if v then if db.enabled then applyAutoShotMutes() end else clearAutoShotMutes() end
+          if v then
+            if db.enabled then
+              applyAutoShotMutes()
+            end
+          else
+            clearAutoShotMutes()
+          end
         end,
       },
       characterVoxHeader = {
@@ -2221,14 +2718,18 @@ local function getMutingOptions()
         name = L["Mute character vocalizations"],
         desc = L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."],
         order = 11,
-        disabled = function() return not db.enabled end,
+        disabled = function()
+          return not db.enabled
+        end,
         values = {
           off = L["Off"],
           mine = L["Mine"],
           all = L["All races"],
         },
         sorting = { "off", "mine", "all" },
-        get = function() return getVoxMode() end,
+        get = function()
+          return getVoxMode()
+        end,
         set = function(_, v)
           db.muteVocalizations = v
           refreshVoxMutes()
@@ -2254,10 +2755,16 @@ local function getMutingOptions()
         type = "toggle",
         name = L[cat] or cat,
         order = 22 + i,
-        disabled = function() return not db.enabled end,
-        get = function() return db.muteCreatureVox and db.muteCreatureVox[cat] or false end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.muteCreatureVox and db.muteCreatureVox[cat] or false
+        end,
         set = function(_, v)
-          if not db.muteCreatureVox then db.muteCreatureVox = {} end
+          if not db.muteCreatureVox then
+            db.muteCreatureVox = {}
+          end
           db.muteCreatureVox[cat] = v or nil
           refreshCreatureVoxMutes()
         end,
@@ -2279,7 +2786,9 @@ local function getMutingOptions()
   opts.args.sharedSoundsNote = {
     type = "description",
     fontSize = "medium",
-    name = "\n|cffaaaaaa" .. L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] .. "|r",
+    name = "\n|cffaaaaaa"
+      .. L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."]
+      .. "|r",
     order = 100,
   }
 
@@ -2289,10 +2798,16 @@ local function getMutingOptions()
         type = "toggle",
         name = L[prof] or prof,
         order = 52 + i,
-        disabled = function() return not db.enabled end,
-        get = function() return db.muteProfessionSounds and db.muteProfessionSounds[prof] or false end,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.muteProfessionSounds and db.muteProfessionSounds[prof] or false
+        end,
         set = function(_, v)
-          if not db.muteProfessionSounds then db.muteProfessionSounds = {} end
+          if not db.muteProfessionSounds then
+            db.muteProfessionSounds = {}
+          end
           db.muteProfessionSounds[prof] = v or nil
           refreshProfessionMutes()
         end,
@@ -2317,22 +2832,44 @@ local ldbObj = LDB:NewDataObject("Resonance", {
       db.enabled = not db.enabled
       if db.enabled then
         applyMutes()
-        if getVoxMode() ~= "off" then applyVoxMutes() end
-        if db.muteWeaponImpacts then applyWeaponMutes() end
-        if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
-        if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
-        if hasAnyNPCMuteEnabled() then applyNPCMutes() end
-        if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
-        if db.classicAutoShot then applyAutoShotMutes() end
+        if getVoxMode() ~= "off" then
+          applyVoxMutes()
+        end
+        if db.muteWeaponImpacts then
+          applyWeaponMutes()
+        end
+        if hasAnyCreatureVoxEnabled() then
+          applyCreatureVoxMutes()
+        end
+        if hasAnyProfessionMuteEnabled() then
+          applyProfessionMutes()
+        end
+        if hasAnyNPCMuteEnabled() then
+          applyNPCMutes()
+        end
+        if hasAnyAmbientMuteEnabled() then
+          applyAmbientMutes()
+        end
+        if db.classicAutoShot then
+          applyAutoShotMutes()
+        end
       else
         cancelActiveLoop()
         db.muteWeaponImpacts = false
         db.muteVocalizations = "off"
         db.classicAutoShot = false
-        if db.muteCreatureVox then wipe(db.muteCreatureVox) end
-        if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
-        if db.mutedNPCs then wipe(db.mutedNPCs) end
-        if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
+        if db.muteCreatureVox then
+          wipe(db.muteCreatureVox)
+        end
+        if db.muteProfessionSounds then
+          wipe(db.muteProfessionSounds)
+        end
+        if db.mutedNPCs then
+          wipe(db.mutedNPCs)
+        end
+        if db.muteAmbientSounds then
+          wipe(db.muteAmbientSounds)
+        end
         clearAutoShotMutes()
         clearNPCMutes()
         clearAmbientMutes()
@@ -2346,7 +2883,9 @@ local ldbObj = LDB:NewDataObject("Resonance", {
       end
       msg(db.enabled and L["Enabled."] or L["Disabled."])
     else
-      if Resonance.openOptions then Resonance.openOptions() end
+      if Resonance.openOptions then
+        Resonance.openOptions()
+      end
     end
   end,
   OnTooltipShow = function(tt)
@@ -2370,12 +2909,20 @@ end
 -- Migration from CastSoundsDB
 ---------------------------------------------------------------------------
 local function migrateFromCastSounds()
-  if not CastSoundsDB then return end
+  if not CastSoundsDB then
+    return
+  end
 
   -- Build AceDB-compatible structure
-  if not ResonanceDB then ResonanceDB = {} end
-  if not ResonanceDB.profiles then ResonanceDB.profiles = {} end
-  if not ResonanceDB.profiles["Default"] then ResonanceDB.profiles["Default"] = {} end
+  if not ResonanceDB then
+    ResonanceDB = {}
+  end
+  if not ResonanceDB.profiles then
+    ResonanceDB.profiles = {}
+  end
+  if not ResonanceDB.profiles["Default"] then
+    ResonanceDB.profiles["Default"] = {}
+  end
 
   local dest = ResonanceDB.profiles["Default"]
   local src = CastSoundsDB
@@ -2383,13 +2930,22 @@ local function migrateFromCastSounds()
   -- Copy known keys
   local simpleKeys = { "enabled", "debug", "soundChannel" }
   for _, k in ipairs(simpleKeys) do
-    if src[k] ~= nil then dest[k] = src[k] end
+    if src[k] ~= nil then
+      dest[k] = src[k]
+    end
   end
 
-  local tableKeys = { "mute_file_data_ids", "local_file_overrides_by_spell_name",
-                       "spell_to_play_file_data_id", "spell_config", "minimap" }
+  local tableKeys = {
+    "mute_file_data_ids",
+    "local_file_overrides_by_spell_name",
+    "spell_to_play_file_data_id",
+    "spell_config",
+    "minimap",
+  }
   for _, k in ipairs(tableKeys) do
-    if src[k] then dest[k] = src[k] end
+    if src[k] then
+      dest[k] = src[k]
+    end
   end
 
   -- Don't copy auto_muted_fids — it's runtime-only now
@@ -2415,24 +2971,78 @@ function Resonance:OnInitialize()
   -- profession sounds muted even after the data fix.
   if not db._creatureVoxProfFixApplied then
     local profFIDs = {
-      [565539]=1,[565568]=1,[565570]=1,[565577]=1,[565642]=1,[565703]=1,
-      [565850]=1,[565877]=1,[565908]=1,[565944]=1,[566336]=1,[566365]=1,
-      [566369]=1,[566670]=1,[566721]=1,[566989]=1,[566998]=1,[567063]=1,
-      [567081]=1,[567101]=1,[567585]=1,[567587]=1,[567590]=1,[567592]=1,
-      [567593]=1,[567594]=1,[567597]=1,[567600]=1,[567603]=1,[567605]=1,
-      [569559]=1,[569792]=1,[569794]=1,[569799]=1,[569801]=1,[569811]=1,
-      [569814]=1,[569821]=1,[569822]=1,[937258]=1,[937260]=1,[937262]=1,
-      [937264]=1,[937266]=1,[937268]=1,[937270]=1,[937272]=1,[937274]=1,
-      [937276]=1,[971155]=1,[971157]=1,[971159]=1,[1717093]=1,[1717094]=1,
-      [1717095]=1,[1717096]=1,[1717097]=1,[2066564]=1,[2066565]=1,
-      [2066566]=1,[2066568]=1,[2066569]=1,[2066570]=1,
+      [565539] = 1,
+      [565568] = 1,
+      [565570] = 1,
+      [565577] = 1,
+      [565642] = 1,
+      [565703] = 1,
+      [565850] = 1,
+      [565877] = 1,
+      [565908] = 1,
+      [565944] = 1,
+      [566336] = 1,
+      [566365] = 1,
+      [566369] = 1,
+      [566670] = 1,
+      [566721] = 1,
+      [566989] = 1,
+      [566998] = 1,
+      [567063] = 1,
+      [567081] = 1,
+      [567101] = 1,
+      [567585] = 1,
+      [567587] = 1,
+      [567590] = 1,
+      [567592] = 1,
+      [567593] = 1,
+      [567594] = 1,
+      [567597] = 1,
+      [567600] = 1,
+      [567603] = 1,
+      [567605] = 1,
+      [569559] = 1,
+      [569792] = 1,
+      [569794] = 1,
+      [569799] = 1,
+      [569801] = 1,
+      [569811] = 1,
+      [569814] = 1,
+      [569821] = 1,
+      [569822] = 1,
+      [937258] = 1,
+      [937260] = 1,
+      [937262] = 1,
+      [937264] = 1,
+      [937266] = 1,
+      [937268] = 1,
+      [937270] = 1,
+      [937272] = 1,
+      [937274] = 1,
+      [937276] = 1,
+      [971155] = 1,
+      [971157] = 1,
+      [971159] = 1,
+      [1717093] = 1,
+      [1717094] = 1,
+      [1717095] = 1,
+      [1717096] = 1,
+      [1717097] = 1,
+      [2066564] = 1,
+      [2066565] = 1,
+      [2066566] = 1,
+      [2066568] = 1,
+      [2066569] = 1,
+      [2066570] = 1,
     }
     local snapshot = db._lastCreatureMutedFIDs
     if snapshot then
       for fid in pairs(profFIDs) do
         if snapshot[fid] then
           snapshot[fid] = nil
-          for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+          for _ = 1, MAX_MUTE_DEPTH do
+            UnmuteSoundFile(fid)
+          end
         end
       end
     end
@@ -2459,14 +3069,30 @@ function Resonance:OnInitialize()
     else
       reapplyAutoMutesFromSnapshot()
     end
-    if db.enabled then applyMutes() end
-    if getVoxMode() ~= "off" then applyVoxMutes() end
-    if db.muteWeaponImpacts then applyWeaponMutes() end
-    if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
-    if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
-    if hasAnyNPCMuteEnabled() then applyNPCMutes() end
-    if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
-    if db.classicAutoShot then applyAutoShotMutes() end
+    if db.enabled then
+      applyMutes()
+    end
+    if getVoxMode() ~= "off" then
+      applyVoxMutes()
+    end
+    if db.muteWeaponImpacts then
+      applyWeaponMutes()
+    end
+    if hasAnyCreatureVoxEnabled() then
+      applyCreatureVoxMutes()
+    end
+    if hasAnyProfessionMuteEnabled() then
+      applyProfessionMutes()
+    end
+    if hasAnyNPCMuteEnabled() then
+      applyNPCMutes()
+    end
+    if hasAnyAmbientMuteEnabled() then
+      applyAmbientMutes()
+    end
+    if db.classicAutoShot then
+      applyAutoShotMutes()
+    end
     if db.interruptAlert then
       self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
     end
@@ -2482,8 +3108,7 @@ function Resonance:OnInitialize()
   local AceConfig = LibStub("AceConfig-3.0")
   AceConfig:RegisterOptionsTable("Resonance_General", getGeneralOptions)
   AceConfig:RegisterOptionsTable("Resonance_Muting", getMutingOptions)
-  AceConfig:RegisterOptionsTable("Resonance_Profiles",
-    LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db))
+  AceConfig:RegisterOptionsTable("Resonance_Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db))
 
   -- Slash commands
   self:RegisterChatCommand("res", "ChatCommand")
@@ -2493,7 +3118,9 @@ function Resonance:OnInitialize()
   LDBIcon:Register("Resonance", ldbObj, db.minimap)
 
   -- Options panel (deferred to Options.lua)
-  if self.SetupOptions then self:SetupOptions() end
+  if self.SetupOptions then
+    self:SetupOptions()
+  end
 end
 
 function Resonance:OnEnable()
@@ -2507,17 +3134,31 @@ function Resonance:OnEnable()
   -- Use snapshot at login (fast, no SpellMuteData needed).
   -- Full rebuild deferred to when Resonance_Data loads.
   if Resonance.SpellMuteData then
-    rebuildAutoMutes()  -- Data already loaded (e.g. after /reload with Options open)
+    rebuildAutoMutes() -- Data already loaded (e.g. after /reload with Options open)
   else
     reapplyAutoMutesFromSnapshot()
   end
-  if db.enabled then applyMutes() end
-  if getVoxMode() ~= "off" then applyVoxMutes() end
-  if db.muteWeaponImpacts then applyWeaponMutes() end
-  if db.classicAutoShot then applyAutoShotMutes() end
-  if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
-  if hasAnyNPCMuteEnabled() then applyNPCMutes() end
-  if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
+  if db.enabled then
+    applyMutes()
+  end
+  if getVoxMode() ~= "off" then
+    applyVoxMutes()
+  end
+  if db.muteWeaponImpacts then
+    applyWeaponMutes()
+  end
+  if db.classicAutoShot then
+    applyAutoShotMutes()
+  end
+  if hasAnyProfessionMuteEnabled() then
+    applyProfessionMutes()
+  end
+  if hasAnyNPCMuteEnabled() then
+    applyNPCMutes()
+  end
+  if hasAnyAmbientMuteEnabled() then
+    applyAmbientMutes()
+  end
   if hasAnyCreatureVoxEnabled() then
     applyCreatureVoxMutes()
   elseif Resonance.CreatureVoxExcludedFIDs then
@@ -2526,7 +3167,9 @@ function Resonance:OnEnable()
     for s in Resonance.CreatureVoxExcludedFIDs:gmatch("%d+") do
       local fid = tonumber(s)
       if fid and not isMutedElsewhere(fid) then
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
     end
   end
@@ -2535,8 +3178,14 @@ function Resonance:OnEnable()
   -- If a feature was disabled between sessions, its snapshot FIDs are still
   -- muted in WoW's internal state. Drain them now.
   local snapshotKeys = {
-    { flag = "muteWeaponImpacts",  key = "_lastWeaponMutedFIDs" },
-    { flag = nil, flagFn = function() return getVoxMode() ~= "off" end, key = "_lastVoxMutedFIDs" },
+    { flag = "muteWeaponImpacts", key = "_lastWeaponMutedFIDs" },
+    {
+      flag = nil,
+      flagFn = function()
+        return getVoxMode() ~= "off"
+      end,
+      key = "_lastVoxMutedFIDs",
+    },
     { flag = nil, flagFn = hasAnyCreatureVoxEnabled, key = "_lastCreatureMutedFIDs" },
     { flag = nil, flagFn = hasAnyProfessionMuteEnabled, key = "_lastProfessionMutedFIDs" },
     { flag = nil, flagFn = hasAnyNPCMuteEnabled, key = "_lastNPCMutedFIDs" },
@@ -2546,7 +3195,9 @@ function Resonance:OnEnable()
     local active = entry.flag and db[entry.flag] or (entry.flagFn and entry.flagFn())
     if not active and db[entry.key] then
       for fid in pairs(db[entry.key]) do
-        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        for _ = 1, MAX_MUTE_DEPTH do
+          UnmuteSoundFile(fid)
+        end
       end
       wipe(db[entry.key])
     end
@@ -2572,7 +3223,9 @@ local function resolveSpellConfig(spellID)
 end
 
 function Resonance:UNIT_MODEL_CHANGED(_, unit)
-  if unit ~= "player" then return end
+  if unit ~= "player" then
+    return
+  end
   -- Player changed appearance (barbershop gender change, etc.) — re-apply vox mutes
   -- Only relevant for "mine" mode; "all" already covers everything
   if getVoxMode() == "mine" then
@@ -2581,8 +3234,12 @@ function Resonance:UNIT_MODEL_CHANGED(_, unit)
 end
 
 function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
-  if unit ~= "player" then return end
-  if not db.enabled or not db.interruptAlert or not spellID then return end
+  if unit ~= "player" then
+    return
+  end
+  if not db.enabled or not db.interruptAlert or not spellID then
+    return
+  end
   -- UNIT_SPELLCAST_INTERRUPTED only fires for actual interrupts (enemy kicks,
   -- silences, etc.). Self-cancels (movement, Escape, /stopcasting) fire
   -- UNIT_SPELLCAST_FAILED instead. Confirm via C_LossOfControl: a school
@@ -2595,9 +3252,13 @@ function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
       break
     end
   end
-  if not confirmed then return end
+  if not confirmed then
+    return
+  end
   local sound = db.interruptAlertSound
-  if not sound then return end
+  if not sound then
+    return
+  end
   if db.debug then
     local name = _GetSpellName(spellID) or ""
     msg(("Interrupted: %s (spellID %d)"):format(name ~= "" and name or "<?>", spellID))
@@ -2614,13 +3275,21 @@ function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
 end
 
 function Resonance:UNIT_SPELLCAST_START(_, unit, _, spellID)
-  if unit ~= "player" then return end
-  if not db.enabled or not spellID then return end
+  if unit ~= "player" then
+    return
+  end
+  if not db.enabled or not spellID then
+    return
+  end
 
   local cfg = resolveSpellConfig(spellID)
-  if not cfg then return end
+  if not cfg then
+    return
+  end
   local trigger = cfg.trigger
-  if trigger ~= "precast" and trigger ~= "precast_and_cast" then return end
+  if trigger ~= "precast" and trigger ~= "precast_and_cast" then
+    return
+  end
 
   local dbg = db.debug
   local spellName
@@ -2633,8 +3302,12 @@ function Resonance:UNIT_SPELLCAST_START(_, unit, _, spellID)
 end
 
 function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
-  if unit ~= "player" then return end
-  if not db.enabled or not spellID then return end
+  if unit ~= "player" then
+    return
+  end
+  if not db.enabled or not spellID then
+    return
+  end
 
   -- Classic auto-shot: intercept spell 75 before the normal path
   if spellID == AUTO_SHOT_SPELL_ID and db.classicAutoShot and playerClassToken == "HUNTER" then
@@ -2651,7 +3324,9 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   -- Resolve config with name-based fallback for spell variants,
   -- then gate on IsPlayerSpell for unconfigured spells.
   local cfg = resolveSpellConfig(spellID)
-  if not cfg and not IsPlayerSpell(spellID) then return end
+  if not cfg and not IsPlayerSpell(spellID) then
+    return
+  end
 
   -- Defer GetSpellName: for the common case (configured sound), the name
   -- is never used, so skip the C API call entirely unless debug is on or
@@ -2684,13 +3359,27 @@ function Resonance:ChatCommand(input)
   elseif cmd == "on" then
     db.enabled = true
     applyMutes()
-    if getVoxMode() ~= "off" then applyVoxMutes() end
-    if db.muteWeaponImpacts then applyWeaponMutes() end
-    if hasAnyCreatureVoxEnabled() then applyCreatureVoxMutes() end
-    if hasAnyProfessionMuteEnabled() then applyProfessionMutes() end
-    if hasAnyNPCMuteEnabled() then applyNPCMutes() end
-    if hasAnyAmbientMuteEnabled() then applyAmbientMutes() end
-    if db.classicAutoShot then applyAutoShotMutes() end
+    if getVoxMode() ~= "off" then
+      applyVoxMutes()
+    end
+    if db.muteWeaponImpacts then
+      applyWeaponMutes()
+    end
+    if hasAnyCreatureVoxEnabled() then
+      applyCreatureVoxMutes()
+    end
+    if hasAnyProfessionMuteEnabled() then
+      applyProfessionMutes()
+    end
+    if hasAnyNPCMuteEnabled() then
+      applyNPCMutes()
+    end
+    if hasAnyAmbientMuteEnabled() then
+      applyAmbientMutes()
+    end
+    if db.classicAutoShot then
+      applyAutoShotMutes()
+    end
     msg(L["Enabled."])
   elseif cmd == "off" then
     cancelActiveLoop()
@@ -2698,10 +3387,18 @@ function Resonance:ChatCommand(input)
     db.muteWeaponImpacts = false
     db.muteVocalizations = "off"
     db.classicAutoShot = false
-    if db.muteCreatureVox then wipe(db.muteCreatureVox) end
-    if db.muteProfessionSounds then wipe(db.muteProfessionSounds) end
-    if db.mutedNPCs then wipe(db.mutedNPCs) end
-    if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
+    if db.muteCreatureVox then
+      wipe(db.muteCreatureVox)
+    end
+    if db.muteProfessionSounds then
+      wipe(db.muteProfessionSounds)
+    end
+    if db.mutedNPCs then
+      wipe(db.mutedNPCs)
+    end
+    if db.muteAmbientSounds then
+      wipe(db.muteAmbientSounds)
+    end
     clearAutoShotMutes()
     self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
     clearInterruptAlertState()
@@ -2750,7 +3447,9 @@ function Resonance:ChatCommand(input)
         n = n + 1
       end
     end
-    if n == 0 then msg(L["  (none)"]) end
+    if n == 0 then
+      msg(L["  (none)"])
+    end
   elseif cmd == "map" then
     local sid, fid = rest:match("^(%d+)%s+(%d+)$")
     sid = sid and tonumber(sid)
@@ -2826,46 +3525,92 @@ function Resonance:ChatCommand(input)
     playResolvedSound(sid, name)
   elseif cmd == "checkfid" then
     local fid = tonumber(rest)
-    if not fid then msg("Usage: /res checkfid <fileDataID>"); return end
+    if not fid then
+      msg("Usage: /res checkfid <fileDataID>")
+      return
+    end
     msg("=== Checking FID " .. fid .. " ===")
     local sources = {}
-    if db.mute_file_data_ids and db.mute_file_data_ids[fid] then sources[#sources + 1] = "Manual mute (mute_file_data_ids)" end
-    if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then sources[#sources + 1] = "Auto-muted (spell config, refcount=" .. autoMutedFIDs[fid] .. ")" end
-    if voxMutedFIDs[fid] then sources[#sources + 1] = "Vocalization mute" end
-    if weaponMutedFIDs[fid] then sources[#sources + 1] = "Weapon impact mute" end
-    if creatureMutedFIDs[fid] then sources[#sources + 1] = "Creature vocalization mute" end
-    if autoShotMutedFIDs[fid] then sources[#sources + 1] = "Auto-shot mute" end
-    if professionMutedFIDs[fid] then sources[#sources + 1] = "Profession mute" end
-    if npcMutedFIDs[fid] then sources[#sources + 1] = "NPC mute" end
-    if ambientMutedFIDs[fid] then sources[#sources + 1] = "Ambient mute" end
+    if db.mute_file_data_ids and db.mute_file_data_ids[fid] then
+      sources[#sources + 1] = "Manual mute (mute_file_data_ids)"
+    end
+    if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then
+      sources[#sources + 1] = "Auto-muted (spell config, refcount=" .. autoMutedFIDs[fid] .. ")"
+    end
+    if voxMutedFIDs[fid] then
+      sources[#sources + 1] = "Vocalization mute"
+    end
+    if weaponMutedFIDs[fid] then
+      sources[#sources + 1] = "Weapon impact mute"
+    end
+    if creatureMutedFIDs[fid] then
+      sources[#sources + 1] = "Creature vocalization mute"
+    end
+    if autoShotMutedFIDs[fid] then
+      sources[#sources + 1] = "Auto-shot mute"
+    end
+    if professionMutedFIDs[fid] then
+      sources[#sources + 1] = "Profession mute"
+    end
+    if npcMutedFIDs[fid] then
+      sources[#sources + 1] = "NPC mute"
+    end
+    if ambientMutedFIDs[fid] then
+      sources[#sources + 1] = "Ambient mute"
+    end
     -- Check snapshots
-    if db._lastWeaponMutedFIDs and db._lastWeaponMutedFIDs[fid] then sources[#sources + 1] = "Stale weapon snapshot" end
-    if db._lastVoxMutedFIDs and db._lastVoxMutedFIDs[fid] then sources[#sources + 1] = "Stale vox snapshot" end
-    if db._lastCreatureMutedFIDs and db._lastCreatureMutedFIDs[fid] then sources[#sources + 1] = "Stale creature snapshot" end
-    if db._lastProfessionMutedFIDs and db._lastProfessionMutedFIDs[fid] then sources[#sources + 1] = "Stale profession snapshot" end
-    if db._lastNPCMutedFIDs and db._lastNPCMutedFIDs[fid] then sources[#sources + 1] = "Stale NPC snapshot" end
-    if db._lastAmbientMutedFIDs and db._lastAmbientMutedFIDs[fid] then sources[#sources + 1] = "Stale ambient snapshot" end
-    if db._lastAutoMutedFIDs and db._lastAutoMutedFIDs[fid] then sources[#sources + 1] = "Stale auto-mute snapshot" end
+    if db._lastWeaponMutedFIDs and db._lastWeaponMutedFIDs[fid] then
+      sources[#sources + 1] = "Stale weapon snapshot"
+    end
+    if db._lastVoxMutedFIDs and db._lastVoxMutedFIDs[fid] then
+      sources[#sources + 1] = "Stale vox snapshot"
+    end
+    if db._lastCreatureMutedFIDs and db._lastCreatureMutedFIDs[fid] then
+      sources[#sources + 1] = "Stale creature snapshot"
+    end
+    if db._lastProfessionMutedFIDs and db._lastProfessionMutedFIDs[fid] then
+      sources[#sources + 1] = "Stale profession snapshot"
+    end
+    if db._lastNPCMutedFIDs and db._lastNPCMutedFIDs[fid] then
+      sources[#sources + 1] = "Stale NPC snapshot"
+    end
+    if db._lastAmbientMutedFIDs and db._lastAmbientMutedFIDs[fid] then
+      sources[#sources + 1] = "Stale ambient snapshot"
+    end
+    if db._lastAutoMutedFIDs and db._lastAutoMutedFIDs[fid] then
+      sources[#sources + 1] = "Stale auto-mute snapshot"
+    end
     if #sources == 0 then
       msg("  Not muted by Resonance. Try: /res testfid " .. fid)
     else
-      for _, s in ipairs(sources) do msg("  MUTED by: " .. s) end
+      for _, s in ipairs(sources) do
+        msg("  MUTED by: " .. s)
+      end
     end
     -- Force-unmute and test play
     msg("  Force-unmuting and playing...")
-    for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+    for _ = 1, MAX_MUTE_DEPTH do
+      UnmuteSoundFile(fid)
+    end
     local ok = PlaySoundFile(fid, "Master")
     msg("  PlaySoundFile result: " .. tostring(ok))
   elseif cmd == "diag" then
     msg(L["=== Resonance Diagnostics ==="])
     local libs = {
-      "LibStub", "CallbackHandler-1.0",
-      "AceAddon-3.0", "AceDB-3.0", "AceDBOptions-3.0",
-      "AceEvent-3.0", "AceConsole-3.0",
-      "AceConfigRegistry-3.0", "AceConfigCmd-3.0",
-      "AceConfigDialog-3.0", "AceConfig-3.0",
+      "LibStub",
+      "CallbackHandler-1.0",
+      "AceAddon-3.0",
+      "AceDB-3.0",
+      "AceDBOptions-3.0",
+      "AceEvent-3.0",
+      "AceConsole-3.0",
+      "AceConfigRegistry-3.0",
+      "AceConfigCmd-3.0",
+      "AceConfigDialog-3.0",
+      "AceConfig-3.0",
       "AceGUI-3.0",
-      "LibDataBroker-1.1", "LibDBIcon-1.0",
+      "LibDataBroker-1.1",
+      "LibDBIcon-1.0",
     }
     for _, libName in ipairs(libs) do
       if libName == "LibStub" then
@@ -2886,7 +3631,9 @@ function Resonance:ChatCommand(input)
       local widgets = { "SimpleGroup", "Button", "CheckBox", "Dropdown", "Label", "Slider", "EditBox", "Heading" }
       msg("  AceGUI widgets:")
       for _, wtype in ipairs(widgets) do
-        local ok, w = pcall(function() return aceGUI:Create(wtype) end)
+        local ok, w = pcall(function()
+          return aceGUI:Create(wtype)
+        end)
         if ok and w then
           aceGUI:Release(w)
           msg(("    %s: |cff00ff00OK|r"):format(wtype))
@@ -2895,8 +3642,14 @@ function Resonance:ChatCommand(input)
         end
       end
     end
-    msg("  Settings API: " .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r"))
-    msg("  Spell mute data: " .. (Resonance.SpellMuteData and "|cff00ff00loaded (string-packed)|r" or "|cffff0000NOT LOADED|r"))
+    msg(
+      "  Settings API: "
+        .. (Settings and Settings.RegisterCanvasLayoutCategory and "|cff00ff00OK|r" or "|cffff0000MISSING|r")
+    )
+    msg(
+      "  Spell mute data: "
+        .. (Resonance.SpellMuteData and "|cff00ff00loaded (string-packed)|r" or "|cffff0000NOT LOADED|r")
+    )
     msg("  Vox data: " .. (Resonance.VoxFIDs and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
     msg("  Creature vox data: " .. (Resonance.CreatureVoxData and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
     if Resonance.CreatureVoxCategories then
@@ -2907,9 +3660,16 @@ function Resonance:ChatCommand(input)
         end
       end
       local n = 0
-      for _ in pairs(creatureMutedFIDs) do n = n + 1 end
-      msg(("  Creature vox muted: %d FIDs, %d categories (%s)"):format(
-        n, #enabledCats, #enabledCats > 0 and table.concat(enabledCats, ", ") or "none"))
+      for _ in pairs(creatureMutedFIDs) do
+        n = n + 1
+      end
+      msg(
+        ("  Creature vox muted: %d FIDs, %d categories (%s)"):format(
+          n,
+          #enabledCats,
+          #enabledCats > 0 and table.concat(enabledCats, ", ") or "none"
+        )
+      )
     end
     msg("  Profession sound data: " .. (ProfessionSoundData and "|cff00ff00loaded|r" or "|cffffff00not loaded|r"))
     if ProfessionCategories then
@@ -2920,9 +3680,16 @@ function Resonance:ChatCommand(input)
         end
       end
       local n = 0
-      for _ in pairs(professionMutedFIDs) do n = n + 1 end
-      msg(("  Profession muted: %d FIDs, %d professions (%s)"):format(
-        n, #enabledProfs, #enabledProfs > 0 and table.concat(enabledProfs, ", ") or "none"))
+      for _ in pairs(professionMutedFIDs) do
+        n = n + 1
+      end
+      msg(
+        ("  Profession muted: %d FIDs, %d professions (%s)"):format(
+          n,
+          #enabledProfs,
+          #enabledProfs > 0 and table.concat(enabledProfs, ", ") or "none"
+        )
+      )
     end
     msg(L["=== End Diagnostics ==="])
   elseif cmd == "sfx" then

@@ -4,7 +4,11 @@
 -- so English works without any explicit assignment.
 -- Format specifiers (%d, %s) must appear in the same order in all translations.
 
-local L = setmetatable({}, { __index = function(_, k) return k end })
+local L = setmetatable({}, {
+  __index = function(_, k)
+    return k
+  end,
+})
 Resonance_L = L
 
 local locale = GetLocale()
@@ -33,25 +37,32 @@ if locale == "enUS" or locale == "enGB" then
   L["Set"] = "Set"
   L["Current: "] = "Current: "
   L["Loop"] = "Loop"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "Repeat the sound until the next cast. Requires a duration to be set."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "Repeat the sound until the next cast. Requires a duration to be set."
   L["Precast Sound"] = "Precast Sound"
   L["Cast Complete Sound"] = "Cast Complete Sound"
   L["Loading spell data..."] = "Loading spell data..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "Play sound when interrupted"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "Play a custom alert sound when your cast is interrupted by another player or NPC."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "Play a custom alert sound when your cast is interrupted by another player or NPC."
   L["Alert sound (FID or file path)"] = "Alert sound (FID or file path)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "Duration cutoff (seconds)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Stop the alert sound after this many seconds. Leave blank to let it play fully."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "Stop the alert sound after this many seconds. Leave blank to let it play fully."
   L["Test"] = "Test"
   L["Play the configured interrupt alert sound."] = "Play the configured interrupt alert sound."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."
   L["Play the configured replacement fishing bobber sound."] = "Play the configured replacement fishing bobber sound."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Mute ambient sounds by zone"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."
   L["Search individual sounds:"] = "Search individual sounds:"
   L["e.g. silvermoon, maw, beam, wind..."] = "e.g. silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "Mute by zone:"
@@ -60,17 +71,25 @@ if locale == "enUS" or locale == "enGB" then
   L["Cleared %d ambient sound mutes."] = "Cleared %d ambient sound mutes."
   L["%d zones, %d sounds"] = "%d zones, %d sounds"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Resonance Data module not found. Reinstall Resonance to restore full functionality."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Resonance Data module not found. Reinstall Resonance to restore full functionality."
   L["Could not load Resonance Data: %s"] = "Could not load Resonance Data: %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "Manage saved profiles. Copy settings between characters or switch configurations."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "Manage saved profiles. Copy settings between characters or switch configurations."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -86,27 +105,35 @@ end
 if locale == "ptBR" then
   -- General tab
   L["Enable Resonance"] = "Ativar Resonance"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "Ativar/desativar o addon. Quando desativado, todos os silenciamentos são removidos e nenhum som personalizado é reproduzido."
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "Ativar/desativar o addon. Quando desativado, todos os silenciamentos são removidos e nenhum som personalizado é reproduzido."
   L["Debug mode (print casts to chat)"] = "Modo de depuração (exibir conjurações no chat)"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "Exibir detalhes de conjuração (nome, ID) no chat a cada uso. Útil para encontrar IDs de magias para configurar."
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "Exibir detalhes de conjuração (nome, ID) no chat a cada uso. Útil para encontrar IDs de magias para configurar."
   L["Show minimap button"] = "Mostrar botão no minimapa"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Mostrar botão no minimapa. Clique esquerdo abre opções, clique direito ativa/desativa, arraste para reposicionar."
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "Mostrar botão no minimapa. Clique esquerdo abre opções, clique direito ativa/desativa, arraste para reposicionar."
   L["Mute weapon impact sounds"] = "Silenciar sons de impacto de arma"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "Silenciar todos os sons de impacto e golpe de arma (o som de acerto corpo a corpo). Aplica-se globalmente independente do tipo de arma. Nota: não é possível substituir por sons clássicos — ataques automáticos não disparam eventos detectáveis por addons."
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "Silenciar todos os sons de impacto e golpe de arma (o som de acerto corpo a corpo). Aplica-se globalmente independente do tipo de arma. Nota: não é possível substituir por sons clássicos — ataques automáticos não disparam eventos detectáveis por addons."
   L["Classic auto-shot sounds (Hunter)"] = "Sons clássicos de tiro automático (Caçador)"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "Substituir os sons modernos de tiro automático de arcos e armas por clássicos. Detecta automaticamente o tipo de arma equipada (arco/besta ou arma de fogo)."
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "Substituir os sons modernos de tiro automático de arcos e armas por clássicos. Detecta automaticamente o tipo de arma equipada (arco/besta ou arma de fogo)."
   L["Muted %d auto-shot sounds."] = "Silenciados %d sons de tiro automático."
   L["Cleared %d auto-shot mutes."] = "%d silenciamentos de tiro automático removidos."
   L["Replace fishing bobber sound"] = "Substituir som da bóia de pesca"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "Silenciar o splash moderno da bóia de pesca e tocar um som substituto quando você fisgar um peixe. Usa o som clássico FishBite por padrão — insira um FileDataID personalizado ou caminho de arquivo do addon abaixo para usar um som diferente."
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "Silenciar o splash moderno da bóia de pesca e tocar um som substituto quando você fisgar um peixe. Usa o som clássico FishBite por padrão — insira um FileDataID personalizado ou caminho de arquivo do addon abaixo para usar um som diferente."
   L["Muted %d fishing bobber sounds."] = "Silenciados %d sons de bóia de pesca."
   L["Cleared %d fishing bobber mutes."] = "%d silenciamentos de bóia de pesca removidos."
   L["Replacement sound"] = "Som substituto"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "Clássico reproduz o som original FishBite. Personalizado permite inserir qualquer FileDataID ou caminho de arquivo do addon."
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "Clássico reproduz o som original FishBite. Personalizado permite inserir qualquer FileDataID ou caminho de arquivo do addon."
   L["Classic (FishBite)"] = "Clássico (FishBite)"
   L["Custom"] = "Personalizado"
   L["Custom sound"] = "Som personalizado"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID (número) ou caminho de arquivo do addon (ex: Interface\\AddOns\\MyAddon\\sound.ogg)."
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID (número) ou caminho de arquivo do addon (ex: Interface\\AddOns\\MyAddon\\sound.ogg)."
   L["Preview"] = "Pré-visualizar"
   L["Preview the replacement fishing bobber sound."] = "Pré-visualizar o som substituto da bóia de pesca."
   L["NPC"] = "NPC"
@@ -116,12 +143,14 @@ if locale == "ptBR" then
   L["Muted %d NPC sounds."] = "Silenciados %d sons de NPC."
   L["Cleared %d NPC sound mutes."] = "%d silenciamentos de NPC removidos."
   L["Mute character vocalizations"] = "Silenciar vocalizações"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Silenciar grunhidos de combate, gritos e sons de esforço. 'Meu' silencia sua própria raça/gênero, 'Todas as raças' silencia todas as raças/gêneros do jogo."
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "Silenciar grunhidos de combate, gritos e sons de esforço. 'Meu' silencia sua própria raça/gênero, 'Todas as raças' silencia todas as raças/gêneros do jogo."
   L["Off"] = "Desativado"
   L["Mine"] = "Meu"
   L["All races"] = "Todas as raças"
   L["Replacement sound channel"] = "Canal de som substituto"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "Em qual canal de áudio reproduzir os sons substitutos. Use 'Master' para sempre ouvi-los independente dos outros controles de volume."
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "Em qual canal de áudio reproduzir os sons substitutos. Use 'Master' para sempre ouvi-los independente dos outros controles de volume."
   -- Minimap tooltip
   L["Left-click: Open options"] = "Clique esquerdo: Abrir opções"
   L["Right-click: Toggle on/off"] = "Clique direito: Ativar/desativar"
@@ -137,10 +166,12 @@ if locale == "ptBR" then
   L["Cleared %d weapon impact mutes."] = "%d silenciamentos de impacto de arma removidos."
   L["Applied %d sound mutes."] = "Aplicados %d silenciamentos de som."
   L["Cleared %d sound mutes."] = "%d silenciamentos de som removidos."
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "Carregado. Digite /res ou vá em Esc > Opções > Addons > Resonance."
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "Carregado. Digite /res ou vá em Esc > Opções > Addons > Resonance."
   L["Options panel not loaded."] = "Painel de opções não carregado."
   L["%d new template spell(s) auto-added."] = "%d nova(s) magia(s) de modelo adicionada(s) automaticamente."
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "Configurações migradas do CastSoundsDB. Você pode desativar o addon antigo CastSounds."
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "Configurações migradas do CastSoundsDB. Você pode desativar o addon antigo CastSounds."
   -- Import/export errors
   L["Empty import string."] = "String de importação vazia."
   L["Invalid format: missing !Resonance! prefix."] = "Formato inválido: prefixo !Resonance! ausente."
@@ -160,9 +191,10 @@ if locale == "ptBR" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d mapeado -> fileDataID %d."
   L["Usage: /res unmap <spellID>"] = "Uso: /res unmap <spellID>"
   L["Unmapped spellID %d."] = "spellID %d desmapeado."
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "Uso: /res override \"Golpe Mortal\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    'Uso: /res override "Golpe Mortal" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "Substituição para '%s' -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "Uso: /res clearoverride \"Golpe Mortal\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = 'Uso: /res clearoverride "Golpe Mortal"'
   L["Cleared override for '%s'"] = "Substituição removida para '%s'"
   L["Usage: /res testspell <spellID>"] = "Uso: /res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "Testando som para: %s (spellID %d)"
@@ -189,7 +221,8 @@ if locale == "ptBR" then
   L["Ambient"] = "Ambiente"
   L["Character Vocalizations"] = "Vocalizações de Personagem"
   L["Creature Vocalizations"] = "Vocalizações de Criaturas"
-  L["Select a subcategory on the left to configure Resonance."] = "Selecione uma subcategoria à esquerda para configurar o Resonance."
+  L["Select a subcategory on the left to configure Resonance."] =
+    "Selecione uma subcategoria à esquerda para configurar o Resonance."
   -- Spell Sounds tab
   L["Clear All"] = "Limpar Tudo"
   L["Clear Presets"] = "Limpar Predefinições"
@@ -197,7 +230,8 @@ if locale == "ptBR" then
   L["Spell"] = "Magia"
   L["Sound"] = "Som"
   L["Actions"] = "Ações"
-  L["No spells configured. Click '+ Add Spell' to get started."] = "Nenhuma magia configurada. Clique em '+ Adicionar Magia' para começar."
+  L["No spells configured. Click '+ Add Spell' to get started."] =
+    "Nenhuma magia configurada. Clique em '+ Adicionar Magia' para começar."
   L["Custom"] = "Personalizado"
   L["+1 random from %d"] = "+1 aleatório de %d"
   -- Editor
@@ -222,11 +256,13 @@ if locale == "ptBR" then
   L["+Rnd"] = "+Ale"
   L["Replace all sounds with this one"] = "Substituir todos os sons por este"
   L["Add as an additional fixed sound (always plays)"] = "Adicionar como som fixo adicional (sempre toca)"
-  L["Add to the random pool (1 picked at random per cast)"] = "Adicionar ao grupo aleatório (1 escolhido aleatoriamente por conjuração)"
+  L["Add to the random pool (1 picked at random per cast)"] =
+    "Adicionar ao grupo aleatório (1 escolhido aleatoriamente por conjuração)"
   L["Auto-Muted Sounds"] = "Sons Silenciados Automaticamente"
   L["No auto-mute data available."] = "Nenhum dado de silenciamento automático disponível."
   L["No auto-mute data for this spell."] = "Nenhum dado de silenciamento automático para esta magia."
-  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] = "%d som(ns) de magia — desmarque para manter um som ativo:"
+  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] =
+    "%d som(ns) de magia — desmarque para manter um som ativo:"
   L["Muted (click to unmute)"] = "Silenciado (clique para ativar)"
   L["Not muted (click to mute)"] = "Ativo (clique para silenciar)"
   L["Play / Stop"] = "Tocar / Parar"
@@ -254,7 +290,8 @@ if locale == "ptBR" then
   L["Re-muted FID %d"] = "FID %d re-silenciado"
   L["Unmuted FID %d"] = "FID %d com som ativado"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "Carregue predefinições de classe ou suas próprias configurações salvas. As predefinições incluídas são substituições escolhidas a dedo que trocam sons modernos excessivamente altos ou repetitivos por alternativas clássicas mais sutis."
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "Carregue predefinições de classe ou suas próprias configurações salvas. As predefinições incluídas são substituições escolhidas a dedo que trocam sons modernos excessivamente altos ou repetitivos por alternativas clássicas mais sutis."
   L["Save Current Config"] = "Salvar Config Atual"
   L["Import"] = "Importar"
   L["Export Full Profile"] = "Exportar Perfil Completo"
@@ -278,12 +315,15 @@ if locale == "ptBR" then
   L["Cleared %d preset spells."] = "%d magias predefinidas removidas."
   L["Cleared all spell sound configurations."] = "Todas as configurações de som de magias removidas."
   L["Enter a preset name."] = "Insira um nome para a predefinição."
-  L["Preset '%s' already exists. Choose a different name."] = "Predefinição '%s' já existe. Escolha um nome diferente."
+  L["Preset '%s' already exists. Choose a different name."] =
+    "Predefinição '%s' já existe. Escolha um nome diferente."
   L["Saved current config as preset '%s'."] = "Configuração atual salva como predefinição '%s'."
   L["Deleted preset '%s'."] = "Predefinição '%s' excluída."
   L["Removed %d preset spells from '%s'."] = "%d magias predefinidas removidas de '%s'."
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "Predefinição '%s' aplicada: %d magias adicionadas, %d ignoradas."
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "Predefinição '%s' aplicada: %d magias, %d silenciamentos adicionados (%d ignorados)."
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "Predefinição '%s' aplicada: %d magias adicionadas, %d ignoradas."
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "Predefinição '%s' aplicada: %d magias, %d silenciamentos adicionados (%d ignorados)."
   L["Removed %d preset spells."] = "%d magias predefinidas removidas."
   L["%d spells, %d mutes."] = "%d magias, %d silenciamentos."
   L["%d spells, %d manual mutes (all classes)."] = "%d magias, %d silenciamentos manuais (todas as classes)."
@@ -299,7 +339,8 @@ if locale == "ptBR" then
   L["(%d active)"] = "(%d ativas)"
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "Silenciar vocalizações de criaturas"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "Reduz significativamente grunhidos de ataque, dano, morte e aggro de monstros por categoria de criatura. A cobertura varia — algumas criaturas ainda podem ser ouvidas."
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "Reduz significativamente grunhidos de ataque, dano, morte e aggro de monstros por categoria de criatura. A cobertura varia — algumas criaturas ainda podem ser ouvidas."
   L["Muted %d creature vocalization sounds."] = "Silenciados %d sons de vocalização de criaturas."
   L["Cleared %d creature vocalization mutes."] = "%d silenciamentos de vocalização de criaturas removidos."
   L["Beast"] = "Besta"
@@ -311,8 +352,10 @@ if locale == "ptBR" then
   L["Mechanical"] = "Mecânico"
   -- Profession sounds
   L["Mute profession sounds"] = "Silenciar sons de profissões"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "Silenciar sons de criação, coleta e outras atividades de profissão por profissão."
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "Nota: Alguns sons são compartilhados entre múltiplas magias e efeitos. Silenciar um som para uma função (ex: uma profissão) também o silenciará em qualquer outro lugar onde ele toque no jogo."
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "Silenciar sons de criação, coleta e outras atividades de profissão por profissão."
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "Nota: Alguns sons são compartilhados entre múltiplas magias e efeitos. Silenciar um som para uma função (ex: uma profissão) também o silenciará em qualquer outro lugar onde ele toque no jogo."
   L["Muted %d profession sounds."] = "Silenciados %d sons de profissão."
   L["Cleared %d profession sound mutes."] = "%d silenciamentos de profissão removidos."
   L["Alchemy"] = "Alquimia"
@@ -338,25 +381,33 @@ if locale == "ptBR" then
   L["Set"] = "Definir"
   L["Current: "] = "Atual: "
   L["Loop"] = "Repetir"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "Repetir o som até a próxima conjuração. Requer uma duração definida."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "Repetir o som até a próxima conjuração. Requer uma duração definida."
   L["Precast Sound"] = "Som de Pré-conjuração"
   L["Cast Complete Sound"] = "Som de Conjuração Completa"
   L["Loading spell data..."] = "Carregando dados de magias..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "Tocar som ao ser interrompido"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "Tocar um som de alerta personalizado quando sua conjuração for interrompida por outro jogador ou NPC."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "Tocar um som de alerta personalizado quando sua conjuração for interrompida por outro jogador ou NPC."
   L["Alert sound (FID or file path)"] = "Som de alerta (FID ou caminho do arquivo)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (número) ou caminho para um arquivo de som, ex: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (número) ou caminho para um arquivo de som, ex: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "Duração limite (segundos)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Parar o som de alerta após essa quantidade de segundos. Deixe em branco para tocar completamente."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "Parar o som de alerta após essa quantidade de segundos. Deixe em branco para tocar completamente."
   L["Test"] = "Testar"
   L["Play the configured interrupt alert sound."] = "Tocar o som de alerta de interrupção configurado."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Toca um som de alerta adicional quando sua conjuração é interrompida. Isso não silencia nem substitui o som padrão de interrupção do jogo — ele toca junto."
-  L["Play the configured replacement fishing bobber sound."] = "Tocar o som substituto configurado para a bóia de pesca."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados. Você também pode usar seus próprios arquivos de som — coloque-os em Interface/AddOns/Resonance_Sounds/ (crie esta pasta) para protegê-los de atualizações do addon, e insira o caminho completo como som substituto."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "Toca um som de alerta adicional quando sua conjuração é interrompida. Isso não silencia nem substitui o som padrão de interrupção do jogo — ele toca junto."
+  L["Play the configured replacement fishing bobber sound."] =
+    "Tocar o som substituto configurado para a bóia de pesca."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados. Você também pode usar seus próprios arquivos de som — coloque-os em Interface/AddOns/Resonance_Sounds/ (crie esta pasta) para protegê-los de atualizações do addon, e insira o caminho completo como som substituto."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenciar sons ambientes por zona"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Silenciar sons ambientais/de ambiente para zonas específicas. Útil para silenciar zumbidos irritantes, feixes ou áudio ambiente opressivo."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "Silenciar sons ambientais/de ambiente para zonas específicas. Útil para silenciar zumbidos irritantes, feixes ou áudio ambiente opressivo."
   L["Search individual sounds:"] = "Buscar sons individuais:"
   L["e.g. silvermoon, maw, beam, wind..."] = "ex: silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "Silenciar por zona:"
@@ -365,17 +416,25 @@ if locale == "ptBR" then
   L["Cleared %d ambient sound mutes."] = "%d silenciamentos de som ambiente removidos."
   L["%d zones, %d sounds"] = "%d zonas, %d sons"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "Carregue predefinições de classe ou suas próprias configurações salvas. Cada predefinição contém configurações de som de magias e silenciamentos manuais."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "Carregue predefinições de classe ou suas próprias configurações salvas. Cada predefinição contém configurações de som de magias e silenciamentos manuais."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data está desativado. Ative-o no menu de Addons (Esc > Addons) e /reload para acessar a configuração de som."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Módulo Resonance Data não encontrado. Reinstale o Resonance para restaurar a funcionalidade completa."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data está desativado. Ative-o no menu de Addons (Esc > Addons) e /reload para acessar a configuração de som."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Módulo Resonance Data não encontrado. Reinstale o Resonance para restaurar a funcionalidade completa."
   L["Could not load Resonance Data: %s"] = "Não foi possível carregar o Resonance Data: %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "Navegue e silencie sons individuais por tipo. Busque sons de magias, vocalizações de personagem, sons de NPC ou insira um FileDataID diretamente."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "Ative recursos, configure sons de pesca e alerta de interrupção e escolha o canal de som substituto."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "Configure quais categorias de sons do jogo silenciar: impactos de arma, vocalizações, sons de criaturas e áudio de profissões."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "Gerencie perfis salvos. Copie configurações entre personagens ou alterne configurações."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "Navegue e silencie sons individuais por tipo. Busque sons de magias, vocalizações de personagem, sons de NPC ou insira um FileDataID diretamente."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "Ative recursos, configure sons de pesca e alerta de interrupção e escolha o canal de som substituto."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "Configure quais categorias de sons do jogo silenciar: impactos de arma, vocalizações, sons de criaturas e áudio de profissões."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "Gerencie perfis salvos. Copie configurações entre personagens ou alterne configurações."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -389,27 +448,35 @@ if locale == "ptBR" then
 ---------------------------------------------------------------------------
 elseif locale == "deDE" then
   L["Enable Resonance"] = "Resonance aktivieren"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "Addon ein-/ausschalten. Wenn deaktiviert, werden alle Stummschaltungen entfernt und keine benutzerdefinierten Zauberklänge abgespielt."
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "Addon ein-/ausschalten. Wenn deaktiviert, werden alle Stummschaltungen entfernt und keine benutzerdefinierten Zauberklänge abgespielt."
   L["Debug mode (print casts to chat)"] = "Debug-Modus (Zauber im Chat anzeigen)"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "Zauberdetails (Name, ID) bei jedem Wirken im Chat anzeigen. Nützlich zum Finden von Zauber-IDs."
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "Zauberdetails (Name, ID) bei jedem Wirken im Chat anzeigen. Nützlich zum Finden von Zauber-IDs."
   L["Show minimap button"] = "Minikartenknopf anzeigen"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Minikartenknopf anzeigen. Linksklick öffnet Optionen, Rechtsklick schaltet ein/aus, Ziehen zum Verschieben."
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "Minikartenknopf anzeigen. Linksklick öffnet Optionen, Rechtsklick schaltet ein/aus, Ziehen zum Verschieben."
   L["Mute weapon impact sounds"] = "Waffenaufprallgeräusche stummschalten"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "Alle Waffenaufprall- und Schwunggeräusche stummschalten. Gilt global unabhängig vom Waffentyp. Hinweis: Ein Ersetzen durch klassische Sounds ist nicht möglich — automatische Angriffe lösen keine erkennbaren Addon-Events aus."
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "Alle Waffenaufprall- und Schwunggeräusche stummschalten. Gilt global unabhängig vom Waffentyp. Hinweis: Ein Ersetzen durch klassische Sounds ist nicht möglich — automatische Angriffe lösen keine erkennbaren Addon-Events aus."
   L["Classic auto-shot sounds (Hunter)"] = "Klassische Autoschuss-Sounds (Jäger)"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "Ersetzt moderne Bogen- und Schusswaffen-Autoschuss-Sounds durch klassische. Erkennt automatisch den ausgerüsteten Waffentyp (Bogen/Armbrust oder Schusswaffe)."
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "Ersetzt moderne Bogen- und Schusswaffen-Autoschuss-Sounds durch klassische. Erkennt automatisch den ausgerüsteten Waffentyp (Bogen/Armbrust oder Schusswaffe)."
   L["Muted %d auto-shot sounds."] = "%d Autoschuss-Sounds stummgeschaltet."
   L["Cleared %d auto-shot mutes."] = "%d Autoschuss-Stummschaltungen entfernt."
   L["Replace fishing bobber sound"] = "Angel-Schwimmer-Sound ersetzen"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "Den modernen Angel-Schwimmer-Sound stummschalten und einen Ersatzsound abspielen, wenn ein Fisch anbeißt. Verwendet standardmäßig den klassischen FishBite-Sound — gib unten eine benutzerdefinierte FileDataID oder einen Addon-Dateipfad ein, um einen anderen Sound zu verwenden."
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "Den modernen Angel-Schwimmer-Sound stummschalten und einen Ersatzsound abspielen, wenn ein Fisch anbeißt. Verwendet standardmäßig den klassischen FishBite-Sound — gib unten eine benutzerdefinierte FileDataID oder einen Addon-Dateipfad ein, um einen anderen Sound zu verwenden."
   L["Muted %d fishing bobber sounds."] = "%d Angel-Schwimmer-Sounds stummgeschaltet."
   L["Cleared %d fishing bobber mutes."] = "%d Angel-Schwimmer-Stummschaltungen entfernt."
   L["Replacement sound"] = "Ersatzsound"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "Klassisch spielt den originalen FishBite-Sound ab. Benutzerdefiniert erlaubt die Eingabe einer beliebigen FileDataID oder eines Addon-Dateipfads."
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "Klassisch spielt den originalen FishBite-Sound ab. Benutzerdefiniert erlaubt die Eingabe einer beliebigen FileDataID oder eines Addon-Dateipfads."
   L["Classic (FishBite)"] = "Klassisch (FishBite)"
   L["Custom"] = "Benutzerdefiniert"
   L["Custom sound"] = "Benutzerdefinierter Sound"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID (Zahl) oder Addon-Dateipfad (z.B. Interface\\AddOns\\MyAddon\\sound.ogg)."
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID (Zahl) oder Addon-Dateipfad (z.B. Interface\\AddOns\\MyAddon\\sound.ogg)."
   L["Preview"] = "Vorschau"
   L["Preview the replacement fishing bobber sound."] = "Vorschau des Ersatz-Angel-Schwimmer-Sounds."
   L["NPC"] = "NPC"
@@ -419,12 +486,14 @@ elseif locale == "deDE" then
   L["Muted %d NPC sounds."] = "%d NPC-Sounds stummgeschaltet."
   L["Cleared %d NPC sound mutes."] = "%d NPC-Stummschaltungen entfernt."
   L["Mute character vocalizations"] = "Lautäußerungen stummschalten"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Kampfgrunzen, Rufe und Anstrengungslaute stummschalten. 'Meine' schaltet eigene Rasse/Geschlecht stumm, 'Alle Völker' alle im Spiel."
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "Kampfgrunzen, Rufe und Anstrengungslaute stummschalten. 'Meine' schaltet eigene Rasse/Geschlecht stumm, 'Alle Völker' alle im Spiel."
   L["Off"] = "Aus"
   L["Mine"] = "Meine"
   L["All races"] = "Alle Völker"
   L["Replacement sound channel"] = "Ersatzklang-Kanal"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "Auf welchem Audiokanal Ersatzklänge abgespielt werden. 'Master' für immer hörbar unabhängig anderer Lautstärkeregler."
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "Auf welchem Audiokanal Ersatzklänge abgespielt werden. 'Master' für immer hörbar unabhängig anderer Lautstärkeregler."
   L["Left-click: Open options"] = "Linksklick: Optionen öffnen"
   L["Right-click: Toggle on/off"] = "Rechtsklick: Ein-/Ausschalten"
   L["Drag: Move button"] = "Ziehen: Knopf verschieben"
@@ -438,10 +507,12 @@ elseif locale == "deDE" then
   L["Cleared %d weapon impact mutes."] = "%d Waffenaufprall-Stummschaltungen entfernt."
   L["Applied %d sound mutes."] = "%d Stummschaltungen angewendet."
   L["Cleared %d sound mutes."] = "%d Stummschaltungen entfernt."
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "Geladen. Tippe /res oder gehe zu Esc > Optionen > Addons > Resonance."
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "Geladen. Tippe /res oder gehe zu Esc > Optionen > Addons > Resonance."
   L["Options panel not loaded."] = "Optionsfenster nicht geladen."
   L["%d new template spell(s) auto-added."] = "%d neue Vorlagenzauber automatisch hinzugefügt."
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "Einstellungen von CastSoundsDB migriert. Du kannst das alte CastSounds-Addon deaktivieren."
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "Einstellungen von CastSoundsDB migriert. Du kannst das alte CastSounds-Addon deaktivieren."
   L["Empty import string."] = "Leerer Import-String."
   L["Invalid format: missing !Resonance! prefix."] = "Ungültiges Format: !Resonance!-Präfix fehlt."
   L["Failed to decode import string."] = "Import-String konnte nicht dekodiert werden."
@@ -459,9 +530,10 @@ elseif locale == "deDE" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d -> fileDataID %d zugeordnet."
   L["Usage: /res unmap <spellID>"] = "Verwendung: /res unmap <spellID>"
   L["Unmapped spellID %d."] = "Zuordnung für spellID %d entfernt."
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "Verwendung: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    'Verwendung: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "Überschreibung für '%s' -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "Verwendung: /res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = 'Verwendung: /res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "Überschreibung für '%s' entfernt"
   L["Usage: /res testspell <spellID>"] = "Verwendung: /res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "Teste Klang für: %s (spellID %d)"
@@ -486,14 +558,16 @@ elseif locale == "deDE" then
   L["Ambient"] = "Umgebung"
   L["Character Vocalizations"] = "Charakterstimmen"
   L["Creature Vocalizations"] = "Kreaturenlaute"
-  L["Select a subcategory on the left to configure Resonance."] = "Wähle links eine Unterkategorie, um Resonance zu konfigurieren."
+  L["Select a subcategory on the left to configure Resonance."] =
+    "Wähle links eine Unterkategorie, um Resonance zu konfigurieren."
   L["Clear All"] = "Alle löschen"
   L["Clear Presets"] = "Voreinstellungen löschen"
   L["+ Add Spell"] = "+ Zauber hinzufügen"
   L["Spell"] = "Zauber"
   L["Sound"] = "Klang"
   L["Actions"] = "Aktionen"
-  L["No spells configured. Click '+ Add Spell' to get started."] = "Keine Zauber konfiguriert. Klicke '+ Zauber hinzufügen' zum Starten."
+  L["No spells configured. Click '+ Add Spell' to get started."] =
+    "Keine Zauber konfiguriert. Klicke '+ Zauber hinzufügen' zum Starten."
   L["Custom"] = "Benutzerdefiniert"
   L["+1 random from %d"] = "+1 zufällig aus %d"
   L["Configure: "] = "Konfigurieren: "
@@ -507,7 +581,8 @@ elseif locale == "deDE" then
   L["Replacement Sound"] = "Ersatzklang"
   L["Mute only (no replacement sound)"] = "Nur stummschalten (kein Ersatzklang)"
   L["Muted (no replacement)"] = "Stummgeschaltet (kein Ersatz)"
-  L["Select a replacement sound or enable 'Mute only'."] = "Wähle einen Ersatzklang oder aktiviere 'Nur stummschalten'."
+  L["Select a replacement sound or enable 'Mute only'."] =
+    "Wähle einen Ersatzklang oder aktiviere 'Nur stummschalten'."
   L["Random pool (1 picked per cast):"] = "Zufallspool (1 pro Wirken):"
   L["Browse"] = "Durchsuchen"
   L["File Path / FID"] = "Dateipfad / FID"
@@ -521,7 +596,8 @@ elseif locale == "deDE" then
   L["Auto-Muted Sounds"] = "Automatisch stummgeschaltete Klänge"
   L["No auto-mute data available."] = "Keine Auto-Stummschaltungsdaten verfügbar."
   L["No auto-mute data for this spell."] = "Keine Auto-Stummschaltungsdaten für diesen Zauber."
-  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] = "%d Zauberklang/-klänge — abwählen um einen Klang hörbar zu lassen:"
+  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] =
+    "%d Zauberklang/-klänge — abwählen um einen Klang hörbar zu lassen:"
   L["Muted (click to unmute)"] = "Stumm (Klick zum Aufheben)"
   L["Not muted (click to mute)"] = "Hörbar (Klick zum Stummschalten)"
   L["Play / Stop"] = "Abspielen / Stopp"
@@ -547,7 +623,8 @@ elseif locale == "deDE" then
   L["Mute"] = "Stummschalten"
   L["Re-muted FID %d"] = "FID %d erneut stummgeschaltet"
   L["Unmuted FID %d"] = "Stummschaltung für FID %d aufgehoben"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "Lade eingebaute Klassenvoreinstellungen oder eigene gespeicherte Konfigurationen. Die eingebauten Voreinstellungen sind handverlesene Ersetzungen, die übermäßig laute oder repetitive moderne Zauberklänge durch dezentere klassische Alternativen austauschen."
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "Lade eingebaute Klassenvoreinstellungen oder eigene gespeicherte Konfigurationen. Die eingebauten Voreinstellungen sind handverlesene Ersetzungen, die übermäßig laute oder repetitive moderne Zauberklänge durch dezentere klassische Alternativen austauschen."
   L["Save Current Config"] = "Aktuelle Konfig speichern"
   L["Import"] = "Importieren"
   L["Export Full Profile"] = "Gesamtes Profil exportieren"
@@ -570,12 +647,15 @@ elseif locale == "deDE" then
   L["Cleared %d preset spells."] = "%d Voreinstellungs-Zauber entfernt."
   L["Cleared all spell sound configurations."] = "Alle Zauberklang-Konfigurationen entfernt."
   L["Enter a preset name."] = "Gib einen Voreinstellungsnamen ein."
-  L["Preset '%s' already exists. Choose a different name."] = "Voreinstellung '%s' existiert bereits. Wähle einen anderen Namen."
+  L["Preset '%s' already exists. Choose a different name."] =
+    "Voreinstellung '%s' existiert bereits. Wähle einen anderen Namen."
   L["Saved current config as preset '%s'."] = "Aktuelle Konfig als Voreinstellung '%s' gespeichert."
   L["Deleted preset '%s'."] = "Voreinstellung '%s' gelöscht."
   L["Removed %d preset spells from '%s'."] = "%d Voreinstellungs-Zauber aus '%s' entfernt."
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "Voreinstellung '%s' angewendet: %d Zauber hinzugefügt, %d übersprungen."
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "Voreinstellung '%s' angewendet: %d Zauber, %d Stummschaltungen hinzugefügt (%d übersprungen)."
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "Voreinstellung '%s' angewendet: %d Zauber hinzugefügt, %d übersprungen."
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "Voreinstellung '%s' angewendet: %d Zauber, %d Stummschaltungen hinzugefügt (%d übersprungen)."
   L["Removed %d preset spells."] = "%d Voreinstellungs-Zauber entfernt."
   L["%d spells, %d mutes."] = "%d Zauber, %d Stummschaltungen."
   L["%d spells, %d manual mutes (all classes)."] = "%d Zauber, %d manuelle Stummschaltungen (alle Klassen)."
@@ -589,7 +669,8 @@ elseif locale == "deDE" then
   L["(%d active)"] = "(%d aktiv)"
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "Kreaturenlaute stummschalten"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "Reduziert deutlich Angriffsgeräusche, Verletzungslaute, Todesschreie und Aggro-Sounds von Monstern nach Kreaturenkategorie. Abdeckung variiert — einige Kreaturen sind möglicherweise noch zu hören."
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "Reduziert deutlich Angriffsgeräusche, Verletzungslaute, Todesschreie und Aggro-Sounds von Monstern nach Kreaturenkategorie. Abdeckung variiert — einige Kreaturen sind möglicherweise noch zu hören."
   L["Muted %d creature vocalization sounds."] = "%d Kreaturenlaute stummgeschaltet."
   L["Cleared %d creature vocalization mutes."] = "%d Kreaturenlaut-Stummschaltungen entfernt."
   L["Beast"] = "Wildtier"
@@ -601,8 +682,10 @@ elseif locale == "deDE" then
   L["Mechanical"] = "Mechanisch"
   -- Profession sounds
   L["Mute profession sounds"] = "Berufsgeräusche stummschalten"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "Handwerks-, Sammel- und andere berufsbezogene Geräusche nach Beruf stummschalten."
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "Hinweis: Einige Sounds werden von mehreren Zaubern und Effekten geteilt. Das Stummschalten eines Sounds für eine Funktion (z.B. einen Beruf) schaltet ihn auch überall sonst im Spiel stumm."
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "Handwerks-, Sammel- und andere berufsbezogene Geräusche nach Beruf stummschalten."
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "Hinweis: Einige Sounds werden von mehreren Zaubern und Effekten geteilt. Das Stummschalten eines Sounds für eine Funktion (z.B. einen Beruf) schaltet ihn auch überall sonst im Spiel stumm."
   L["Muted %d profession sounds."] = "%d Berufsgeräusche stummgeschaltet."
   L["Cleared %d profession sound mutes."] = "%d Berufs-Stummschaltungen entfernt."
   L["Alchemy"] = "Alchimie"
@@ -628,25 +711,32 @@ elseif locale == "deDE" then
   L["Set"] = "Setzen"
   L["Current: "] = "Aktuell: "
   L["Loop"] = "Wiederholen"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "Den Klang bis zum nächsten Wirken wiederholen. Erfordert eine eingestellte Dauer."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "Den Klang bis zum nächsten Wirken wiederholen. Erfordert eine eingestellte Dauer."
   L["Precast Sound"] = "Vor-Zauber-Klang"
   L["Cast Complete Sound"] = "Zauber-Abschluss-Klang"
   L["Loading spell data..."] = "Lade Zauberdaten..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "Klang bei Unterbrechung abspielen"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "Einen benutzerdefinierten Alarmklang abspielen, wenn dein Zauber von einem anderen Spieler oder NPC unterbrochen wird."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "Einen benutzerdefinierten Alarmklang abspielen, wenn dein Zauber von einem anderen Spieler oder NPC unterbrochen wird."
   L["Alert sound (FID or file path)"] = "Alarmklang (FID oder Dateipfad)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (Zahl) oder Pfad zu einer Sounddatei, z.B. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (Zahl) oder Pfad zu einer Sounddatei, z.B. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "Dauergrenze (Sekunden)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Den Alarmklang nach dieser Anzahl Sekunden stoppen. Leer lassen für vollständige Wiedergabe."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "Den Alarmklang nach dieser Anzahl Sekunden stoppen. Leer lassen für vollständige Wiedergabe."
   L["Test"] = "Testen"
   L["Play the configured interrupt alert sound."] = "Den konfigurierten Unterbrechungs-Alarmklang abspielen."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Spielt einen zusätzlichen Alarmklang ab, wenn dein Zauber unterbrochen wird. Dies schaltet den Standard-Unterbrechungsklang des Spiels nicht stumm und ersetzt ihn nicht — er wird zusätzlich abgespielt."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "Spielt einen zusätzlichen Alarmklang ab, wenn dein Zauber unterbrochen wird. Dies schaltet den Standard-Unterbrechungsklang des Spiels nicht stumm und ersetzt ihn nicht — er wird zusätzlich abgespielt."
   L["Play the configured replacement fishing bobber sound."] = "Den konfigurierten Ersatz-Angelklang abspielen."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu. Du kannst auch eigene Klangdateien verwenden — lege sie in Interface/AddOns/Resonance_Sounds/ ab (erstelle diesen Ordner), um sie vor Addon-Updates zu schützen, und gib den vollständigen Pfad als Ersatzklang ein."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu. Du kannst auch eigene Klangdateien verwenden — lege sie in Interface/AddOns/Resonance_Sounds/ ab (erstelle diesen Ordner), um sie vor Addon-Updates zu schützen, und gib den vollständigen Pfad als Ersatzklang ein."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Umgebungsklänge nach Zone stummschalten"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Umgebungs-/Ambientklänge für bestimmte Zonen stummschalten. Nützlich zum Stummschalten störender Drohnen, Strahlen oder bedrückender Hintergrundgeräusche."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "Umgebungs-/Ambientklänge für bestimmte Zonen stummschalten. Nützlich zum Stummschalten störender Drohnen, Strahlen oder bedrückender Hintergrundgeräusche."
   L["Search individual sounds:"] = "Einzelne Klänge suchen:"
   L["e.g. silvermoon, maw, beam, wind..."] = "z.B. silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "Nach Zone stummschalten:"
@@ -655,17 +745,25 @@ elseif locale == "deDE" then
   L["Cleared %d ambient sound mutes."] = "%d Umgebungsklang-Stummschaltungen entfernt."
   L["%d zones, %d sounds"] = "%d Zonen, %d Klänge"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "Lade eingebaute Klassenvoreinstellungen oder eigene gespeicherte Konfigurationen. Jede Voreinstellung enthält Zauberklang-Einstellungen und manuelle Stummschaltungen."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "Lade eingebaute Klassenvoreinstellungen oder eigene gespeicherte Konfigurationen. Jede Voreinstellung enthält Zauberklang-Einstellungen und manuelle Stummschaltungen."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data ist deaktiviert. Aktiviere es im Addon-Menü (Esc > Addons) und /reload für Zugang zur Klangkonfiguration."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Resonance Data-Modul nicht gefunden. Installiere Resonance neu für volle Funktionalität."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data ist deaktiviert. Aktiviere es im Addon-Menü (Esc > Addons) und /reload für Zugang zur Klangkonfiguration."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Resonance Data-Modul nicht gefunden. Installiere Resonance neu für volle Funktionalität."
   L["Could not load Resonance Data: %s"] = "Konnte Resonance Data nicht laden: %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "Durchsuche und schalte einzelne Klänge nach Typ stumm. Suche Zauberklänge, Charakterstimmen, NPC-Klänge oder gib eine FileDataID direkt ein."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "Funktionen umschalten, Angel- und Unterbrechungs-Alarmklänge konfigurieren und den Ersatzklang-Kanal wählen."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "Konfiguriere welche Kategorien von Spielklängen stummgeschaltet werden: Waffenaufprall, Lautäußerungen, Kreaturenlaute und Berufsgeräusche."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "Gespeicherte Profile verwalten. Einstellungen zwischen Charakteren kopieren oder Konfigurationen wechseln."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "Durchsuche und schalte einzelne Klänge nach Typ stumm. Suche Zauberklänge, Charakterstimmen, NPC-Klänge oder gib eine FileDataID direkt ein."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "Funktionen umschalten, Angel- und Unterbrechungs-Alarmklänge konfigurieren und den Ersatzklang-Kanal wählen."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "Konfiguriere welche Kategorien von Spielklängen stummgeschaltet werden: Waffenaufprall, Lautäußerungen, Kreaturenlaute und Berufsgeräusche."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "Gespeicherte Profile verwalten. Einstellungen zwischen Charakteren kopieren oder Konfigurationen wechseln."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -679,27 +777,35 @@ elseif locale == "deDE" then
 ---------------------------------------------------------------------------
 elseif locale == "frFR" then
   L["Enable Resonance"] = "Activer Resonance"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "Activer/désactiver l'addon. Lorsque désactivé, toutes les mises en sourdine sont supprimées et aucun son personnalisé n'est joué."
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "Activer/désactiver l'addon. Lorsque désactivé, toutes les mises en sourdine sont supprimées et aucun son personnalisé n'est joué."
   L["Debug mode (print casts to chat)"] = "Mode débogage (afficher les sorts dans le chat)"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "Afficher les détails des sorts (nom, ID) dans le chat à chaque incantation. Utile pour trouver les IDs de sorts."
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "Afficher les détails des sorts (nom, ID) dans le chat à chaque incantation. Utile pour trouver les IDs de sorts."
   L["Show minimap button"] = "Afficher le bouton de minicarte"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Afficher un bouton sur la minicarte. Clic gauche pour les options, clic droit pour activer/désactiver, glisser pour déplacer."
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "Afficher un bouton sur la minicarte. Clic gauche pour les options, clic droit pour activer/désactiver, glisser pour déplacer."
   L["Mute weapon impact sounds"] = "Couper les sons d'impact d'arme"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "Couper tous les sons d'impact et de frappe d'arme. S'applique globalement quel que soit le type d'arme. Note : le remplacement par des sons classiques est impossible — les attaques automatiques ne déclenchent pas d'événements détectables par les addons."
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "Couper tous les sons d'impact et de frappe d'arme. S'applique globalement quel que soit le type d'arme. Note : le remplacement par des sons classiques est impossible — les attaques automatiques ne déclenchent pas d'événements détectables par les addons."
   L["Classic auto-shot sounds (Hunter)"] = "Sons classiques de tir automatique (Chasseur)"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "Remplace les sons modernes de tir automatique d'arc et d'arme à feu par les sons classiques. Détecte automatiquement le type d'arme équipée (arc/arbalète ou arme à feu)."
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "Remplace les sons modernes de tir automatique d'arc et d'arme à feu par les sons classiques. Détecte automatiquement le type d'arme équipée (arc/arbalète ou arme à feu)."
   L["Muted %d auto-shot sounds."] = "%d sons de tir automatique coupés."
   L["Cleared %d auto-shot mutes."] = "%d sourdines de tir automatique supprimées."
   L["Replace fishing bobber sound"] = "Remplacer le son du bouchon de pêche"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "Couper l'éclaboussure moderne du bouchon de pêche et jouer un son de remplacement lorsque vous attrapez un poisson. Utilise le son classique FishBite par défaut — entrez un FileDataID personnalisé ou un chemin de fichier addon ci-dessous pour utiliser un autre son."
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "Couper l'éclaboussure moderne du bouchon de pêche et jouer un son de remplacement lorsque vous attrapez un poisson. Utilise le son classique FishBite par défaut — entrez un FileDataID personnalisé ou un chemin de fichier addon ci-dessous pour utiliser un autre son."
   L["Muted %d fishing bobber sounds."] = "%d sons de bouchon de pêche coupés."
   L["Cleared %d fishing bobber mutes."] = "%d sourdines de bouchon de pêche supprimées."
   L["Replacement sound"] = "Son de remplacement"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "Classique joue le son FishBite original. Personnalisé permet de saisir un FileDataID ou un chemin de fichier addon."
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "Classique joue le son FishBite original. Personnalisé permet de saisir un FileDataID ou un chemin de fichier addon."
   L["Classic (FishBite)"] = "Classique (FishBite)"
   L["Custom"] = "Personnalisé"
   L["Custom sound"] = "Son personnalisé"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID (nombre) ou chemin de fichier addon (ex : Interface\\AddOns\\MyAddon\\sound.ogg)."
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID (nombre) ou chemin de fichier addon (ex : Interface\\AddOns\\MyAddon\\sound.ogg)."
   L["Preview"] = "Aperçu"
   L["Preview the replacement fishing bobber sound."] = "Aperçu du son de remplacement du bouchon de pêche."
   L["NPC"] = "PNJ"
@@ -709,12 +815,14 @@ elseif locale == "frFR" then
   L["Muted %d NPC sounds."] = "%d sons de PNJ coupés."
   L["Cleared %d NPC sound mutes."] = "%d sourdines de PNJ supprimées."
   L["Mute character vocalizations"] = "Couper les vocalisations"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Couper les grognements, cris et sons d'effort. 'Les miennes' coupe votre race/genre, 'Toutes les races' coupe chaque race/genre du jeu."
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "Couper les grognements, cris et sons d'effort. 'Les miennes' coupe votre race/genre, 'Toutes les races' coupe chaque race/genre du jeu."
   L["Off"] = "Désactivé"
   L["Mine"] = "Les miennes"
   L["All races"] = "Toutes les races"
   L["Replacement sound channel"] = "Canal du son de remplacement"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "Sur quel canal audio jouer les sons de remplacement. Utilisez 'Master' pour toujours les entendre."
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "Sur quel canal audio jouer les sons de remplacement. Utilisez 'Master' pour toujours les entendre."
   L["Left-click: Open options"] = "Clic gauche : Ouvrir les options"
   L["Right-click: Toggle on/off"] = "Clic droit : Activer/Désactiver"
   L["Drag: Move button"] = "Glisser : Déplacer le bouton"
@@ -728,10 +836,12 @@ elseif locale == "frFR" then
   L["Cleared %d weapon impact mutes."] = "%d sourdines d'impact d'arme supprimées."
   L["Applied %d sound mutes."] = "%d sourdines appliquées."
   L["Cleared %d sound mutes."] = "%d sourdines supprimées."
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "Chargé. Tapez /res ou allez dans Échap > Options > Extensions > Resonance."
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "Chargé. Tapez /res ou allez dans Échap > Options > Extensions > Resonance."
   L["Options panel not loaded."] = "Panneau d'options non chargé."
   L["%d new template spell(s) auto-added."] = "%d nouveau(x) sort(s) de modèle ajouté(s) automatiquement."
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "Paramètres migrés depuis CastSoundsDB. Vous pouvez désactiver l'ancien addon CastSounds."
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "Paramètres migrés depuis CastSoundsDB. Vous pouvez désactiver l'ancien addon CastSounds."
   L["Empty import string."] = "Chaîne d'import vide."
   L["Invalid format: missing !Resonance! prefix."] = "Format invalide : préfixe !Resonance! manquant."
   L["Failed to decode import string."] = "Échec du décodage de la chaîne d'import."
@@ -749,9 +859,10 @@ elseif locale == "frFR" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d associé -> fileDataID %d."
   L["Usage: /res unmap <spellID>"] = "Utilisation : /res unmap <spellID>"
   L["Unmapped spellID %d."] = "Association supprimée pour spellID %d."
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "Utilisation : /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    'Utilisation : /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "Remplacement pour '%s' -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "Utilisation : /res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = 'Utilisation : /res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "Remplacement supprimé pour '%s'"
   L["Usage: /res testspell <spellID>"] = "Utilisation : /res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "Test du son pour : %s (spellID %d)"
@@ -776,14 +887,16 @@ elseif locale == "frFR" then
   L["Ambient"] = "Ambiance"
   L["Character Vocalizations"] = "Vocalisations du personnage"
   L["Creature Vocalizations"] = "Vocalisations des créatures"
-  L["Select a subcategory on the left to configure Resonance."] = "Sélectionnez une sous-catégorie à gauche pour configurer Resonance."
+  L["Select a subcategory on the left to configure Resonance."] =
+    "Sélectionnez une sous-catégorie à gauche pour configurer Resonance."
   L["Clear All"] = "Tout effacer"
   L["Clear Presets"] = "Effacer les préréglages"
   L["+ Add Spell"] = "+ Ajouter un sort"
   L["Spell"] = "Sort"
   L["Sound"] = "Son"
   L["Actions"] = "Actions"
-  L["No spells configured. Click '+ Add Spell' to get started."] = "Aucun sort configuré. Cliquez '+ Ajouter un sort' pour commencer."
+  L["No spells configured. Click '+ Add Spell' to get started."] =
+    "Aucun sort configuré. Cliquez '+ Ajouter un sort' pour commencer."
   L["Custom"] = "Personnalisé"
   L["+1 random from %d"] = "+1 aléatoire parmi %d"
   L["Configure: "] = "Configurer : "
@@ -797,7 +910,8 @@ elseif locale == "frFR" then
   L["Replacement Sound"] = "Son de remplacement"
   L["Mute only (no replacement sound)"] = "Muet uniquement (pas de son de remplacement)"
   L["Muted (no replacement)"] = "Muet (pas de remplacement)"
-  L["Select a replacement sound or enable 'Mute only'."] = "Sélectionnez un son de remplacement ou activez 'Muet uniquement'."
+  L["Select a replacement sound or enable 'Mute only'."] =
+    "Sélectionnez un son de remplacement ou activez 'Muet uniquement'."
   L["Random pool (1 picked per cast):"] = "Groupe aléatoire (1 choisi par incantation) :"
   L["Browse"] = "Parcourir"
   L["File Path / FID"] = "Chemin / FID"
@@ -807,11 +921,13 @@ elseif locale == "frFR" then
   L["+Rnd"] = "+Aléa"
   L["Replace all sounds with this one"] = "Remplacer tous les sons par celui-ci"
   L["Add as an additional fixed sound (always plays)"] = "Ajouter comme son fixe supplémentaire (joue toujours)"
-  L["Add to the random pool (1 picked at random per cast)"] = "Ajouter au groupe aléatoire (1 choisi au hasard par incantation)"
+  L["Add to the random pool (1 picked at random per cast)"] =
+    "Ajouter au groupe aléatoire (1 choisi au hasard par incantation)"
   L["Auto-Muted Sounds"] = "Sons coupés automatiquement"
   L["No auto-mute data available."] = "Aucune donnée de sourdine automatique disponible."
   L["No auto-mute data for this spell."] = "Aucune donnée de sourdine automatique pour ce sort."
-  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] = "%d son(s) de sort — décochez pour garder un son actif :"
+  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] =
+    "%d son(s) de sort — décochez pour garder un son actif :"
   L["Muted (click to unmute)"] = "En sourdine (cliquez pour activer)"
   L["Not muted (click to mute)"] = "Actif (cliquez pour couper)"
   L["Play / Stop"] = "Lecture / Arrêt"
@@ -837,7 +953,8 @@ elseif locale == "frFR" then
   L["Mute"] = "Couper"
   L["Re-muted FID %d"] = "FID %d remis en sourdine"
   L["Unmuted FID %d"] = "Sourdine levée pour FID %d"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "Chargez des préréglages de classe ou vos propres configurations. Les préréglages intégrés sont des remplacements sélectionnés qui substituent les sons de sorts modernes trop forts ou répétitifs par des alternatives classiques plus subtiles."
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "Chargez des préréglages de classe ou vos propres configurations. Les préréglages intégrés sont des remplacements sélectionnés qui substituent les sons de sorts modernes trop forts ou répétitifs par des alternatives classiques plus subtiles."
   L["Save Current Config"] = "Sauver la config actuelle"
   L["Import"] = "Importer"
   L["Export Full Profile"] = "Exporter le profil complet"
@@ -860,12 +977,15 @@ elseif locale == "frFR" then
   L["Cleared %d preset spells."] = "%d sorts préréglés supprimés."
   L["Cleared all spell sound configurations."] = "Toutes les configurations de sons de sorts supprimées."
   L["Enter a preset name."] = "Entrez un nom de préréglage."
-  L["Preset '%s' already exists. Choose a different name."] = "Le préréglage '%s' existe déjà. Choisissez un autre nom."
+  L["Preset '%s' already exists. Choose a different name."] =
+    "Le préréglage '%s' existe déjà. Choisissez un autre nom."
   L["Saved current config as preset '%s'."] = "Config actuelle sauvée comme préréglage '%s'."
   L["Deleted preset '%s'."] = "Préréglage '%s' supprimé."
   L["Removed %d preset spells from '%s'."] = "%d sorts préréglés retirés de '%s'."
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "Préréglage '%s' appliqué : %d sorts ajoutés, %d ignorés."
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "Préréglage '%s' appliqué : %d sorts, %d sourdines ajoutées (%d ignorés)."
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "Préréglage '%s' appliqué : %d sorts ajoutés, %d ignorés."
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "Préréglage '%s' appliqué : %d sorts, %d sourdines ajoutées (%d ignorés)."
   L["Removed %d preset spells."] = "%d sorts préréglés retirés."
   L["%d spells, %d mutes."] = "%d sorts, %d sourdines."
   L["%d spells, %d manual mutes (all classes)."] = "%d sorts, %d sourdines manuelles (toutes les classes)."
@@ -879,7 +999,8 @@ elseif locale == "frFR" then
   L["(%d active)"] = "(%d actifs)"
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "Couper les vocalisations de créatures"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "Réduit significativement les grognements d'attaque, blessure, mort et aggro des monstres par catégorie de créature. La couverture varie — certaines créatures peuvent encore être entendues."
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "Réduit significativement les grognements d'attaque, blessure, mort et aggro des monstres par catégorie de créature. La couverture varie — certaines créatures peuvent encore être entendues."
   L["Muted %d creature vocalization sounds."] = "%d vocalisations de créatures coupées."
   L["Cleared %d creature vocalization mutes."] = "%d sourdines de vocalisations de créatures supprimées."
   L["Beast"] = "Bête"
@@ -891,8 +1012,10 @@ elseif locale == "frFR" then
   L["Mechanical"] = "Mécanique"
   -- Profession sounds
   L["Mute profession sounds"] = "Couper les sons de métiers"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "Couper les sons de fabrication, récolte et autres sons liés aux métiers par profession."
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "Note : Certains sons sont partagés entre plusieurs sorts et effets. Couper un son pour une fonction (ex : un métier) le coupera aussi partout ailleurs dans le jeu."
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "Couper les sons de fabrication, récolte et autres sons liés aux métiers par profession."
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "Note : Certains sons sont partagés entre plusieurs sorts et effets. Couper un son pour une fonction (ex : un métier) le coupera aussi partout ailleurs dans le jeu."
   L["Muted %d profession sounds."] = "%d sons de métiers coupés."
   L["Cleared %d profession sound mutes."] = "%d sourdines de métiers supprimées."
   L["Alchemy"] = "Alchimie"
@@ -918,25 +1041,33 @@ elseif locale == "frFR" then
   L["Set"] = "Définir"
   L["Current: "] = "Actuel : "
   L["Loop"] = "Boucle"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "Répéter le son jusqu'à la prochaine incantation. Nécessite une durée définie."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "Répéter le son jusqu'à la prochaine incantation. Nécessite une durée définie."
   L["Precast Sound"] = "Son de pré-incantation"
   L["Cast Complete Sound"] = "Son d'incantation terminée"
   L["Loading spell data..."] = "Chargement des données de sorts..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "Jouer un son en cas d'interruption"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "Jouer un son d'alerte personnalisé lorsque votre incantation est interrompue par un autre joueur ou PNJ."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "Jouer un son d'alerte personnalisé lorsque votre incantation est interrompue par un autre joueur ou PNJ."
   L["Alert sound (FID or file path)"] = "Son d'alerte (FID ou chemin de fichier)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (nombre) ou chemin vers un fichier son, ex : Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (nombre) ou chemin vers un fichier son, ex : Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "Durée limite (secondes)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Arrêter le son d'alerte après ce nombre de secondes. Laisser vide pour le laisser jouer entièrement."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "Arrêter le son d'alerte après ce nombre de secondes. Laisser vide pour le laisser jouer entièrement."
   L["Test"] = "Tester"
   L["Play the configured interrupt alert sound."] = "Jouer le son d'alerte d'interruption configuré."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Joue un son d'alerte supplémentaire lorsque votre incantation est interrompue. Cela ne coupe pas et ne remplace pas le son d'interruption par défaut du jeu — il se joue en plus."
-  L["Play the configured replacement fishing bobber sound."] = "Jouer le son de remplacement configuré pour le bouchon de pêche."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés. Vous pouvez aussi utiliser vos propres fichiers sonores — placez-les dans Interface/AddOns/Resonance_Sounds/ (créez ce dossier) pour les protéger des mises à jour, puis entrez le chemin complet comme son de remplacement."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "Joue un son d'alerte supplémentaire lorsque votre incantation est interrompue. Cela ne coupe pas et ne remplace pas le son d'interruption par défaut du jeu — il se joue en plus."
+  L["Play the configured replacement fishing bobber sound."] =
+    "Jouer le son de remplacement configuré pour le bouchon de pêche."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés. Vous pouvez aussi utiliser vos propres fichiers sonores — placez-les dans Interface/AddOns/Resonance_Sounds/ (créez ce dossier) pour les protéger des mises à jour, puis entrez le chemin complet comme son de remplacement."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Couper les sons ambiants par zone"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Couper les sons ambiants/environnementaux pour des zones spécifiques. Utile pour faire taire les bourdonnements, faisceaux ou sons ambiants oppressants."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "Couper les sons ambiants/environnementaux pour des zones spécifiques. Utile pour faire taire les bourdonnements, faisceaux ou sons ambiants oppressants."
   L["Search individual sounds:"] = "Rechercher des sons individuels :"
   L["e.g. silvermoon, maw, beam, wind..."] = "ex : silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "Couper par zone :"
@@ -945,17 +1076,25 @@ elseif locale == "frFR" then
   L["Cleared %d ambient sound mutes."] = "%d sourdines de sons ambiants supprimées."
   L["%d zones, %d sounds"] = "%d zones, %d sons"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "Chargez des préréglages de classe ou vos propres configurations. Chaque préréglage contient des paramètres de sons de sorts et des sourdines manuelles."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "Chargez des préréglages de classe ou vos propres configurations. Chaque préréglage contient des paramètres de sons de sorts et des sourdines manuelles."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data est désactivé. Activez-le dans le menu Extensions (Échap > Extensions) et /reload pour accéder à la configuration sonore."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Module Resonance Data introuvable. Réinstallez Resonance pour restaurer toutes les fonctionnalités."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data est désactivé. Activez-le dans le menu Extensions (Échap > Extensions) et /reload pour accéder à la configuration sonore."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Module Resonance Data introuvable. Réinstallez Resonance pour restaurer toutes les fonctionnalités."
   L["Could not load Resonance Data: %s"] = "Impossible de charger Resonance Data : %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "Parcourez et coupez des sons individuels par type. Cherchez des sons de sorts, vocalisations de personnage, sons de PNJ ou entrez un FileDataID directement."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "Activez les fonctionnalités, configurez les sons de pêche et d'alerte d'interruption et choisissez le canal de son de remplacement."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "Configurez quelles catégories de sons du jeu couper : impacts d'arme, vocalisations, sons de créatures et sons de métiers."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "Gérez les profils sauvegardés. Copiez les paramètres entre personnages ou changez de configuration."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "Parcourez et coupez des sons individuels par type. Cherchez des sons de sorts, vocalisations de personnage, sons de PNJ ou entrez un FileDataID directement."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "Activez les fonctionnalités, configurez les sons de pêche et d'alerte d'interruption et choisissez le canal de son de remplacement."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "Configurez quelles catégories de sons du jeu couper : impacts d'arme, vocalisations, sons de créatures et sons de métiers."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "Gérez les profils sauvegardés. Copiez les paramètres entre personnages ou changez de configuration."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -969,27 +1108,35 @@ elseif locale == "frFR" then
 ---------------------------------------------------------------------------
 elseif locale == "esES" or locale == "esMX" then
   L["Enable Resonance"] = "Activar Resonance"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "Activar/desactivar el addon. Cuando está desactivado, se eliminan todos los silenciamientos y no se reproducen sonidos personalizados."
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "Activar/desactivar el addon. Cuando está desactivado, se eliminan todos los silenciamientos y no se reproducen sonidos personalizados."
   L["Debug mode (print casts to chat)"] = "Modo depuración (mostrar hechizos en el chat)"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "Mostrar detalles de lanzamiento (nombre, ID) en el chat. Útil para encontrar IDs de hechizos."
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "Mostrar detalles de lanzamiento (nombre, ID) en el chat. Útil para encontrar IDs de hechizos."
   L["Show minimap button"] = "Mostrar botón del minimapa"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Mostrar botón en el minimapa. Clic izquierdo abre opciones, clic derecho activa/desactiva, arrastra para mover."
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "Mostrar botón en el minimapa. Clic izquierdo abre opciones, clic derecho activa/desactiva, arrastra para mover."
   L["Mute weapon impact sounds"] = "Silenciar sonidos de impacto de arma"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "Silenciar todos los sonidos de impacto y golpe de arma. Se aplica globalmente sin importar el tipo de arma. Nota: no es posible reemplazar con sonidos clásicos — los ataques automáticos no disparan eventos detectables por addons."
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "Silenciar todos los sonidos de impacto y golpe de arma. Se aplica globalmente sin importar el tipo de arma. Nota: no es posible reemplazar con sonidos clásicos — los ataques automáticos no disparan eventos detectables por addons."
   L["Classic auto-shot sounds (Hunter)"] = "Sonidos clásicos de disparo automático (Cazador)"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "Reemplaza los sonidos modernos de disparo automático de arco y arma de fuego por los clásicos. Detecta automáticamente el tipo de arma equipada (arco/ballesta o arma de fuego)."
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "Reemplaza los sonidos modernos de disparo automático de arco y arma de fuego por los clásicos. Detecta automáticamente el tipo de arma equipada (arco/ballesta o arma de fuego)."
   L["Muted %d auto-shot sounds."] = "%d sonidos de disparo automático silenciados."
   L["Cleared %d auto-shot mutes."] = "%d silenciamientos de disparo automático eliminados."
   L["Replace fishing bobber sound"] = "Reemplazar sonido del flotador de pesca"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "Silenciar el chapoteo moderno del flotador de pesca y reproducir un sonido de reemplazo al pescar un pez. Usa el sonido clásico FishBite por defecto — introduce un FileDataID personalizado o una ruta de archivo del addon abajo para usar un sonido diferente."
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "Silenciar el chapoteo moderno del flotador de pesca y reproducir un sonido de reemplazo al pescar un pez. Usa el sonido clásico FishBite por defecto — introduce un FileDataID personalizado o una ruta de archivo del addon abajo para usar un sonido diferente."
   L["Muted %d fishing bobber sounds."] = "%d sonidos de flotador de pesca silenciados."
   L["Cleared %d fishing bobber mutes."] = "%d silenciamientos de flotador de pesca eliminados."
   L["Replacement sound"] = "Sonido de reemplazo"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "Clásico reproduce el sonido original FishBite. Personalizado permite introducir cualquier FileDataID o ruta de archivo del addon."
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "Clásico reproduce el sonido original FishBite. Personalizado permite introducir cualquier FileDataID o ruta de archivo del addon."
   L["Classic (FishBite)"] = "Clásico (FishBite)"
   L["Custom"] = "Personalizado"
   L["Custom sound"] = "Sonido personalizado"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID (número) o ruta de archivo del addon (ej: Interface\\AddOns\\MyAddon\\sound.ogg)."
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID (número) o ruta de archivo del addon (ej: Interface\\AddOns\\MyAddon\\sound.ogg)."
   L["Preview"] = "Vista previa"
   L["Preview the replacement fishing bobber sound."] = "Vista previa del sonido de reemplazo del flotador de pesca."
   L["NPC"] = "NPC"
@@ -999,12 +1146,14 @@ elseif locale == "esES" or locale == "esMX" then
   L["Muted %d NPC sounds."] = "%d sonidos de NPC silenciados."
   L["Cleared %d NPC sound mutes."] = "%d silenciamientos de NPC eliminados."
   L["Mute character vocalizations"] = "Silenciar vocalizaciones"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Silenciar gruñidos, gritos y sonidos de esfuerzo. 'Mías' silencia tu raza/género, 'Todas las razas' silencia todas las razas/géneros del juego."
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "Silenciar gruñidos, gritos y sonidos de esfuerzo. 'Mías' silencia tu raza/género, 'Todas las razas' silencia todas las razas/géneros del juego."
   L["Off"] = "Desactivado"
   L["Mine"] = "Mías"
   L["All races"] = "Todas las razas"
   L["Replacement sound channel"] = "Canal de sonido de reemplazo"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "En qué canal de audio reproducir los sonidos de reemplazo. Usa 'Master' para oírlos siempre."
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "En qué canal de audio reproducir los sonidos de reemplazo. Usa 'Master' para oírlos siempre."
   L["Left-click: Open options"] = "Clic izquierdo: Abrir opciones"
   L["Right-click: Toggle on/off"] = "Clic derecho: Activar/Desactivar"
   L["Drag: Move button"] = "Arrastrar: Mover botón"
@@ -1018,10 +1167,12 @@ elseif locale == "esES" or locale == "esMX" then
   L["Cleared %d weapon impact mutes."] = "%d silenciamientos de impacto de arma eliminados."
   L["Applied %d sound mutes."] = "%d silenciamientos de sonido aplicados."
   L["Cleared %d sound mutes."] = "%d silenciamientos de sonido eliminados."
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "Cargado. Escribe /res o ve a Esc > Opciones > Addons > Resonance."
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "Cargado. Escribe /res o ve a Esc > Opciones > Addons > Resonance."
   L["Options panel not loaded."] = "Panel de opciones no cargado."
   L["%d new template spell(s) auto-added."] = "%d nuevo(s) hechizo(s) de plantilla añadido(s) automáticamente."
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "Configuración migrada de CastSoundsDB. Puedes desactivar el antiguo addon CastSounds."
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "Configuración migrada de CastSoundsDB. Puedes desactivar el antiguo addon CastSounds."
   L["Empty import string."] = "Cadena de importación vacía."
   L["Invalid format: missing !Resonance! prefix."] = "Formato inválido: falta el prefijo !Resonance!."
   L["Failed to decode import string."] = "Error al decodificar la cadena de importación."
@@ -1039,9 +1190,10 @@ elseif locale == "esES" or locale == "esMX" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d mapeado -> fileDataID %d."
   L["Usage: /res unmap <spellID>"] = "Uso: /res unmap <spellID>"
   L["Unmapped spellID %d."] = "Mapeo eliminado para spellID %d."
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "Uso: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    'Uso: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "Reemplazo para '%s' -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "Uso: /res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = 'Uso: /res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "Reemplazo eliminado para '%s'"
   L["Usage: /res testspell <spellID>"] = "Uso: /res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "Probando sonido para: %s (spellID %d)"
@@ -1066,14 +1218,16 @@ elseif locale == "esES" or locale == "esMX" then
   L["Ambient"] = "Ambiental"
   L["Character Vocalizations"] = "Vocalizaciones de personaje"
   L["Creature Vocalizations"] = "Vocalizaciones de criaturas"
-  L["Select a subcategory on the left to configure Resonance."] = "Selecciona una subcategoría a la izquierda para configurar Resonance."
+  L["Select a subcategory on the left to configure Resonance."] =
+    "Selecciona una subcategoría a la izquierda para configurar Resonance."
   L["Clear All"] = "Borrar todo"
   L["Clear Presets"] = "Borrar predefinidos"
   L["+ Add Spell"] = "+ Añadir hechizo"
   L["Spell"] = "Hechizo"
   L["Sound"] = "Sonido"
   L["Actions"] = "Acciones"
-  L["No spells configured. Click '+ Add Spell' to get started."] = "No hay hechizos configurados. Haz clic en '+ Añadir hechizo' para empezar."
+  L["No spells configured. Click '+ Add Spell' to get started."] =
+    "No hay hechizos configurados. Haz clic en '+ Añadir hechizo' para empezar."
   L["Custom"] = "Personalizado"
   L["+1 random from %d"] = "+1 aleatorio de %d"
   L["Configure: "] = "Configurar: "
@@ -1087,7 +1241,8 @@ elseif locale == "esES" or locale == "esMX" then
   L["Replacement Sound"] = "Sonido de reemplazo"
   L["Mute only (no replacement sound)"] = "Solo silenciar (sin sonido de reemplazo)"
   L["Muted (no replacement)"] = "Silenciado (sin reemplazo)"
-  L["Select a replacement sound or enable 'Mute only'."] = "Selecciona un sonido de reemplazo o activa 'Solo silenciar'."
+  L["Select a replacement sound or enable 'Mute only'."] =
+    "Selecciona un sonido de reemplazo o activa 'Solo silenciar'."
   L["Random pool (1 picked per cast):"] = "Grupo aleatorio (1 elegido por lanzamiento):"
   L["Browse"] = "Explorar"
   L["File Path / FID"] = "Ruta / FID"
@@ -1097,11 +1252,13 @@ elseif locale == "esES" or locale == "esMX" then
   L["+Rnd"] = "+Ale"
   L["Replace all sounds with this one"] = "Reemplazar todos los sonidos por este"
   L["Add as an additional fixed sound (always plays)"] = "Añadir como sonido fijo adicional (siempre se reproduce)"
-  L["Add to the random pool (1 picked at random per cast)"] = "Añadir al grupo aleatorio (1 elegido al azar por lanzamiento)"
+  L["Add to the random pool (1 picked at random per cast)"] =
+    "Añadir al grupo aleatorio (1 elegido al azar por lanzamiento)"
   L["Auto-Muted Sounds"] = "Sonidos silenciados automáticamente"
   L["No auto-mute data available."] = "No hay datos de silenciamiento automático disponibles."
   L["No auto-mute data for this spell."] = "No hay datos de silenciamiento automático para este hechizo."
-  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] = "%d sonido(s) de hechizo — desmarca para mantener un sonido activo:"
+  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] =
+    "%d sonido(s) de hechizo — desmarca para mantener un sonido activo:"
   L["Muted (click to unmute)"] = "Silenciado (clic para activar)"
   L["Not muted (click to mute)"] = "Activo (clic para silenciar)"
   L["Play / Stop"] = "Reproducir / Parar"
@@ -1127,7 +1284,8 @@ elseif locale == "esES" or locale == "esMX" then
   L["Mute"] = "Silenciar"
   L["Re-muted FID %d"] = "FID %d re-silenciado"
   L["Unmuted FID %d"] = "FID %d activado"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "Carga predefinidos de clase o tus propias configuraciones guardadas. Los predefinidos incluidos son reemplazos seleccionados que sustituyen sonidos de hechizos modernos excesivamente fuertes o repetitivos por alternativas clásicas más sutiles."
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "Carga predefinidos de clase o tus propias configuraciones guardadas. Los predefinidos incluidos son reemplazos seleccionados que sustituyen sonidos de hechizos modernos excesivamente fuertes o repetitivos por alternativas clásicas más sutiles."
   L["Save Current Config"] = "Guardar config actual"
   L["Import"] = "Importar"
   L["Export Full Profile"] = "Exportar perfil completo"
@@ -1154,8 +1312,10 @@ elseif locale == "esES" or locale == "esMX" then
   L["Saved current config as preset '%s'."] = "Config actual guardada como predefinido '%s'."
   L["Deleted preset '%s'."] = "Predefinido '%s' eliminado."
   L["Removed %d preset spells from '%s'."] = "%d hechizos predefinidos eliminados de '%s'."
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "Predefinido '%s' aplicado: %d hechizos añadidos, %d omitidos."
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "Predefinido '%s' aplicado: %d hechizos, %d silenciamientos añadidos (%d omitidos)."
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "Predefinido '%s' aplicado: %d hechizos añadidos, %d omitidos."
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "Predefinido '%s' aplicado: %d hechizos, %d silenciamientos añadidos (%d omitidos)."
   L["Removed %d preset spells."] = "%d hechizos predefinidos eliminados."
   L["%d spells, %d mutes."] = "%d hechizos, %d silenciamientos."
   L["%d spells, %d manual mutes (all classes)."] = "%d hechizos, %d silenciamientos manuales (todas las clases)."
@@ -1169,7 +1329,8 @@ elseif locale == "esES" or locale == "esMX" then
   L["(%d active)"] = "(%d activos)"
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "Silenciar vocalizaciones de criaturas"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "Reduce significativamente gruñidos de ataque, herida, muerte y sonidos de aggro de monstruos por categoría de criatura. La cobertura varía — algunas criaturas aún pueden escucharse."
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "Reduce significativamente gruñidos de ataque, herida, muerte y sonidos de aggro de monstruos por categoría de criatura. La cobertura varía — algunas criaturas aún pueden escucharse."
   L["Muted %d creature vocalization sounds."] = "Silenciadas %d vocalizaciones de criaturas."
   L["Cleared %d creature vocalization mutes."] = "%d silenciamientos de vocalizaciones de criaturas eliminados."
   L["Beast"] = "Bestia"
@@ -1181,8 +1342,10 @@ elseif locale == "esES" or locale == "esMX" then
   L["Mechanical"] = "Mecánico"
   -- Profession sounds
   L["Mute profession sounds"] = "Silenciar sonidos de profesiones"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "Silenciar sonidos de fabricación, recolección y otros sonidos de profesiones por profesión."
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "Nota: Algunos sonidos son compartidos entre múltiples hechizos y efectos. Silenciar un sonido para una función (ej: una profesión) también lo silenciará en cualquier otro lugar del juego."
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "Silenciar sonidos de fabricación, recolección y otros sonidos de profesiones por profesión."
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "Nota: Algunos sonidos son compartidos entre múltiples hechizos y efectos. Silenciar un sonido para una función (ej: una profesión) también lo silenciará en cualquier otro lugar del juego."
   L["Muted %d profession sounds."] = "Silenciados %d sonidos de profesión."
   L["Cleared %d profession sound mutes."] = "%d silenciamientos de profesión eliminados."
   L["Alchemy"] = "Alquimia"
@@ -1208,25 +1371,33 @@ elseif locale == "esES" or locale == "esMX" then
   L["Set"] = "Establecer"
   L["Current: "] = "Actual: "
   L["Loop"] = "Repetir"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "Repetir el sonido hasta el próximo lanzamiento. Requiere una duración establecida."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "Repetir el sonido hasta el próximo lanzamiento. Requiere una duración establecida."
   L["Precast Sound"] = "Sonido de pre-lanzamiento"
   L["Cast Complete Sound"] = "Sonido de lanzamiento completo"
   L["Loading spell data..."] = "Cargando datos de hechizos..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "Reproducir sonido al ser interrumpido"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "Reproducir un sonido de alerta personalizado cuando tu lanzamiento sea interrumpido por otro jugador o NPC."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "Reproducir un sonido de alerta personalizado cuando tu lanzamiento sea interrumpido por otro jugador o NPC."
   L["Alert sound (FID or file path)"] = "Sonido de alerta (FID o ruta de archivo)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (número) o ruta a un archivo de sonido, ej: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (número) o ruta a un archivo de sonido, ej: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "Duración límite (segundos)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Parar el sonido de alerta después de estos segundos. Dejar vacío para que se reproduzca completamente."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "Parar el sonido de alerta después de estos segundos. Dejar vacío para que se reproduzca completamente."
   L["Test"] = "Probar"
   L["Play the configured interrupt alert sound."] = "Reproducir el sonido de alerta de interrupción configurado."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Reproduce un sonido de alerta adicional cuando tu lanzamiento es interrumpido. Esto no silencia ni reemplaza el sonido de interrupción predeterminado del juego — se reproduce encima de él."
-  L["Play the configured replacement fishing bobber sound."] = "Reproducir el sonido de reemplazo configurado para el flotador de pesca."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados. También puedes usar tus propios archivos de sonido — colócalos en Interface/AddOns/Resonance_Sounds/ (crea esta carpeta) para protegerlos de actualizaciones del addon, e introduce la ruta completa como sonido de reemplazo."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "Reproduce un sonido de alerta adicional cuando tu lanzamiento es interrumpido. Esto no silencia ni reemplaza el sonido de interrupción predeterminado del juego — se reproduce encima de él."
+  L["Play the configured replacement fishing bobber sound."] =
+    "Reproducir el sonido de reemplazo configurado para el flotador de pesca."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados. También puedes usar tus propios archivos de sonido — colócalos en Interface/AddOns/Resonance_Sounds/ (crea esta carpeta) para protegerlos de actualizaciones del addon, e introduce la ruta completa como sonido de reemplazo."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenciar sonidos ambientales por zona"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Silenciar sonidos ambientales para zonas específicas. Útil para silenciar zumbidos molestos, rayos o audio ambiental opresivo."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "Silenciar sonidos ambientales para zonas específicas. Útil para silenciar zumbidos molestos, rayos o audio ambiental opresivo."
   L["Search individual sounds:"] = "Buscar sonidos individuales:"
   L["e.g. silvermoon, maw, beam, wind..."] = "ej: silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "Silenciar por zona:"
@@ -1235,17 +1406,25 @@ elseif locale == "esES" or locale == "esMX" then
   L["Cleared %d ambient sound mutes."] = "%d silenciamientos de sonido ambiental eliminados."
   L["%d zones, %d sounds"] = "%d zonas, %d sonidos"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "Carga predefinidos de clase o tus propias configuraciones guardadas. Cada predefinido contiene configuraciones de sonido de hechizos y silenciamientos manuales."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "Carga predefinidos de clase o tus propias configuraciones guardadas. Cada predefinido contiene configuraciones de sonido de hechizos y silenciamientos manuales."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data está desactivado. Actívalo en el menú de Addons (Esc > Addons) y /reload para acceder a la configuración de sonido."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Módulo Resonance Data no encontrado. Reinstala Resonance para restaurar la funcionalidad completa."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data está desactivado. Actívalo en el menú de Addons (Esc > Addons) y /reload para acceder a la configuración de sonido."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Módulo Resonance Data no encontrado. Reinstala Resonance para restaurar la funcionalidad completa."
   L["Could not load Resonance Data: %s"] = "No se pudo cargar Resonance Data: %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "Explora y silencia sonidos individuales por tipo. Busca sonidos de hechizos, vocalizaciones de personaje, sonidos de NPC o introduce un FileDataID directamente."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "Activa funciones, configura sonidos de pesca y alerta de interrupción y elige el canal de sonido de reemplazo."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "Configura qué categorías de sonidos del juego silenciar: impactos de arma, vocalizaciones, sonidos de criaturas y audio de profesiones."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "Gestiona perfiles guardados. Copia configuraciones entre personajes o cambia de configuración."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "Explora y silencia sonidos individuales por tipo. Busca sonidos de hechizos, vocalizaciones de personaje, sonidos de NPC o introduce un FileDataID directamente."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "Activa funciones, configura sonidos de pesca y alerta de interrupción y elige el canal de sonido de reemplazo."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "Configura qué categorías de sonidos del juego silenciar: impactos de arma, vocalizaciones, sonidos de criaturas y audio de profesiones."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "Gestiona perfiles guardados. Copia configuraciones entre personajes o cambia de configuración."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -1259,27 +1438,35 @@ elseif locale == "esES" or locale == "esMX" then
 ---------------------------------------------------------------------------
 elseif locale == "itIT" then
   L["Enable Resonance"] = "Attiva Resonance"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "Attiva/disattiva l'addon. Quando disattivato, tutti i silenziamenti vengono rimossi e nessun suono personalizzato viene riprodotto."
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "Attiva/disattiva l'addon. Quando disattivato, tutti i silenziamenti vengono rimossi e nessun suono personalizzato viene riprodotto."
   L["Debug mode (print casts to chat)"] = "Modalità debug (mostra lanci in chat)"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "Mostra dettagli di lancio (nome, ID) in chat ad ogni lancio. Utile per trovare gli ID degli incantesimi."
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "Mostra dettagli di lancio (nome, ID) in chat ad ogni lancio. Utile per trovare gli ID degli incantesimi."
   L["Show minimap button"] = "Mostra pulsante minimappa"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Mostra un pulsante sulla minimappa. Clic sinistro apre le opzioni, clic destro attiva/disattiva, trascina per spostare."
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "Mostra un pulsante sulla minimappa. Clic sinistro apre le opzioni, clic destro attiva/disattiva, trascina per spostare."
   L["Mute weapon impact sounds"] = "Silenzia suoni d'impatto delle armi"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "Silenzia tutti i suoni d'impatto e oscillazione delle armi. Si applica globalmente indipendentemente dal tipo di arma. Nota: la sostituzione con suoni classici non è possibile — gli attacchi automatici non generano eventi rilevabili dagli addon."
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "Silenzia tutti i suoni d'impatto e oscillazione delle armi. Si applica globalmente indipendentemente dal tipo di arma. Nota: la sostituzione con suoni classici non è possibile — gli attacchi automatici non generano eventi rilevabili dagli addon."
   L["Classic auto-shot sounds (Hunter)"] = "Suoni classici di colpo automatico (Cacciatore)"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "Sostituisce i suoni moderni di colpo automatico di arco e arma da fuoco con quelli classici. Rileva automaticamente il tipo di arma equipaggiata (arco/balestra o arma da fuoco)."
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "Sostituisce i suoni moderni di colpo automatico di arco e arma da fuoco con quelli classici. Rileva automaticamente il tipo di arma equipaggiata (arco/balestra o arma da fuoco)."
   L["Muted %d auto-shot sounds."] = "%d suoni di colpo automatico silenziati."
   L["Cleared %d auto-shot mutes."] = "%d silenziamenti di colpo automatico rimossi."
   L["Replace fishing bobber sound"] = "Sostituisci suono del galleggiante da pesca"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "Silenzia lo splash moderno del galleggiante da pesca e riproduce un suono sostitutivo quando peschi un pesce. Usa il suono classico FishBite per impostazione predefinita — inserisci un FileDataID personalizzato o un percorso file addon qui sotto per usare un suono diverso."
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "Silenzia lo splash moderno del galleggiante da pesca e riproduce un suono sostitutivo quando peschi un pesce. Usa il suono classico FishBite per impostazione predefinita — inserisci un FileDataID personalizzato o un percorso file addon qui sotto per usare un suono diverso."
   L["Muted %d fishing bobber sounds."] = "%d suoni del galleggiante da pesca silenziati."
   L["Cleared %d fishing bobber mutes."] = "%d silenziamenti del galleggiante da pesca rimossi."
   L["Replacement sound"] = "Suono sostitutivo"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "Classico riproduce il suono FishBite originale. Personalizzato consente di inserire qualsiasi FileDataID o percorso file addon."
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "Classico riproduce il suono FishBite originale. Personalizzato consente di inserire qualsiasi FileDataID o percorso file addon."
   L["Classic (FishBite)"] = "Classico (FishBite)"
   L["Custom"] = "Personalizzato"
   L["Custom sound"] = "Suono personalizzato"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID (numero) o percorso file addon (es: Interface\\AddOns\\MyAddon\\sound.ogg)."
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID (numero) o percorso file addon (es: Interface\\AddOns\\MyAddon\\sound.ogg)."
   L["Preview"] = "Anteprima"
   L["NPC"] = "NPC"
   L["Search NPC by name..."] = "Cerca NPC per nome..."
@@ -1288,12 +1475,14 @@ elseif locale == "itIT" then
   L["Muted %d NPC sounds."] = "%d suoni NPC silenziati."
   L["Cleared %d NPC sound mutes."] = "%d silenziamenti NPC rimossi."
   L["Mute character vocalizations"] = "Silenzia vocalizzazioni"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Silenzia grugniti, urla e suoni di sforzo. 'Mie' silenzia la tua razza/genere, 'Tutte le razze' silenzia ogni razza/genere nel gioco."
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "Silenzia grugniti, urla e suoni di sforzo. 'Mie' silenzia la tua razza/genere, 'Tutte le razze' silenzia ogni razza/genere nel gioco."
   L["Off"] = "Disattivato"
   L["Mine"] = "Mie"
   L["All races"] = "Tutte le razze"
   L["Replacement sound channel"] = "Canale suono sostitutivo"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "Su quale canale audio riprodurre i suoni sostitutivi. Usa 'Master' per sentirli sempre."
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "Su quale canale audio riprodurre i suoni sostitutivi. Usa 'Master' per sentirli sempre."
   L["Left-click: Open options"] = "Clic sinistro: Apri opzioni"
   L["Right-click: Toggle on/off"] = "Clic destro: Attiva/Disattiva"
   L["Drag: Move button"] = "Trascina: Sposta pulsante"
@@ -1307,7 +1496,8 @@ elseif locale == "itIT" then
   L["Cleared %d weapon impact mutes."] = "%d silenziamenti d'impatto arma rimossi."
   L["Applied %d sound mutes."] = "%d silenziamenti applicati."
   L["Cleared %d sound mutes."] = "%d silenziamenti rimossi."
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "Caricato. Digita /res o vai in Esc > Opzioni > Addon > Resonance."
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "Caricato. Digita /res o vai in Esc > Opzioni > Addon > Resonance."
   L["Options panel not loaded."] = "Pannello opzioni non caricato."
   L["%d new template spell(s) auto-added."] = "%d nuovo/i incantesimo/i modello aggiunto/i automaticamente."
   L["General"] = "Generale"
@@ -1327,14 +1517,16 @@ elseif locale == "itIT" then
   L["Ambient"] = "Ambiente"
   L["Character Vocalizations"] = "Vocalizzazioni del personaggio"
   L["Creature Vocalizations"] = "Vocalizzazioni delle creature"
-  L["Select a subcategory on the left to configure Resonance."] = "Seleziona una sottocategoria a sinistra per configurare Resonance."
+  L["Select a subcategory on the left to configure Resonance."] =
+    "Seleziona una sottocategoria a sinistra per configurare Resonance."
   L["Clear All"] = "Cancella tutto"
   L["Clear Presets"] = "Cancella preset"
   L["+ Add Spell"] = "+ Aggiungi incantesimo"
   L["Spell"] = "Incantesimo"
   L["Sound"] = "Suono"
   L["Actions"] = "Azioni"
-  L["No spells configured. Click '+ Add Spell' to get started."] = "Nessun incantesimo configurato. Clicca '+ Aggiungi incantesimo' per iniziare."
+  L["No spells configured. Click '+ Add Spell' to get started."] =
+    "Nessun incantesimo configurato. Clicca '+ Aggiungi incantesimo' per iniziare."
   L["Custom"] = "Personalizzato"
   L["+1 random from %d"] = "+1 casuale da %d"
   L["Configure: "] = "Configura: "
@@ -1348,7 +1540,8 @@ elseif locale == "itIT" then
   L["Replacement Sound"] = "Suono sostitutivo"
   L["Mute only (no replacement sound)"] = "Solo silenziamento (nessun suono sostitutivo)"
   L["Muted (no replacement)"] = "Silenziato (nessun sostituto)"
-  L["Select a replacement sound or enable 'Mute only'."] = "Seleziona un suono sostitutivo o attiva 'Solo silenziamento'."
+  L["Select a replacement sound or enable 'Mute only'."] =
+    "Seleziona un suono sostitutivo o attiva 'Solo silenziamento'."
   L["Random pool (1 picked per cast):"] = "Gruppo casuale (1 scelto per lancio):"
   L["Browse"] = "Sfoglia"
   L["File Path / FID"] = "Percorso / FID"
@@ -1362,7 +1555,8 @@ elseif locale == "itIT" then
   L["Auto-Muted Sounds"] = "Suoni silenziati automaticamente"
   L["No auto-mute data available."] = "Nessun dato di silenziamento automatico disponibile."
   L["No auto-mute data for this spell."] = "Nessun dato di silenziamento automatico per questo incantesimo."
-  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] = "%d suono/i di incantesimo — deseleziona per mantenere un suono attivo:"
+  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] =
+    "%d suono/i di incantesimo — deseleziona per mantenere un suono attivo:"
   L["Muted (click to unmute)"] = "Silenziato (clicca per attivare)"
   L["Not muted (click to mute)"] = "Attivo (clicca per silenziare)"
   L["Play / Stop"] = "Riproduci / Ferma"
@@ -1387,7 +1581,8 @@ elseif locale == "itIT" then
   L["Mute"] = "Silenzia"
   L["Re-muted FID %d"] = "FID %d ri-silenziato"
   L["Unmuted FID %d"] = "FID %d riattivato"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "Carica preset di classe o le tue configurazioni salvate. I preset integrati sono sostituzioni selezionate che scambiano suoni di incantesimi moderni troppo forti o ripetitivi con alternative classiche più discrete."
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "Carica preset di classe o le tue configurazioni salvate. I preset integrati sono sostituzioni selezionate che scambiano suoni di incantesimi moderni troppo forti o ripetitivi con alternative classiche più discrete."
   L["Save Current Config"] = "Salva config attuale"
   L["Import"] = "Importa"
   L["Export Full Profile"] = "Esporta profilo completo"
@@ -1415,7 +1610,8 @@ elseif locale == "itIT" then
   L["Deleted preset '%s'."] = "Preset '%s' eliminato."
   L["Removed %d preset spells from '%s'."] = "%d incantesimi preset rimossi da '%s'."
   L["Preset '%s' applied: %d spells added, %d skipped."] = "Preset '%s' applicato: %d incantesimi aggiunti, %d saltati."
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "Preset '%s' applicato: %d incantesimi, %d silenziamenti aggiunti (%d saltati)."
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "Preset '%s' applicato: %d incantesimi, %d silenziamenti aggiunti (%d saltati)."
   L["Removed %d preset spells."] = "%d incantesimi preset rimossi."
   L["%d spells, %d mutes."] = "%d incantesimi, %d silenziamenti."
   L["%d spells, %d manual mutes (all classes)."] = "%d incantesimi, %d silenziamenti manuali (tutte le classi)."
@@ -1424,7 +1620,8 @@ elseif locale == "itIT" then
   L["(none)"] = "(nessuno)"
   L["%d spells"] = "%d incantesimi"
   L["(%d active)"] = "(%d attivi)"
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "Impostazioni migrate da CastSoundsDB. Puoi disattivare il vecchio addon CastSounds."
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "Impostazioni migrate da CastSoundsDB. Puoi disattivare il vecchio addon CastSounds."
   L["Empty import string."] = "Stringa di importazione vuota."
   L["Invalid format: missing !Resonance! prefix."] = "Formato non valido: prefisso !Resonance! mancante."
   L["Failed to decode import string."] = "Impossibile decodificare la stringa di importazione."
@@ -1442,9 +1639,10 @@ elseif locale == "itIT" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d -> fileDataID %d mappato."
   L["Usage: /res unmap <spellID>"] = "Uso: /res unmap <spellID>"
   L["Unmapped spellID %d."] = "Mappatura rimossa per spellID %d."
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "Uso: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    'Uso: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "Sostituzione per '%s' -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "Uso: /res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = 'Uso: /res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "Sostituzione rimossa per '%s'"
   L["Usage: /res testspell <spellID>"] = "Uso: /res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "Test suono per: %s (spellID %d)"
@@ -1458,7 +1656,8 @@ elseif locale == "itIT" then
   L["Type /res diag for library diagnostics."] = "Digita /res diag per la diagnostica delle librerie."
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "Silenzia vocalizzazioni creature"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "Riduce significativamente grugniti d'attacco, suoni di ferita, morte e aggro dei mostri per categoria di creatura. La copertura varia — alcune creature potrebbero ancora essere udite."
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "Riduce significativamente grugniti d'attacco, suoni di ferita, morte e aggro dei mostri per categoria di creatura. La copertura varia — alcune creature potrebbero ancora essere udite."
   L["Muted %d creature vocalization sounds."] = "Silenziate %d vocalizzazioni di creature."
   L["Cleared %d creature vocalization mutes."] = "%d silenziamenti di vocalizzazioni creature rimossi."
   L["Beast"] = "Bestia"
@@ -1470,8 +1669,10 @@ elseif locale == "itIT" then
   L["Mechanical"] = "Meccanico"
   -- Profession sounds
   L["Mute profession sounds"] = "Silenzia suoni delle professioni"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "Silenzia i suoni di creazione, raccolta e altri suoni delle professioni per professione."
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "Nota: Alcuni suoni sono condivisi tra più incantesimi ed effetti. Silenziare un suono per una funzione (es: una professione) lo silenzierà anche ovunque venga riprodotto nel gioco."
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "Silenzia i suoni di creazione, raccolta e altri suoni delle professioni per professione."
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "Nota: Alcuni suoni sono condivisi tra più incantesimi ed effetti. Silenziare un suono per una funzione (es: una professione) lo silenzierà anche ovunque venga riprodotto nel gioco."
   L["Muted %d profession sounds."] = "Silenziati %d suoni di professione."
   L["Cleared %d profession sound mutes."] = "%d silenziamenti di professione rimossi."
   L["Alchemy"] = "Alchimia"
@@ -1497,25 +1698,33 @@ elseif locale == "itIT" then
   L["Set"] = "Imposta"
   L["Current: "] = "Attuale: "
   L["Loop"] = "Ripeti"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "Ripete il suono fino al prossimo lancio. Richiede una durata impostata."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "Ripete il suono fino al prossimo lancio. Richiede una durata impostata."
   L["Precast Sound"] = "Suono pre-lancio"
   L["Cast Complete Sound"] = "Suono lancio completato"
   L["Loading spell data..."] = "Caricamento dati incantesimi..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "Riproduci suono quando interrotto"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "Riproduce un suono di avviso personalizzato quando il tuo lancio viene interrotto da un altro giocatore o NPC."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "Riproduce un suono di avviso personalizzato quando il tuo lancio viene interrotto da un altro giocatore o NPC."
   L["Alert sound (FID or file path)"] = "Suono di avviso (FID o percorso file)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (numero) o percorso a un file audio, es: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (numero) o percorso a un file audio, es: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "Limite durata (secondi)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Ferma il suono di avviso dopo questi secondi. Lascia vuoto per riprodurlo completamente."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "Ferma il suono di avviso dopo questi secondi. Lascia vuoto per riprodurlo completamente."
   L["Test"] = "Prova"
   L["Play the configured interrupt alert sound."] = "Riproduce il suono di avviso interruzione configurato."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Riproduce un suono di avviso aggiuntivo quando il tuo lancio viene interrotto. Questo non silenzia né sostituisce il suono di interruzione predefinito del gioco — viene riprodotto in aggiunta."
-  L["Play the configured replacement fishing bobber sound."] = "Riproduce il suono sostitutivo configurato per il galleggiante da pesca."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati. Puoi anche usare i tuoi file audio — posizionali in Interface/AddOns/Resonance_Sounds/ (crea questa cartella) per proteggerli dagli aggiornamenti dell'addon, poi inserisci il percorso completo come suono sostitutivo."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "Riproduce un suono di avviso aggiuntivo quando il tuo lancio viene interrotto. Questo non silenzia né sostituisce il suono di interruzione predefinito del gioco — viene riprodotto in aggiunta."
+  L["Play the configured replacement fishing bobber sound."] =
+    "Riproduce il suono sostitutivo configurato per il galleggiante da pesca."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati. Puoi anche usare i tuoi file audio — posizionali in Interface/AddOns/Resonance_Sounds/ (crea questa cartella) per proteggerli dagli aggiornamenti dell'addon, poi inserisci il percorso completo come suono sostitutivo."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenzia suoni ambientali per zona"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Silenzia i suoni ambientali per zone specifiche. Utile per silenziare ronzii fastidiosi, raggi o audio ambientale opprimente."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "Silenzia i suoni ambientali per zone specifiche. Utile per silenziare ronzii fastidiosi, raggi o audio ambientale opprimente."
   L["Search individual sounds:"] = "Cerca suoni individuali:"
   L["e.g. silvermoon, maw, beam, wind..."] = "es: silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "Silenzia per zona:"
@@ -1524,17 +1733,25 @@ elseif locale == "itIT" then
   L["Cleared %d ambient sound mutes."] = "%d silenziamenti ambientali rimossi."
   L["%d zones, %d sounds"] = "%d zone, %d suoni"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "Carica preset di classe o le tue configurazioni salvate. Ogni preset contiene impostazioni sonore degli incantesimi e silenziamenti manuali."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "Carica preset di classe o le tue configurazioni salvate. Ogni preset contiene impostazioni sonore degli incantesimi e silenziamenti manuali."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data è disattivato. Attivalo nel menu Addon (Esc > Addon) e /reload per accedere alla configurazione sonora."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Modulo Resonance Data non trovato. Reinstalla Resonance per ripristinare la funzionalità completa."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data è disattivato. Attivalo nel menu Addon (Esc > Addon) e /reload per accedere alla configurazione sonora."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Modulo Resonance Data non trovato. Reinstalla Resonance per ripristinare la funzionalità completa."
   L["Could not load Resonance Data: %s"] = "Impossibile caricare Resonance Data: %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "Sfoglia e silenzia singoli suoni per tipo. Cerca suoni incantesimi, vocalizzazioni personaggio, suoni NPC o inserisci un FileDataID direttamente."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "Attiva funzionalità, configura suoni di pesca e avviso interruzione e scegli il canale del suono sostitutivo."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "Configura quali categorie di suoni del gioco silenziare: impatti d'arma, vocalizzazioni, suoni delle creature e audio delle professioni."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "Gestisci i profili salvati. Copia le impostazioni tra personaggi o cambia configurazione."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "Sfoglia e silenzia singoli suoni per tipo. Cerca suoni incantesimi, vocalizzazioni personaggio, suoni NPC o inserisci un FileDataID direttamente."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "Attiva funzionalità, configura suoni di pesca e avviso interruzione e scegli il canale del suono sostitutivo."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "Configura quali categorie di suoni del gioco silenziare: impatti d'arma, vocalizzazioni, suoni delle creature e audio delle professioni."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "Gestisci i profili salvati. Copia le impostazioni tra personaggi o cambia configurazione."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -1548,27 +1765,36 @@ elseif locale == "itIT" then
 ---------------------------------------------------------------------------
 elseif locale == "ruRU" then
   L["Enable Resonance"] = "Включить Resonance"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "Включить/выключить аддон. При отключении все приглушения звуков снимаются, пользовательские звуки заклинаний не воспроизводятся."
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "Включить/выключить аддон. При отключении все приглушения звуков снимаются, пользовательские звуки заклинаний не воспроизводятся."
   L["Debug mode (print casts to chat)"] = "Режим отладки (показывать касты в чат)"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "Показывать информацию о кастах (имя, ID) в чате. Полезно для поиска ID заклинаний."
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "Показывать информацию о кастах (имя, ID) в чате. Полезно для поиска ID заклинаний."
   L["Show minimap button"] = "Показать кнопку на миникарте"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "Показать кнопку на миникарте. ЛКМ — настройки, ПКМ — вкл/выкл, перетащить — переместить."
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "Показать кнопку на миникарте. ЛКМ — настройки, ПКМ — вкл/выкл, перетащить — переместить."
   L["Mute weapon impact sounds"] = "Приглушить звуки ударов оружия"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "Приглушить все звуки ударов и замахов оружия. Применяется глобально независимо от типа оружия. Примечание: замена на классические звуки невозможна — автоатаки не вызывают обнаруживаемых событий аддонов."
-  L["Classic auto-shot sounds (Hunter)"] = "Классические звуки автовыстрела (Охотник)"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "Заменяет современные звуки автовыстрела лука и огнестрельного оружия классическими. Автоматически определяет тип экипированного оружия (лук/арбалет или огнестрельное)."
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "Приглушить все звуки ударов и замахов оружия. Применяется глобально независимо от типа оружия. Примечание: замена на классические звуки невозможна — автоатаки не вызывают обнаруживаемых событий аддонов."
+  L["Classic auto-shot sounds (Hunter)"] =
+    "Классические звуки автовыстрела (Охотник)"
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "Заменяет современные звуки автовыстрела лука и огнестрельного оружия классическими. Автоматически определяет тип экипированного оружия (лук/арбалет или огнестрельное)."
   L["Muted %d auto-shot sounds."] = "Приглушено %d звуков автовыстрела."
   L["Cleared %d auto-shot mutes."] = "Снято %d приглушений автовыстрела."
   L["Replace fishing bobber sound"] = "Заменить звук поплавка"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "Приглушить современный всплеск поплавка и воспроизвести замещающий звук при поимке рыбы. По умолчанию используется классический звук FishBite — введите пользовательский FileDataID или путь к файлу аддона ниже, чтобы использовать другой звук."
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "Приглушить современный всплеск поплавка и воспроизвести замещающий звук при поимке рыбы. По умолчанию используется классический звук FishBite — введите пользовательский FileDataID или путь к файлу аддона ниже, чтобы использовать другой звук."
   L["Muted %d fishing bobber sounds."] = "Приглушено %d звуков поплавка."
   L["Cleared %d fishing bobber mutes."] = "Снято %d приглушений поплавка."
   L["Replacement sound"] = "Замещающий звук"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "Классический воспроизводит оригинальный звук FishBite. Свой позволяет ввести любой FileDataID или путь к файлу аддона."
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "Классический воспроизводит оригинальный звук FishBite. Свой позволяет ввести любой FileDataID или путь к файлу аддона."
   L["Classic (FishBite)"] = "Классический (FishBite)"
   L["Custom"] = "Свой"
   L["Custom sound"] = "Свой звук"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID (число) или путь к файлу аддона (напр. Interface\\AddOns\\MyAddon\\sound.ogg)."
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID (число) или путь к файлу аддона (напр. Interface\\AddOns\\MyAddon\\sound.ogg)."
   L["Preview"] = "Прослушать"
   L["NPC"] = "НИП"
   L["Search NPC by name..."] = "Поиск НИП по имени..."
@@ -1577,12 +1803,14 @@ elseif locale == "ruRU" then
   L["Muted %d NPC sounds."] = "Приглушено %d звуков НИП."
   L["Cleared %d NPC sound mutes."] = "Снято %d приглушений НИП."
   L["Mute character vocalizations"] = "Заглушить вокализации"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "Приглушить боевые крики, стоны и звуки усилий. 'Мои' — ваша раса/пол, 'Все расы' — все расы/полы в игре."
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "Приглушить боевые крики, стоны и звуки усилий. 'Мои' — ваша раса/пол, 'Все расы' — все расы/полы в игре."
   L["Off"] = "Выкл"
   L["Mine"] = "Мои"
   L["All races"] = "Все расы"
   L["Replacement sound channel"] = "Канал замещающего звука"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "На каком аудиоканале воспроизводить замещающие звуки. Используйте 'Master' для постоянного воспроизведения."
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "На каком аудиоканале воспроизводить замещающие звуки. Используйте 'Master' для постоянного воспроизведения."
   L["Left-click: Open options"] = "ЛКМ: Открыть настройки"
   L["Right-click: Toggle on/off"] = "ПКМ: Вкл/Выкл"
   L["Drag: Move button"] = "Перетащить: Переместить кнопку"
@@ -1596,9 +1824,11 @@ elseif locale == "ruRU" then
   L["Cleared %d weapon impact mutes."] = "Снято %d приглушений ударов оружия."
   L["Applied %d sound mutes."] = "Применено %d приглушений звука."
   L["Cleared %d sound mutes."] = "Снято %d приглушений звука."
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "Загружено. Введите /res или откройте Esc > Настройки > Аддоны > Resonance."
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "Загружено. Введите /res или откройте Esc > Настройки > Аддоны > Resonance."
   L["Options panel not loaded."] = "Панель настроек не загружена."
-  L["%d new template spell(s) auto-added."] = "%d новых заклинаний из шаблона добавлено автоматически."
+  L["%d new template spell(s) auto-added."] =
+    "%d новых заклинаний из шаблона добавлено автоматически."
   L["General"] = "Общие"
   L["Spell Sounds"] = "Звуки заклинаний"
   L["Muted Sounds"] = "Приглушённые звуки"
@@ -1616,14 +1846,16 @@ elseif locale == "ruRU" then
   L["Ambient"] = "Окружение"
   L["Character Vocalizations"] = "Голос персонажа"
   L["Creature Vocalizations"] = "Звуки существ"
-  L["Select a subcategory on the left to configure Resonance."] = "Выберите подкатегорию слева для настройки Resonance."
+  L["Select a subcategory on the left to configure Resonance."] =
+    "Выберите подкатегорию слева для настройки Resonance."
   L["Clear All"] = "Очистить всё"
   L["Clear Presets"] = "Очистить шаблоны"
   L["+ Add Spell"] = "+ Добавить заклинание"
   L["Spell"] = "Заклинание"
   L["Sound"] = "Звук"
   L["Actions"] = "Действия"
-  L["No spells configured. Click '+ Add Spell' to get started."] = "Заклинания не настроены. Нажмите '+ Добавить заклинание' для начала."
+  L["No spells configured. Click '+ Add Spell' to get started."] =
+    "Заклинания не настроены. Нажмите '+ Добавить заклинание' для начала."
   L["Custom"] = "Пользовательское"
   L["+1 random from %d"] = "+1 случайный из %d"
   L["Configure: "] = "Настроить: "
@@ -1637,7 +1869,8 @@ elseif locale == "ruRU" then
   L["Replacement Sound"] = "Замещающий звук"
   L["Mute only (no replacement sound)"] = "Только заглушить (без замены)"
   L["Muted (no replacement)"] = "Заглушено (без замены)"
-  L["Select a replacement sound or enable 'Mute only'."] = "Выберите замещающий звук или включите 'Только заглушить'."
+  L["Select a replacement sound or enable 'Mute only'."] =
+    "Выберите замещающий звук или включите 'Только заглушить'."
   L["Random pool (1 picked per cast):"] = "Случайная группа (1 за каст):"
   L["Browse"] = "Обзор"
   L["File Path / FID"] = "Путь / FID"
@@ -1646,12 +1879,16 @@ elseif locale == "ruRU" then
   L["Add"] = "Добавить"
   L["+Rnd"] = "+Случ"
   L["Replace all sounds with this one"] = "Заменить все звуки этим"
-  L["Add as an additional fixed sound (always plays)"] = "Добавить как дополнительный постоянный звук (всегда воспроизводится)"
-  L["Add to the random pool (1 picked at random per cast)"] = "Добавить в случайную группу (1 выбирается случайно за каст)"
+  L["Add as an additional fixed sound (always plays)"] =
+    "Добавить как дополнительный постоянный звук (всегда воспроизводится)"
+  L["Add to the random pool (1 picked at random per cast)"] =
+    "Добавить в случайную группу (1 выбирается случайно за каст)"
   L["Auto-Muted Sounds"] = "Автоматически приглушённые звуки"
   L["No auto-mute data available."] = "Нет данных автоприглушения."
-  L["No auto-mute data for this spell."] = "Нет данных автоприглушения для этого заклинания."
-  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] = "%d звук(ов) заклинания — снимите флажок, чтобы оставить звук:"
+  L["No auto-mute data for this spell."] =
+    "Нет данных автоприглушения для этого заклинания."
+  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] =
+    "%d звук(ов) заклинания — снимите флажок, чтобы оставить звук:"
   L["Muted (click to unmute)"] = "Приглушён (нажмите для восстановления)"
   L["Not muted (click to mute)"] = "Активен (нажмите для приглушения)"
   L["Play / Stop"] = "Воспроизвести / Стоп"
@@ -1671,12 +1908,14 @@ elseif locale == "ruRU" then
   L["Clear All Manual"] = "Очистить все ручные"
   L["Manually muted sounds"] = "Вручную приглушённые звуки"
   L["No sounds muted."] = "Нет приглушённых звуков."
-  L["Auto-muted from spell configurations"] = "Автоматически приглушены настройками заклинаний"
+  L["Auto-muted from spell configurations"] =
+    "Автоматически приглушены настройками заклинаний"
   L["Unmute"] = "Восстановить"
   L["Mute"] = "Приглушить"
   L["Re-muted FID %d"] = "FID %d повторно приглушён"
   L["Unmuted FID %d"] = "FID %d восстановлен"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "Загрузите встроенные шаблоны классов или собственные сохранённые конфигурации. Встроенные шаблоны — это подобранные вручную замены, которые заменяют слишком громкие или повторяющиеся современные звуки заклинаний более мягкими классическими альтернативами."
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "Загрузите встроенные шаблоны классов или собственные сохранённые конфигурации. Встроенные шаблоны — это подобранные вручную замены, которые заменяют слишком громкие или повторяющиеся современные звуки заклинаний более мягкими классическими альтернативами."
   L["Save Current Config"] = "Сохранить текущую конфиг"
   L["Import"] = "Импорт"
   L["Export Full Profile"] = "Экспорт полного профиля"
@@ -1697,25 +1936,34 @@ elseif locale == "ruRU" then
   L["Paste a preset string below."] = "Вставьте строку шаблона ниже."
   L["Remove All Preset Spells"] = "Удалить все заклинания шаблонов"
   L["Cleared %d preset spells."] = "%d заклинаний шаблонов удалено."
-  L["Cleared all spell sound configurations."] = "Все настройки звуков заклинаний удалены."
+  L["Cleared all spell sound configurations."] =
+    "Все настройки звуков заклинаний удалены."
   L["Enter a preset name."] = "Введите название шаблона."
-  L["Preset '%s' already exists. Choose a different name."] = "Шаблон '%s' уже существует. Выберите другое имя."
-  L["Saved current config as preset '%s'."] = "Текущая конфигурация сохранена как шаблон '%s'."
+  L["Preset '%s' already exists. Choose a different name."] =
+    "Шаблон '%s' уже существует. Выберите другое имя."
+  L["Saved current config as preset '%s'."] =
+    "Текущая конфигурация сохранена как шаблон '%s'."
   L["Deleted preset '%s'."] = "Шаблон '%s' удалён."
   L["Removed %d preset spells from '%s'."] = "%d заклинаний шаблона удалено из '%s'."
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "Шаблон '%s' применён: %d заклинаний добавлено, %d пропущено."
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "Шаблон '%s' применён: %d заклинаний, %d приглушений добавлено (%d пропущено)."
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "Шаблон '%s' применён: %d заклинаний добавлено, %d пропущено."
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "Шаблон '%s' применён: %d заклинаний, %d приглушений добавлено (%d пропущено)."
   L["Removed %d preset spells."] = "%d заклинаний шаблонов удалено."
   L["%d spells, %d mutes."] = "%d заклинаний, %d приглушений."
-  L["%d spells, %d manual mutes (all classes)."] = "%d заклинаний, %d ручных приглушений (все классы)."
-  L["Imported preset '%s': %d spells, %d mutes."] = "Шаблон '%s' импортирован: %d заклинаний, %d приглушений."
+  L["%d spells, %d manual mutes (all classes)."] =
+    "%d заклинаний, %d ручных приглушений (все классы)."
+  L["Imported preset '%s': %d spells, %d mutes."] =
+    "Шаблон '%s' импортирован: %d заклинаний, %d приглушений."
   L["Showing %d–%d of %d"] = "Показано %d–%d из %d"
   L["(none)"] = "(нет)"
   L["%d spells"] = "%d заклинаний"
   L["(%d active)"] = "(%d активных)"
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "Настройки перенесены из CastSoundsDB. Вы можете отключить старый аддон CastSounds."
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "Настройки перенесены из CastSoundsDB. Вы можете отключить старый аддон CastSounds."
   L["Empty import string."] = "Пустая строка импорта."
-  L["Invalid format: missing !Resonance! prefix."] = "Неверный формат: отсутствует префикс !Resonance!."
+  L["Invalid format: missing !Resonance! prefix."] =
+    "Неверный формат: отсутствует префикс !Resonance!."
   L["Failed to decode import string."] = "Не удалось декодировать строку импорта."
   L["Unknown format version."] = "Неизвестная версия формата."
   L["Failed to parse import string."] = "Не удалось разобрать строку импорта."
@@ -1731,23 +1979,28 @@ elseif locale == "ruRU" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d -> fileDataID %d назначен."
   L["Usage: /res unmap <spellID>"] = "Использование: /res unmap <spellID>"
   L["Unmapped spellID %d."] = "Назначение для spellID %d удалено."
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "Использование: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    'Использование: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "Переопределение для '%s' -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "Использование: /res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = 'Использование: /res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "Переопределение для '%s' удалено"
   L["Usage: /res testspell <spellID>"] = "Использование: /res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "Тест звука для: %s (spellID %d)"
-  L["SFX disabled (you may lose footsteps)."] = "SFX отключены (вы можете потерять звуки шагов)."
+  L["SFX disabled (you may lose footsteps)."] =
+    "SFX отключены (вы можете потерять звуки шагов)."
   L["SFX enabled."] = "SFX включены."
   L["=== Resonance Diagnostics ==="] = "=== Диагностика Resonance ==="
   L["=== End Diagnostics ==="] = "=== Конец диагностики ==="
   L["FID"] = "FID"
-  L["Resonance options failed to load:\n\n"] = "Настройки Resonance не удалось загрузить:\n\n"
+  L["Resonance options failed to load:\n\n"] =
+    "Настройки Resonance не удалось загрузить:\n\n"
   L["Options UI error: "] = "Ошибка интерфейса настроек: "
-  L["Type /res diag for library diagnostics."] = "Введите /res diag для диагностики библиотек."
+  L["Type /res diag for library diagnostics."] =
+    "Введите /res diag для диагностики библиотек."
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "Заглушить звуки существ"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "Значительно снижает рычание атаки, звуки ранения, смерти и аггро монстров по категории существ. Охват варьируется — некоторые существа всё ещё могут быть слышны."
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "Значительно снижает рычание атаки, звуки ранения, смерти и аггро монстров по категории существ. Охват варьируется — некоторые существа всё ещё могут быть слышны."
   L["Muted %d creature vocalization sounds."] = "Заглушено %d звуков существ."
   L["Cleared %d creature vocalization mutes."] = "Снято %d заглушений звуков существ."
   L["Beast"] = "Животное"
@@ -1759,8 +2012,10 @@ elseif locale == "ruRU" then
   L["Mechanical"] = "Механизм"
   -- Profession sounds
   L["Mute profession sounds"] = "Заглушить звуки профессий"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "Заглушить звуки ремесла, сбора и другие звуки профессий по профессии."
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "Примечание: Некоторые звуки используются несколькими заклинаниями и эффектами. Заглушение звука для одной функции (напр. профессии) также заглушит его везде, где он воспроизводится в игре."
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "Заглушить звуки ремесла, сбора и другие звуки профессий по профессии."
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "Примечание: Некоторые звуки используются несколькими заклинаниями и эффектами. Заглушение звука для одной функции (напр. профессии) также заглушит его везде, где он воспроизводится в игре."
   L["Muted %d profession sounds."] = "Заглушено %d звуков профессий."
   L["Cleared %d profession sound mutes."] = "%d заглушений профессий удалено."
   L["Alchemy"] = "Алхимия"
@@ -1786,25 +2041,34 @@ elseif locale == "ruRU" then
   L["Set"] = "Установить"
   L["Current: "] = "Текущий: "
   L["Loop"] = "Повтор"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "Повторять звук до следующего каста. Требуется установленная длительность."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "Повторять звук до следующего каста. Требуется установленная длительность."
   L["Precast Sound"] = "Звук начала каста"
   L["Cast Complete Sound"] = "Звук завершения каста"
   L["Loading spell data..."] = "Загрузка данных заклинаний..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "Воспроизводить звук при прерывании"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "Воспроизводить пользовательский звук оповещения, когда ваш каст прерван другим игроком или НИП."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "Воспроизводить пользовательский звук оповещения, когда ваш каст прерван другим игроком или НИП."
   L["Alert sound (FID or file path)"] = "Звук оповещения (FID или путь к файлу)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (число) или путь к звуковому файлу, напр. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (число) или путь к звуковому файлу, напр. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "Ограничение длительности (секунд)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "Остановить звук оповещения через это количество секунд. Оставьте пустым для полного воспроизведения."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "Остановить звук оповещения через это количество секунд. Оставьте пустым для полного воспроизведения."
   L["Test"] = "Тест"
-  L["Play the configured interrupt alert sound."] = "Воспроизвести настроенный звук оповещения о прерывании."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "Воспроизводит дополнительный звук оповещения при прерывании вашего каста. Стандартный звук прерывания игры не заглушается и не заменяется — этот звук воспроизводится поверх него."
-  L["Play the configured replacement fishing bobber sound."] = "Воспроизвести настроенный замещающий звук поплавка."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы. Вы также можете использовать собственные звуковые файлы — поместите их в Interface/AddOns/Resonance_Sounds/ (создайте эту папку) для защиты от обновлений аддона, затем введите полный путь как замещающий звук."
+  L["Play the configured interrupt alert sound."] =
+    "Воспроизвести настроенный звук оповещения о прерывании."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "Воспроизводит дополнительный звук оповещения при прерывании вашего каста. Стандартный звук прерывания игры не заглушается и не заменяется — этот звук воспроизводится поверх него."
+  L["Play the configured replacement fishing bobber sound."] =
+    "Воспроизвести настроенный замещающий звук поплавка."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы. Вы также можете использовать собственные звуковые файлы — поместите их в Interface/AddOns/Resonance_Sounds/ (создайте эту папку) для защиты от обновлений аддона, затем введите полный путь как замещающий звук."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Заглушить окружающие звуки по зоне"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "Заглушить звуки окружения для определённых зон. Полезно для подавления раздражающего гула, лучей или давящего фонового звука."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "Заглушить звуки окружения для определённых зон. Полезно для подавления раздражающего гула, лучей или давящего фонового звука."
   L["Search individual sounds:"] = "Поиск отдельных звуков:"
   L["e.g. silvermoon, maw, beam, wind..."] = "напр. silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "Заглушить по зоне:"
@@ -1813,17 +2077,25 @@ elseif locale == "ruRU" then
   L["Cleared %d ambient sound mutes."] = "Снято %d заглушений окружающих звуков."
   L["%d zones, %d sounds"] = "%d зон, %d звуков"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "Загрузите встроенные шаблоны классов или собственные сохранённые конфигурации. Каждый шаблон содержит настройки звуков заклинаний и ручные заглушения."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "Загрузите встроенные шаблоны классов или собственные сохранённые конфигурации. Каждый шаблон содержит настройки звуков заклинаний и ручные заглушения."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data отключён. Включите его в меню аддонов (Esc > Аддоны) и /reload для доступа к настройке звуков."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Модуль Resonance Data не найден. Переустановите Resonance для восстановления полной функциональности."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data отключён. Включите его в меню аддонов (Esc > Аддоны) и /reload для доступа к настройке звуков."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Модуль Resonance Data не найден. Переустановите Resonance для восстановления полной функциональности."
   L["Could not load Resonance Data: %s"] = "Не удалось загрузить Resonance Data: %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "Просматривайте и заглушайте отдельные звуки по типу. Ищите звуки заклинаний, голоса персонажей, звуки НИП или введите FileDataID напрямую."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "Переключайте функции, настраивайте звуки рыбалки и оповещения о прерывании и выбирайте канал замещающего звука."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "Настройте какие категории игровых звуков заглушить: удары оружия, вокализации, звуки существ и звуки профессий."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "Управляйте сохранёнными профилями. Копируйте настройки между персонажами или переключайте конфигурации."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "Просматривайте и заглушайте отдельные звуки по типу. Ищите звуки заклинаний, голоса персонажей, звуки НИП или введите FileDataID напрямую."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "Переключайте функции, настраивайте звуки рыбалки и оповещения о прерывании и выбирайте канал замещающего звука."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "Настройте какие категории игровых звуков заглушить: удары оружия, вокализации, звуки существ и звуки профессий."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "Управляйте сохранёнными профилями. Копируйте настройки между персонажами или переключайте конфигурации."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -1837,27 +2109,35 @@ elseif locale == "ruRU" then
 ---------------------------------------------------------------------------
 elseif locale == "koKR" then
   L["Enable Resonance"] = "Resonance 활성화"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "애드온을 켜거나 끕니다. 비활성화 시 모든 음소거가 해제되고 사용자 정의 주문 소리가 재생되지 않습니다."
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "애드온을 켜거나 끕니다. 비활성화 시 모든 음소거가 해제되고 사용자 정의 주문 소리가 재생되지 않습니다."
   L["Debug mode (print casts to chat)"] = "디버그 모드 (시전 정보를 채팅에 표시)"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "각 시전 시 주문 세부 정보(이름, ID)를 채팅에 표시합니다. 주문 ID를 찾는 데 유용합니다."
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "각 시전 시 주문 세부 정보(이름, ID)를 채팅에 표시합니다. 주문 ID를 찾는 데 유용합니다."
   L["Show minimap button"] = "미니맵 버튼 표시"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "미니맵에 버튼을 표시합니다. 좌클릭: 옵션 열기, 우클릭: 켜기/끄기, 드래그: 이동."
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "미니맵에 버튼을 표시합니다. 좌클릭: 옵션 열기, 우클릭: 켜기/끄기, 드래그: 이동."
   L["Mute weapon impact sounds"] = "무기 타격음 음소거"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "모든 무기 타격음과 휘두르기 소리를 음소거합니다. 무기 유형에 관계없이 전체 적용됩니다. 참고: 클래식 소리로 대체할 수 없습니다 — 자동 공격은 감지 가능한 애드온 이벤트를 발생시키지 않습니다."
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "모든 무기 타격음과 휘두르기 소리를 음소거합니다. 무기 유형에 관계없이 전체 적용됩니다. 참고: 클래식 소리로 대체할 수 없습니다 — 자동 공격은 감지 가능한 애드온 이벤트를 발생시키지 않습니다."
   L["Classic auto-shot sounds (Hunter)"] = "클래식 자동 사격 소리 (사냥꾼)"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "현대 활과 총의 자동 사격 소리를 클래식으로 교체합니다. 장착된 무기 유형(활/석궁 또는 총)을 자동으로 감지합니다."
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "현대 활과 총의 자동 사격 소리를 클래식으로 교체합니다. 장착된 무기 유형(활/석궁 또는 총)을 자동으로 감지합니다."
   L["Muted %d auto-shot sounds."] = "자동 사격 소리 %d개 음소거됨."
   L["Cleared %d auto-shot mutes."] = "자동 사격 음소거 %d개 해제됨."
   L["Replace fishing bobber sound"] = "낚시 찌 소리 교체"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "현대 낚시 찌 물보라 소리를 음소거하고 물고기를 잡으면 대체 소리를 재생합니다. 기본적으로 클래식 FishBite 소리를 사용합니다 — 다른 소리를 사용하려면 아래에 사용자 지정 FileDataID 또는 애드온 파일 경로를 입력하세요."
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "현대 낚시 찌 물보라 소리를 음소거하고 물고기를 잡으면 대체 소리를 재생합니다. 기본적으로 클래식 FishBite 소리를 사용합니다 — 다른 소리를 사용하려면 아래에 사용자 지정 FileDataID 또는 애드온 파일 경로를 입력하세요."
   L["Muted %d fishing bobber sounds."] = "낚시 찌 소리 %d개 음소거됨."
   L["Cleared %d fishing bobber mutes."] = "낚시 찌 음소거 %d개 해제됨."
   L["Replacement sound"] = "대체 소리"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "클래식은 원래 FishBite 소리를 재생합니다. 사용자 정의는 아무 FileDataID나 애드온 파일 경로를 입력할 수 있습니다."
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "클래식은 원래 FishBite 소리를 재생합니다. 사용자 정의는 아무 FileDataID나 애드온 파일 경로를 입력할 수 있습니다."
   L["Classic (FishBite)"] = "클래식 (FishBite)"
   L["Custom"] = "사용자 정의"
   L["Custom sound"] = "사용자 정의 소리"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID (숫자) 또는 애드온 파일 경로 (예: Interface\\AddOns\\MyAddon\\sound.ogg)."
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID (숫자) 또는 애드온 파일 경로 (예: Interface\\AddOns\\MyAddon\\sound.ogg)."
   L["Preview"] = "미리 듣기"
   L["NPC"] = "NPC"
   L["Search NPC by name..."] = "NPC 이름으로 검색..."
@@ -1866,12 +2146,14 @@ elseif locale == "koKR" then
   L["Muted %d NPC sounds."] = "NPC 소리 %d개 음소거됨."
   L["Cleared %d NPC sound mutes."] = "NPC 음소거 %d개 해제됨."
   L["Mute character vocalizations"] = "캐릭터 음성 음소거"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "전투 신음, 외침 및 힘쓰기 소리를 음소거합니다. '내 것'은 자신의 종족/성별, '모든 종족'은 게임 내 모든 종족/성별을 음소거합니다."
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "전투 신음, 외침 및 힘쓰기 소리를 음소거합니다. '내 것'은 자신의 종족/성별, '모든 종족'은 게임 내 모든 종족/성별을 음소거합니다."
   L["Off"] = "끄기"
   L["Mine"] = "내 것"
   L["All races"] = "모든 종족"
   L["Replacement sound channel"] = "대체 사운드 채널"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "대체 주문 소리를 재생할 오디오 채널입니다. 'Master'를 사용하면 다른 볼륨 슬라이더와 관계없이 항상 들을 수 있습니다."
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "대체 주문 소리를 재생할 오디오 채널입니다. 'Master'를 사용하면 다른 볼륨 슬라이더와 관계없이 항상 들을 수 있습니다."
   L["Left-click: Open options"] = "좌클릭: 옵션 열기"
   L["Right-click: Toggle on/off"] = "우클릭: 켜기/끄기"
   L["Drag: Move button"] = "드래그: 버튼 이동"
@@ -1885,7 +2167,8 @@ elseif locale == "koKR" then
   L["Cleared %d weapon impact mutes."] = "%d개의 무기 타격음 음소거가 해제됨."
   L["Applied %d sound mutes."] = "%d개의 소리 음소거가 적용됨."
   L["Cleared %d sound mutes."] = "%d개의 소리 음소거가 해제됨."
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "로드됨. /res를 입력하거나 Esc > 옵션 > 애드온 > Resonance로 이동하세요."
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "로드됨. /res를 입력하거나 Esc > 옵션 > 애드온 > Resonance로 이동하세요."
   L["Options panel not loaded."] = "옵션 패널이 로드되지 않았습니다."
   L["%d new template spell(s) auto-added."] = "%d개의 새 템플릿 주문이 자동 추가됨."
   L["General"] = "일반"
@@ -1905,14 +2188,16 @@ elseif locale == "koKR" then
   L["Ambient"] = "환경음"
   L["Character Vocalizations"] = "캐릭터 음성"
   L["Creature Vocalizations"] = "생물 소리"
-  L["Select a subcategory on the left to configure Resonance."] = "왼쪽에서 하위 카테고리를 선택하여 Resonance를 설정하세요."
+  L["Select a subcategory on the left to configure Resonance."] =
+    "왼쪽에서 하위 카테고리를 선택하여 Resonance를 설정하세요."
   L["Clear All"] = "모두 지우기"
   L["Clear Presets"] = "프리셋 지우기"
   L["+ Add Spell"] = "+ 주문 추가"
   L["Spell"] = "주문"
   L["Sound"] = "소리"
   L["Actions"] = "동작"
-  L["No spells configured. Click '+ Add Spell' to get started."] = "설정된 주문이 없습니다. '+ 주문 추가'를 클릭하여 시작하세요."
+  L["No spells configured. Click '+ Add Spell' to get started."] =
+    "설정된 주문이 없습니다. '+ 주문 추가'를 클릭하여 시작하세요."
   L["Custom"] = "사용자 정의"
   L["+1 random from %d"] = "+1 무작위 (%d개 중)"
   L["Configure: "] = "설정: "
@@ -1926,7 +2211,8 @@ elseif locale == "koKR" then
   L["Replacement Sound"] = "대체 소리"
   L["Mute only (no replacement sound)"] = "음소거만 (대체 소리 없음)"
   L["Muted (no replacement)"] = "음소거됨 (대체 없음)"
-  L["Select a replacement sound or enable 'Mute only'."] = "대체 소리를 선택하거나 '음소거만'을 활성화하세요."
+  L["Select a replacement sound or enable 'Mute only'."] =
+    "대체 소리를 선택하거나 '음소거만'을 활성화하세요."
   L["Random pool (1 picked per cast):"] = "무작위 그룹 (시전당 1개 선택):"
   L["Browse"] = "찾아보기"
   L["File Path / FID"] = "파일 경로 / FID"
@@ -1936,11 +2222,13 @@ elseif locale == "koKR" then
   L["+Rnd"] = "+무작위"
   L["Replace all sounds with this one"] = "모든 소리를 이것으로 교체"
   L["Add as an additional fixed sound (always plays)"] = "추가 고정 소리로 추가 (항상 재생)"
-  L["Add to the random pool (1 picked at random per cast)"] = "무작위 그룹에 추가 (시전당 무작위 1개 선택)"
+  L["Add to the random pool (1 picked at random per cast)"] =
+    "무작위 그룹에 추가 (시전당 무작위 1개 선택)"
   L["Auto-Muted Sounds"] = "자동 음소거된 소리"
   L["No auto-mute data available."] = "자동 음소거 데이터가 없습니다."
   L["No auto-mute data for this spell."] = "이 주문에 대한 자동 음소거 데이터가 없습니다."
-  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] = "%d개의 주문 소리 — 음소거 해제하려면 체크 해제:"
+  L["%d spell sound(s) — uncheck to keep a sound unmuted:"] =
+    "%d개의 주문 소리 — 음소거 해제하려면 체크 해제:"
   L["Muted (click to unmute)"] = "음소거됨 (클릭하여 해제)"
   L["Not muted (click to mute)"] = "활성 (클릭하여 음소거)"
   L["Play / Stop"] = "재생 / 중지"
@@ -1965,7 +2253,8 @@ elseif locale == "koKR" then
   L["Mute"] = "음소거"
   L["Re-muted FID %d"] = "FID %d 재음소거됨"
   L["Unmuted FID %d"] = "FID %d 음소거 해제됨"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "내장 직업 프리셋 또는 저장된 설정을 불러옵니다. 내장 프리셋은 지나치게 크거나 반복적인 현대 주문 소리를 더 은은한 클래식 대안으로 교체하는 엄선된 설정입니다."
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "내장 직업 프리셋 또는 저장된 설정을 불러옵니다. 내장 프리셋은 지나치게 크거나 반복적인 현대 주문 소리를 더 은은한 클래식 대안으로 교체하는 엄선된 설정입니다."
   L["Save Current Config"] = "현재 설정 저장"
   L["Import"] = "가져오기"
   L["Export Full Profile"] = "전체 프로필 내보내기"
@@ -1988,12 +2277,15 @@ elseif locale == "koKR" then
   L["Cleared %d preset spells."] = "%d개의 프리셋 주문이 제거됨."
   L["Cleared all spell sound configurations."] = "모든 주문 소리 설정이 제거됨."
   L["Enter a preset name."] = "프리셋 이름을 입력하세요."
-  L["Preset '%s' already exists. Choose a different name."] = "프리셋 '%s'이(가) 이미 존재합니다. 다른 이름을 선택하세요."
+  L["Preset '%s' already exists. Choose a different name."] =
+    "프리셋 '%s'이(가) 이미 존재합니다. 다른 이름을 선택하세요."
   L["Saved current config as preset '%s'."] = "현재 설정이 프리셋 '%s'(으)로 저장됨."
   L["Deleted preset '%s'."] = "프리셋 '%s' 삭제됨."
   L["Removed %d preset spells from '%s'."] = "%d개의 프리셋 주문이 '%s'에서 제거됨."
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "프리셋 '%s' 적용됨: %d개 주문 추가, %d개 건너뜀."
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "프리셋 '%s' 적용됨: %d개 주문, %d개 음소거 추가 (%d개 건너뜀)."
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "프리셋 '%s' 적용됨: %d개 주문 추가, %d개 건너뜀."
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "프리셋 '%s' 적용됨: %d개 주문, %d개 음소거 추가 (%d개 건너뜀)."
   L["Removed %d preset spells."] = "%d개의 프리셋 주문이 제거됨."
   L["%d spells, %d mutes."] = "%d개 주문, %d개 음소거."
   L["%d spells, %d manual mutes (all classes)."] = "%d개 주문, %d개 수동 음소거 (모든 직업)."
@@ -2002,7 +2294,8 @@ elseif locale == "koKR" then
   L["(none)"] = "(없음)"
   L["%d spells"] = "%d개 주문"
   L["(%d active)"] = "(%d개 활성)"
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "CastSoundsDB에서 설정을 마이그레이션했습니다. 이전 CastSounds 애드온을 비활성화할 수 있습니다."
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "CastSoundsDB에서 설정을 마이그레이션했습니다. 이전 CastSounds 애드온을 비활성화할 수 있습니다."
   L["Empty import string."] = "가져오기 문자열이 비어있습니다."
   L["Invalid format: missing !Resonance! prefix."] = "잘못된 형식: !Resonance! 접두사가 없습니다."
   L["Failed to decode import string."] = "가져오기 문자열을 디코딩하지 못했습니다."
@@ -2020,9 +2313,10 @@ elseif locale == "koKR" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d -> fileDataID %d 매핑됨."
   L["Usage: /res unmap <spellID>"] = "사용법: /res unmap <spellID>"
   L["Unmapped spellID %d."] = "spellID %d 매핑 해제됨."
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "사용법: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    '사용법: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "'%s'에 대한 재정의 -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "사용법: /res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = '사용법: /res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "'%s'에 대한 재정의 제거됨"
   L["Usage: /res testspell <spellID>"] = "사용법: /res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "소리 테스트: %s (spellID %d)"
@@ -2036,7 +2330,8 @@ elseif locale == "koKR" then
   L["Type /res diag for library diagnostics."] = "/res diag를 입력하여 라이브러리 진단을 실행하세요."
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "생물 소리 음소거"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "생물 유형별로 몬스터의 공격, 부상, 죽음, 어그로 소리를 크게 줄입니다. 적용 범위는 다양하며 일부 생물은 여전히 들릴 수 있습니다."
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "생물 유형별로 몬스터의 공격, 부상, 죽음, 어그로 소리를 크게 줄입니다. 적용 범위는 다양하며 일부 생물은 여전히 들릴 수 있습니다."
   L["Muted %d creature vocalization sounds."] = "생물 소리 %d개 음소거됨."
   L["Cleared %d creature vocalization mutes."] = "생물 소리 음소거 %d개 해제됨."
   L["Beast"] = "야수"
@@ -2048,8 +2343,10 @@ elseif locale == "koKR" then
   L["Mechanical"] = "기계"
   -- Profession sounds
   L["Mute profession sounds"] = "전문 기술 소리 음소거"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "전문 기술별로 제작, 채집 및 기타 전문 기술 관련 소리를 음소거합니다."
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "참고: 일부 소리는 여러 주문과 효과에 공유됩니다. 한 기능(예: 전문 기술)의 소리를 음소거하면 게임 내 다른 곳에서도 해당 소리가 음소거됩니다."
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "전문 기술별로 제작, 채집 및 기타 전문 기술 관련 소리를 음소거합니다."
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "참고: 일부 소리는 여러 주문과 효과에 공유됩니다. 한 기능(예: 전문 기술)의 소리를 음소거하면 게임 내 다른 곳에서도 해당 소리가 음소거됩니다."
   L["Muted %d profession sounds."] = "%d개 전문 기술 소리 음소거됨."
   L["Cleared %d profession sound mutes."] = "%d개 전문 기술 음소거 해제됨."
   L["Alchemy"] = "연금술"
@@ -2075,25 +2372,32 @@ elseif locale == "koKR" then
   L["Set"] = "설정"
   L["Current: "] = "현재: "
   L["Loop"] = "반복"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "다음 시전까지 소리를 반복합니다. 지속 시간을 설정해야 합니다."
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "다음 시전까지 소리를 반복합니다. 지속 시간을 설정해야 합니다."
   L["Precast Sound"] = "시전 시작 소리"
   L["Cast Complete Sound"] = "시전 완료 소리"
   L["Loading spell data..."] = "주문 데이터 로드 중..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "차단당했을 때 소리 재생"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "다른 플레이어나 NPC에 의해 시전이 차단되었을 때 사용자 정의 알림 소리를 재생합니다."
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "다른 플레이어나 NPC에 의해 시전이 차단되었을 때 사용자 정의 알림 소리를 재생합니다."
   L["Alert sound (FID or file path)"] = "알림 소리 (FID 또는 파일 경로)"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID (숫자) 또는 사운드 파일 경로, 예: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID (숫자) 또는 사운드 파일 경로, 예: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "지속 시간 제한 (초)"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "이 시간(초) 후 알림 소리를 중지합니다. 전체 재생하려면 비워 두세요."
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "이 시간(초) 후 알림 소리를 중지합니다. 전체 재생하려면 비워 두세요."
   L["Test"] = "테스트"
   L["Play the configured interrupt alert sound."] = "설정된 차단 알림 소리를 재생합니다."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "시전이 차단되었을 때 추가 알림 소리를 재생합니다. 게임의 기본 차단 소리를 음소거하거나 대체하지 않으며 — 그 위에 추가로 재생됩니다."
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "시전이 차단되었을 때 추가 알림 소리를 재생합니다. 게임의 기본 차단 소리를 음소거하거나 대체하지 않으며 — 그 위에 추가로 재생됩니다."
   L["Play the configured replacement fishing bobber sound."] = "설정된 대체 낚시 찌 소리를 재생합니다."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다. 자신의 사운드 파일도 사용할 수 있습니다 — Interface/AddOns/Resonance_Sounds/ 폴더를 만들어 파일을 넣으면 애드온 업데이트로부터 안전하게 보호되며, 전체 경로를 대체 소리로 입력하세요."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다. 자신의 사운드 파일도 사용할 수 있습니다 — Interface/AddOns/Resonance_Sounds/ 폴더를 만들어 파일을 넣으면 애드온 업데이트로부터 안전하게 보호되며, 전체 경로를 대체 소리로 입력하세요."
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "지역별 환경음 음소거"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "특정 지역의 환경/배경 소리를 음소거합니다. 성가신 웅웅거림, 빔 소리, 또는 압도적인 배경 오디오를 제거하는 데 유용합니다."
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "특정 지역의 환경/배경 소리를 음소거합니다. 성가신 웅웅거림, 빔 소리, 또는 압도적인 배경 오디오를 제거하는 데 유용합니다."
   L["Search individual sounds:"] = "개별 소리 검색:"
   L["e.g. silvermoon, maw, beam, wind..."] = "예: silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "지역별 음소거:"
@@ -2102,17 +2406,25 @@ elseif locale == "koKR" then
   L["Cleared %d ambient sound mutes."] = "%d개의 환경음 음소거가 해제되었습니다."
   L["%d zones, %d sounds"] = "%d개 지역, %d개 소리"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "내장 직업 프리셋 또는 저장된 설정을 불러옵니다. 각 프리셋에는 주문 소리 설정과 수동 음소거가 포함되어 있습니다."
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "내장 직업 프리셋 또는 저장된 설정을 불러옵니다. 각 프리셋에는 주문 소리 설정과 수동 음소거가 포함되어 있습니다."
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data가 비활성화되어 있습니다. 애드온 메뉴(Esc > 애드온)에서 활성화하고 /reload하여 소리 설정에 접근하세요."
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "Resonance Data 모듈을 찾을 수 없습니다. Resonance를 재설치하여 전체 기능을 복원하세요."
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data가 비활성화되어 있습니다. 애드온 메뉴(Esc > 애드온)에서 활성화하고 /reload하여 소리 설정에 접근하세요."
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "Resonance Data 모듈을 찾을 수 없습니다. Resonance를 재설치하여 전체 기능을 복원하세요."
   L["Could not load Resonance Data: %s"] = "Resonance Data를 로드할 수 없습니다: %s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다."
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "유형별로 개별 소리를 탐색하고 음소거합니다. 주문 소리, 캐릭터 음성, NPC 소리를 검색하거나 FileDataID를 직접 입력합니다."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "기능을 전환하고, 낚시 및 차단 알림 소리를 설정하고, 대체 소리 채널을 선택합니다."
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "어떤 게임 소리 카테고리를 음소거할지 설정합니다: 무기 충격음, 음성, 생물 소리, 전문 기술 소리."
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "저장된 프로필을 관리합니다. 캐릭터 간 설정을 복사하거나 구성을 전환합니다."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다."
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "유형별로 개별 소리를 탐색하고 음소거합니다. 주문 소리, 캐릭터 음성, NPC 소리를 검색하거나 FileDataID를 직접 입력합니다."
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "기능을 전환하고, 낚시 및 차단 알림 소리를 설정하고, 대체 소리 채널을 선택합니다."
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "어떤 게임 소리 카테고리를 음소거할지 설정합니다: 무기 충격음, 음성, 생물 소리, 전문 기술 소리."
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "저장된 프로필을 관리합니다. 캐릭터 간 설정을 복사하거나 구성을 전환합니다."
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -2126,27 +2438,35 @@ elseif locale == "koKR" then
 ---------------------------------------------------------------------------
 elseif locale == "zhCN" then
   L["Enable Resonance"] = "启用 Resonance"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "开启/关闭插件。禁用时，所有静音会被移除，自定义法术音效不会播放。"
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "开启/关闭插件。禁用时，所有静音会被移除，自定义法术音效不会播放。"
   L["Debug mode (print casts to chat)"] = "调试模式（在聊天中显示施法信息）"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "每次施法时在聊天中显示法术详情（名称、ID）。用于查找要配置的法术ID。"
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "每次施法时在聊天中显示法术详情（名称、ID）。用于查找要配置的法术ID。"
   L["Show minimap button"] = "显示小地图按钮"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "在小地图上显示按钮。左键点击打开选项，右键点击开关，拖拽移动。"
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "在小地图上显示按钮。左键点击打开选项，右键点击开关，拖拽移动。"
   L["Mute weapon impact sounds"] = "静音武器打击声"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "静音所有武器打击和挥击声音。全局应用，不受武器类型影响。注意：无法替换为经典声音——自动攻击不会触发可检测的插件事件。"
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "静音所有武器打击和挥击声音。全局应用，不受武器类型影响。注意：无法替换为经典声音——自动攻击不会触发可检测的插件事件。"
   L["Classic auto-shot sounds (Hunter)"] = "经典自动射击声音（猎人）"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "用经典声音替换现代弓和枪的自动射击声音。自动检测装备的武器类型（弓/弩或枪械）。"
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "用经典声音替换现代弓和枪的自动射击声音。自动检测装备的武器类型（弓/弩或枪械）。"
   L["Muted %d auto-shot sounds."] = "已静音 %d 个自动射击声音。"
   L["Cleared %d auto-shot mutes."] = "已清除 %d 个自动射击静音。"
   L["Replace fishing bobber sound"] = "替换钓鱼浮标声音"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "静音现代钓鱼浮标溅水声，在钓到鱼时播放替换声音。默认使用经典FishBite声音——在下方输入自定义FileDataID或插件文件路径以使用其他声音。"
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "静音现代钓鱼浮标溅水声，在钓到鱼时播放替换声音。默认使用经典FishBite声音——在下方输入自定义FileDataID或插件文件路径以使用其他声音。"
   L["Muted %d fishing bobber sounds."] = "已静音 %d 个钓鱼浮标声音。"
   L["Cleared %d fishing bobber mutes."] = "已清除 %d 个钓鱼浮标静音。"
   L["Replacement sound"] = "替换声音"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "经典播放原始FishBite声音。自定义允许输入任意FileDataID或插件文件路径。"
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "经典播放原始FishBite声音。自定义允许输入任意FileDataID或插件文件路径。"
   L["Classic (FishBite)"] = "经典 (FishBite)"
   L["Custom"] = "自定义"
   L["Custom sound"] = "自定义声音"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID（数字）或插件文件路径（例如 Interface\\AddOns\\MyAddon\\sound.ogg）。"
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID（数字）或插件文件路径（例如 Interface\\AddOns\\MyAddon\\sound.ogg）。"
   L["Preview"] = "预览"
   L["NPC"] = "NPC"
   L["Search NPC by name..."] = "按名称搜索NPC..."
@@ -2155,12 +2475,14 @@ elseif locale == "zhCN" then
   L["Muted %d NPC sounds."] = "已静音 %d 个NPC声音。"
   L["Cleared %d NPC sound mutes."] = "已清除 %d 个NPC静音。"
   L["Mute character vocalizations"] = "静音角色语音"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "静音战斗吼叫、呐喊和用力声。'自己的'静音你的种族/性别，'所有种族'静音游戏中所有种族/性别。"
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "静音战斗吼叫、呐喊和用力声。'自己的'静音你的种族/性别，'所有种族'静音游戏中所有种族/性别。"
   L["Off"] = "关闭"
   L["Mine"] = "自己的"
   L["All races"] = "所有种族"
   L["Replacement sound channel"] = "替换音效频道"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "在哪个音频频道播放替换音效。使用'Master'可以始终听到，不受其他音量滑块影响。"
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "在哪个音频频道播放替换音效。使用'Master'可以始终听到，不受其他音量滑块影响。"
   L["Left-click: Open options"] = "左键点击：打开选项"
   L["Right-click: Toggle on/off"] = "右键点击：开启/关闭"
   L["Drag: Move button"] = "拖拽：移动按钮"
@@ -2174,7 +2496,8 @@ elseif locale == "zhCN" then
   L["Cleared %d weapon impact mutes."] = "已清除 %d 个武器打击声静音。"
   L["Applied %d sound mutes."] = "已应用 %d 个音效静音。"
   L["Cleared %d sound mutes."] = "已清除 %d 个音效静音。"
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "已加载。输入 /res 或前往 Esc > 选项 > 插件 > Resonance。"
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "已加载。输入 /res 或前往 Esc > 选项 > 插件 > Resonance。"
   L["Options panel not loaded."] = "选项面板未加载。"
   L["%d new template spell(s) auto-added."] = "%d 个新模板法术已自动添加。"
   L["General"] = "常规"
@@ -2254,7 +2577,8 @@ elseif locale == "zhCN" then
   L["Mute"] = "静音"
   L["Re-muted FID %d"] = "FID %d 已重新静音"
   L["Unmuted FID %d"] = "FID %d 已取消静音"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "加载内置职业预设或你保存的配置。内置预设是精心挑选的替换方案，将过于嘈杂或重复的现代法术音效替换为更柔和的经典替代音效。"
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "加载内置职业预设或你保存的配置。内置预设是精心挑选的替换方案，将过于嘈杂或重复的现代法术音效替换为更柔和的经典替代音效。"
   L["Save Current Config"] = "保存当前配置"
   L["Import"] = "导入"
   L["Export Full Profile"] = "导出完整配置"
@@ -2281,8 +2605,10 @@ elseif locale == "zhCN" then
   L["Saved current config as preset '%s'."] = "当前配置已保存为预设 '%s'。"
   L["Deleted preset '%s'."] = "预设 '%s' 已删除。"
   L["Removed %d preset spells from '%s'."] = "%d 个预设法术已从 '%s' 中移除。"
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "预设 '%s' 已应用：添加 %d 个法术，跳过 %d 个。"
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "预设 '%s' 已应用：%d 个法术，添加 %d 个静音（跳过 %d 个）。"
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "预设 '%s' 已应用：添加 %d 个法术，跳过 %d 个。"
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "预设 '%s' 已应用：%d 个法术，添加 %d 个静音（跳过 %d 个）。"
   L["Removed %d preset spells."] = "已移除 %d 个预设法术。"
   L["%d spells, %d mutes."] = "%d 个法术，%d 个静音。"
   L["%d spells, %d manual mutes (all classes)."] = "%d 个法术，%d 个手动静音（所有职业）。"
@@ -2291,7 +2617,8 @@ elseif locale == "zhCN" then
   L["(none)"] = "（无）"
   L["%d spells"] = "%d 个法术"
   L["(%d active)"] = "（%d 个已启用）"
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "已从 CastSoundsDB 迁移设置。你可以禁用旧的 CastSounds 插件。"
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "已从 CastSoundsDB 迁移设置。你可以禁用旧的 CastSounds 插件。"
   L["Empty import string."] = "导入字符串为空。"
   L["Invalid format: missing !Resonance! prefix."] = "格式无效：缺少 !Resonance! 前缀。"
   L["Failed to decode import string."] = "解码导入字符串失败。"
@@ -2309,9 +2636,10 @@ elseif locale == "zhCN" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d -> fileDataID %d 已映射。"
   L["Usage: /res unmap <spellID>"] = "用法：/res unmap <spellID>"
   L["Unmapped spellID %d."] = "spellID %d 映射已移除。"
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "用法：/res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    '用法：/res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "'%s' 的覆盖 -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "用法：/res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = '用法：/res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "'%s' 的覆盖已清除"
   L["Usage: /res testspell <spellID>"] = "用法：/res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "测试音效：%s（spellID %d）"
@@ -2325,7 +2653,8 @@ elseif locale == "zhCN" then
   L["Type /res diag for library diagnostics."] = "输入 /res diag 进行库诊断。"
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "静音生物叫声"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "按生物类别大幅减少怪物的攻击、受伤、死亡和仇恨音效。覆盖范围有限——部分生物仍可能被听到。"
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "按生物类别大幅减少怪物的攻击、受伤、死亡和仇恨音效。覆盖范围有限——部分生物仍可能被听到。"
   L["Muted %d creature vocalization sounds."] = "已静音 %d 个生物叫声。"
   L["Cleared %d creature vocalization mutes."] = "已取消 %d 个生物叫声静音。"
   L["Beast"] = "野兽"
@@ -2337,8 +2666,10 @@ elseif locale == "zhCN" then
   L["Mechanical"] = "机械"
   -- Profession sounds
   L["Mute profession sounds"] = "静音专业技能音效"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "按专业技能分类静音制造、采集及其他专业技能相关音效。"
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "注意：某些音效在多个法术和效果中共享。为某一功能（如专业技能）静音后，该音效在游戏中其他出现的地方也会被静音。"
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "按专业技能分类静音制造、采集及其他专业技能相关音效。"
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "注意：某些音效在多个法术和效果中共享。为某一功能（如专业技能）静音后，该音效在游戏中其他出现的地方也会被静音。"
   L["Muted %d profession sounds."] = "已静音 %d 个专业技能音效。"
   L["Cleared %d profession sound mutes."] = "已清除 %d 个专业技能音效静音。"
   L["Alchemy"] = "炼金术"
@@ -2364,25 +2695,32 @@ elseif locale == "zhCN" then
   L["Set"] = "设置"
   L["Current: "] = "当前："
   L["Loop"] = "循环"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "重复播放声音直到下次施法。需要设置持续时间。"
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "重复播放声音直到下次施法。需要设置持续时间。"
   L["Precast Sound"] = "预施法声音"
   L["Cast Complete Sound"] = "施法完成声音"
   L["Loading spell data..."] = "正在加载法术数据..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "被打断时播放声音"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "当你的施法被其他玩家或NPC打断时播放自定义警报声音。"
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "当你的施法被其他玩家或NPC打断时播放自定义警报声音。"
   L["Alert sound (FID or file path)"] = "警报声音（FID或文件路径）"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID（数字）或声音文件路径，例如：Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID（数字）或声音文件路径，例如：Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "持续时间限制（秒）"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "在此秒数后停止警报声音。留空则完整播放。"
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "在此秒数后停止警报声音。留空则完整播放。"
   L["Test"] = "测试"
   L["Play the configured interrupt alert sound."] = "播放已配置的打断警报声音。"
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "当你的施法被打断时播放额外的警报声音。这不会静音或替换游戏默认的打断声音——它在其之上播放。"
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "当你的施法被打断时播放额外的警报声音。这不会静音或替换游戏默认的打断声音——它在其之上播放。"
   L["Play the configured replacement fishing bobber sound."] = "播放已配置的替换钓鱼浮标声音。"
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。你也可以使用自己的声音文件——将它们放在Interface/AddOns/Resonance_Sounds/文件夹中（创建此文件夹）以防止插件更新时丢失，然后输入完整路径作为替换声音。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。你也可以使用自己的声音文件——将它们放在Interface/AddOns/Resonance_Sounds/文件夹中（创建此文件夹）以防止插件更新时丢失，然后输入完整路径作为替换声音。"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "按区域静音环境声音"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "静音特定区域的环境声音。适用于消除烦人的嗡嗡声、光束声或压抑的环境音效。"
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "静音特定区域的环境声音。适用于消除烦人的嗡嗡声、光束声或压抑的环境音效。"
   L["Search individual sounds:"] = "搜索单个声音："
   L["e.g. silvermoon, maw, beam, wind..."] = "例如：silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "按区域静音："
@@ -2391,17 +2729,25 @@ elseif locale == "zhCN" then
   L["Cleared %d ambient sound mutes."] = "已清除%d个环境声音静音。"
   L["%d zones, %d sounds"] = "%d个区域，%d个声音"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "加载内置职业预设或你自己保存的配置。每个预设包含法术声音设置和手动静音。"
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "加载内置职业预设或你自己保存的配置。每个预设包含法术声音设置和手动静音。"
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data已禁用。在插件菜单（Esc > 插件）中启用它并/reload以访问声音配置。"
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "未找到Resonance Data模块。重新安装Resonance以恢复完整功能。"
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data已禁用。在插件菜单（Esc > 插件）中启用它并/reload以访问声音配置。"
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "未找到Resonance Data模块。重新安装Resonance以恢复完整功能。"
   L["Could not load Resonance Data: %s"] = "无法加载Resonance Data：%s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。"
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "按类型浏览和静音单个声音。搜索法术声音、角色语音、NPC声音，或直接输入FileDataID。"
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "切换功能，配置钓鱼和打断警报声音，选择替换声音频道。"
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "配置要静音的游戏声音类别：武器冲击声、语音、生物声音和专业技能音效。"
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "管理已保存的配置文件。在角色之间复制设置或切换配置。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。"
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "按类型浏览和静音单个声音。搜索法术声音、角色语音、NPC声音，或直接输入FileDataID。"
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "切换功能，配置钓鱼和打断警报声音，选择替换声音频道。"
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "配置要静音的游戏声音类别：武器冲击声、语音、生物声音和专业技能音效。"
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "管理已保存的配置文件。在角色之间复制设置或切换配置。"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "地心之战"
@@ -2415,27 +2761,35 @@ elseif locale == "zhCN" then
 ---------------------------------------------------------------------------
 elseif locale == "zhTW" then
   L["Enable Resonance"] = "啟用 Resonance"
-  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] = "開啟/關閉插件。停用時，所有靜音會被移除，自訂法術音效不會播放。"
+  L["Toggle the addon on/off. When disabled, all sound mutes are removed and no custom spell sounds play."] =
+    "開啟/關閉插件。停用時，所有靜音會被移除，自訂法術音效不會播放。"
   L["Debug mode (print casts to chat)"] = "除錯模式（在聊天中顯示施法資訊）"
-  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] = "每次施法時在聊天中顯示法術詳情（名稱、ID）。用於尋找要設定的法術ID。"
+  L["Print spell cast details (name, ID) to chat on each cast. Useful for finding spell IDs to configure."] =
+    "每次施法時在聊天中顯示法術詳情（名稱、ID）。用於尋找要設定的法術ID。"
   L["Show minimap button"] = "顯示小地圖按鈕"
-  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] = "在小地圖上顯示按鈕。左鍵點擊開啟選項，右鍵點擊開關，拖曳移動。"
+  L["Show a minimap button. Left-click opens options, right-click toggles addon on/off, drag to reposition."] =
+    "在小地圖上顯示按鈕。左鍵點擊開啟選項，右鍵點擊開關，拖曳移動。"
   L["Mute weapon impact sounds"] = "靜音武器打擊聲"
-  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] = "靜音所有武器打擊和揮擊聲音。全域套用，不受武器類型影響。注意：無法替換為經典聲音——自動攻擊不會觸發可偵測的插件事件。"
+  L["Mute all weapon impact and swing sounds (the melee hit thwack/clang). Applies globally regardless of weapon type. Note: replacing with classic sounds is not possible — auto-attacks do not fire detectable addon events."] =
+    "靜音所有武器打擊和揮擊聲音。全域套用，不受武器類型影響。注意：無法替換為經典聲音——自動攻擊不會觸發可偵測的插件事件。"
   L["Classic auto-shot sounds (Hunter)"] = "經典自動射擊聲音（獵人）"
-  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] = "用經典聲音替換現代弓和槍的自動射擊聲音。自動偵測裝備的武器類型（弓/弩或槍械）。"
+  L["Replace modern bow and gun auto-shot sounds with classic ones. Automatically detects your equipped weapon type (bow/crossbow or gun)."] =
+    "用經典聲音替換現代弓和槍的自動射擊聲音。自動偵測裝備的武器類型（弓/弩或槍械）。"
   L["Muted %d auto-shot sounds."] = "已靜音 %d 個自動射擊聲音。"
   L["Cleared %d auto-shot mutes."] = "已清除 %d 個自動射擊靜音。"
   L["Replace fishing bobber sound"] = "替換釣魚浮標聲音"
-  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] = "靜音現代釣魚浮標濺水聲，在釣到魚時播放替換聲音。預設使用經典FishBite聲音——在下方輸入自訂FileDataID或插件檔案路徑以使用其他聲音。"
+  L["Mute the modern fishing bobber splash and play a replacement sound when you catch a fish. Uses the classic FishBite sound by default — enter a custom FileDataID or addon file path below to use a different sound."] =
+    "靜音現代釣魚浮標濺水聲，在釣到魚時播放替換聲音。預設使用經典FishBite聲音——在下方輸入自訂FileDataID或插件檔案路徑以使用其他聲音。"
   L["Muted %d fishing bobber sounds."] = "已靜音 %d 個釣魚浮標聲音。"
   L["Cleared %d fishing bobber mutes."] = "已清除 %d 個釣魚浮標靜音。"
   L["Replacement sound"] = "替換聲音"
-  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] = "經典播放原始FishBite聲音。自訂允許輸入任意FileDataID或插件檔案路徑。"
+  L["Classic plays the original FishBite sound. Custom lets you enter any FileDataID or addon file path."] =
+    "經典播放原始FishBite聲音。自訂允許輸入任意FileDataID或插件檔案路徑。"
   L["Classic (FishBite)"] = "經典 (FishBite)"
   L["Custom"] = "自訂"
   L["Custom sound"] = "自訂聲音"
-  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] = "FileDataID（數字）或插件檔案路徑（例如 Interface\\AddOns\\MyAddon\\sound.ogg）。"
+  L["FileDataID (number) or addon file path (e.g. Interface\\AddOns\\MyAddon\\sound.ogg)."] =
+    "FileDataID（數字）或插件檔案路徑（例如 Interface\\AddOns\\MyAddon\\sound.ogg）。"
   L["Preview"] = "預覽"
   L["NPC"] = "NPC"
   L["Search NPC by name..."] = "按名稱搜尋NPC..."
@@ -2444,12 +2798,14 @@ elseif locale == "zhTW" then
   L["Muted %d NPC sounds."] = "已靜音 %d 個NPC聲音。"
   L["Cleared %d NPC sound mutes."] = "已清除 %d 個NPC靜音。"
   L["Mute character vocalizations"] = "靜音角色語音"
-  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] = "靜音戰鬥吼叫、吶喊和用力聲。'自己的'靜音你的種族/性別，'所有種族'靜音遊戲中所有種族/性別。"
+  L["Mute combat grunts, shouts, and exertion sounds. 'Mine' mutes your own race/gender, 'All races' mutes every race/gender in the game."] =
+    "靜音戰鬥吼叫、吶喊和用力聲。'自己的'靜音你的種族/性別，'所有種族'靜音遊戲中所有種族/性別。"
   L["Off"] = "關閉"
   L["Mine"] = "自己的"
   L["All races"] = "所有種族"
   L["Replacement sound channel"] = "替換音效頻道"
-  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] = "在哪個音訊頻道播放替換音效。使用'Master'可以始終聽到，不受其他音量滑桿影響。"
+  L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."] =
+    "在哪個音訊頻道播放替換音效。使用'Master'可以始終聽到，不受其他音量滑桿影響。"
   L["Left-click: Open options"] = "左鍵點擊：開啟選項"
   L["Right-click: Toggle on/off"] = "右鍵點擊：開啟/關閉"
   L["Drag: Move button"] = "拖曳：移動按鈕"
@@ -2463,7 +2819,8 @@ elseif locale == "zhTW" then
   L["Cleared %d weapon impact mutes."] = "已清除 %d 個武器打擊聲靜音。"
   L["Applied %d sound mutes."] = "已套用 %d 個音效靜音。"
   L["Cleared %d sound mutes."] = "已清除 %d 個音效靜音。"
-  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] = "已載入。輸入 /res 或前往 Esc > 選項 > 插件 > Resonance。"
+  L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."] =
+    "已載入。輸入 /res 或前往 Esc > 選項 > 插件 > Resonance。"
   L["Options panel not loaded."] = "選項面板未載入。"
   L["%d new template spell(s) auto-added."] = "%d 個新範本法術已自動新增。"
   L["General"] = "一般"
@@ -2543,7 +2900,8 @@ elseif locale == "zhTW" then
   L["Mute"] = "靜音"
   L["Re-muted FID %d"] = "FID %d 已重新靜音"
   L["Unmuted FID %d"] = "FID %d 已取消靜音"
-  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] = "載入內建職業預設或你儲存的設定。內建預設是精心挑選的替換方案，將過於嘈雜或重複的現代法術音效替換為更柔和的經典替代音效。"
+  L["Load built-in class presets or your own saved configurations. Built-in presets are hand-picked replacements that swap overly loud or repetitive modern spell sounds with subtler classic alternatives."] =
+    "載入內建職業預設或你儲存的設定。內建預設是精心挑選的替換方案，將過於嘈雜或重複的現代法術音效替換為更柔和的經典替代音效。"
   L["Save Current Config"] = "儲存目前設定"
   L["Import"] = "匯入"
   L["Export Full Profile"] = "匯出完整設定檔"
@@ -2570,8 +2928,10 @@ elseif locale == "zhTW" then
   L["Saved current config as preset '%s'."] = "目前設定已儲存為預設 '%s'。"
   L["Deleted preset '%s'."] = "預設 '%s' 已刪除。"
   L["Removed %d preset spells from '%s'."] = "%d 個預設法術已從 '%s' 中移除。"
-  L["Preset '%s' applied: %d spells added, %d skipped."] = "預設 '%s' 已套用：新增 %d 個法術，跳過 %d 個。"
-  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] = "預設 '%s' 已套用：%d 個法術，新增 %d 個靜音（跳過 %d 個）。"
+  L["Preset '%s' applied: %d spells added, %d skipped."] =
+    "預設 '%s' 已套用：新增 %d 個法術，跳過 %d 個。"
+  L["Preset '%s' applied: %d spells, %d mutes added (%d skipped)."] =
+    "預設 '%s' 已套用：%d 個法術，新增 %d 個靜音（跳過 %d 個）。"
   L["Removed %d preset spells."] = "已移除 %d 個預設法術。"
   L["%d spells, %d mutes."] = "%d 個法術，%d 個靜音。"
   L["%d spells, %d manual mutes (all classes)."] = "%d 個法術，%d 個手動靜音（所有職業）。"
@@ -2580,7 +2940,8 @@ elseif locale == "zhTW" then
   L["(none)"] = "（無）"
   L["%d spells"] = "%d 個法術"
   L["(%d active)"] = "（%d 個已啟用）"
-  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] = "已從 CastSoundsDB 遷移設定。你可以停用舊的 CastSounds 插件。"
+  L["Migrated settings from CastSoundsDB. You can disable the old CastSounds addon."] =
+    "已從 CastSoundsDB 遷移設定。你可以停用舊的 CastSounds 插件。"
   L["Empty import string."] = "匯入字串為空。"
   L["Invalid format: missing !Resonance! prefix."] = "格式無效：缺少 !Resonance! 前綴。"
   L["Failed to decode import string."] = "解碼匯入字串失敗。"
@@ -2598,9 +2959,10 @@ elseif locale == "zhTW" then
   L["Mapped spellID %d -> fileDataID %d."] = "spellID %d -> fileDataID %d 已映射。"
   L["Usage: /res unmap <spellID>"] = "用法：/res unmap <spellID>"
   L["Unmapped spellID %d."] = "spellID %d 映射已移除。"
-  L["Usage: /res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"] = "用法：/res override \"Mortal Strike\" sounds/vanilla/Mortal Strike.wav"
+  L['Usage: /res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'] =
+    '用法：/res override "Mortal Strike" sounds/vanilla/Mortal Strike.wav'
   L["Override for '%s' -> %s"] = "'%s' 的覆蓋 -> %s"
-  L["Usage: /res clearoverride \"Mortal Strike\""] = "用法：/res clearoverride \"Mortal Strike\""
+  L['Usage: /res clearoverride "Mortal Strike"'] = '用法：/res clearoverride "Mortal Strike"'
   L["Cleared override for '%s'"] = "'%s' 的覆蓋已清除"
   L["Usage: /res testspell <spellID>"] = "用法：/res testspell <spellID>"
   L["Testing sound for: %s (spellID %d)"] = "測試音效：%s（spellID %d）"
@@ -2614,7 +2976,8 @@ elseif locale == "zhTW" then
   L["Type /res diag for library diagnostics."] = "輸入 /res diag 進行程式庫診斷。"
   -- Creature vocalizations
   L["Mute creature vocalizations"] = "靜音生物叫聲"
-  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] = "按生物類別大幅減少怪物的攻擊、受傷、死亡和仇恨音效。覆蓋範圍有限——部分生物仍可能被聽到。"
+  L["Significantly reduces monster attack grunts, injury, death, and aggro sounds by creature category. Coverage varies — some creatures may still be heard."] =
+    "按生物類別大幅減少怪物的攻擊、受傷、死亡和仇恨音效。覆蓋範圍有限——部分生物仍可能被聽到。"
   L["Muted %d creature vocalization sounds."] = "已靜音 %d 個生物叫聲。"
   L["Cleared %d creature vocalization mutes."] = "已取消 %d 個生物叫聲靜音。"
   L["Beast"] = "野獸"
@@ -2626,8 +2989,10 @@ elseif locale == "zhTW" then
   L["Mechanical"] = "機械"
   -- Profession sounds
   L["Mute profession sounds"] = "靜音專業技能音效"
-  L["Mute crafting, gathering, and other profession-related sounds by profession."] = "按專業技能分類靜音製造、採集及其他專業技能相關音效。"
-  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] = "注意：某些音效在多個法術和效果中共用。為某一功能（如專業技能）靜音後，該音效在遊戲中其他出現的地方也會被靜音。"
+  L["Mute crafting, gathering, and other profession-related sounds by profession."] =
+    "按專業技能分類靜音製造、採集及其他專業技能相關音效。"
+  L["Note: Some sounds are shared across multiple spells and effects. Muting a sound for one feature (e.g. a profession) will also silence it wherever else it plays in the game."] =
+    "注意：某些音效在多個法術和效果中共用。為某一功能（如專業技能）靜音後，該音效在遊戲中其他出現的地方也會被靜音。"
   L["Muted %d profession sounds."] = "已靜音 %d 個專業技能音效。"
   L["Cleared %d profession sound mutes."] = "已清除 %d 個專業技能音效靜音。"
   L["Alchemy"] = "煉金術"
@@ -2653,25 +3018,32 @@ elseif locale == "zhTW" then
   L["Set"] = "設定"
   L["Current: "] = "目前："
   L["Loop"] = "循環"
-  L["Repeat the sound until the next cast. Requires a duration to be set."] = "重複播放聲音直到下次施法。需要設定持續時間。"
+  L["Repeat the sound until the next cast. Requires a duration to be set."] =
+    "重複播放聲音直到下次施法。需要設定持續時間。"
   L["Precast Sound"] = "預施法聲音"
   L["Cast Complete Sound"] = "施法完成聲音"
   L["Loading spell data..."] = "正在載入法術資料..."
   -- Interrupt alert
   L["Play sound when interrupted"] = "被打斷時播放聲音"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] = "當你的施法被其他玩家或NPC打斷時播放自訂警示聲音。"
+  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
+    "當你的施法被其他玩家或NPC打斷時播放自訂警示聲音。"
   L["Alert sound (FID or file path)"] = "警示聲音（FID或檔案路徑）"
-  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] = "FileDataID（數字）或聲音檔案路徑，例如：Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
+  L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
+    "FileDataID（數字）或聲音檔案路徑，例如：Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
   L["Duration cutoff (seconds)"] = "持續時間限制（秒）"
-  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] = "在此秒數後停止警示聲音。留空則完整播放。"
+  L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
+    "在此秒數後停止警示聲音。留空則完整播放。"
   L["Test"] = "測試"
   L["Play the configured interrupt alert sound."] = "播放已設定的打斷警示聲音。"
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] = "當你的施法被打斷時播放額外的警示聲音。這不會靜音或替換遊戲預設的打斷聲音——它在其之上播放。"
+  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
+    "當你的施法被打斷時播放額外的警示聲音。這不會靜音或替換遊戲預設的打斷聲音——它在其之上播放。"
   L["Play the configured replacement fishing bobber sound."] = "播放已設定的替換釣魚浮標聲音。"
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] = "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。你也可以使用自己的聲音檔案——將它們放在Interface/AddOns/Resonance_Sounds/資料夾中（建立此資料夾）以防止插件更新時遺失，然後輸入完整路徑作為替換聲音。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
+    "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。你也可以使用自己的聲音檔案——將它們放在Interface/AddOns/Resonance_Sounds/資料夾中（建立此資料夾）以防止插件更新時遺失，然後輸入完整路徑作為替換聲音。"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "按區域靜音環境聲音"
-  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] = "靜音特定區域的環境聲音。適用於消除煩人的嗡嗡聲、光束聲或壓迫性的環境音效。"
+  L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
+    "靜音特定區域的環境聲音。適用於消除煩人的嗡嗡聲、光束聲或壓迫性的環境音效。"
   L["Search individual sounds:"] = "搜尋個別聲音："
   L["e.g. silvermoon, maw, beam, wind..."] = "例如：silvermoon, maw, beam, wind..."
   L["Mute by zone:"] = "按區域靜音："
@@ -2680,17 +3052,25 @@ elseif locale == "zhTW" then
   L["Cleared %d ambient sound mutes."] = "已清除%d個環境聲音靜音。"
   L["%d zones, %d sounds"] = "%d個區域，%d個聲音"
   -- Presets tab
-  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] = "載入內建職業預設或你自己儲存的設定。每個預設包含法術聲音設定和手動靜音。"
+  L["Load built-in class presets or your own saved configurations. Each preset contains spell sound settings and manual mutes."] =
+    "載入內建職業預設或你自己儲存的設定。每個預設包含法術聲音設定和手動靜音。"
   -- Data loading
-  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] = "Resonance Data已停用。在插件選單（Esc > 插件）中啟用它並/reload以存取聲音設定。"
-  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] = "找不到Resonance Data模組。重新安裝Resonance以恢復完整功能。"
+  L["Resonance Data is disabled. Enable it in the AddOns menu (Esc > AddOns) and /reload to access sound configuration."] =
+    "Resonance Data已停用。在插件選單（Esc > 插件）中啟用它並/reload以存取聲音設定。"
+  L["Resonance Data module not found. Reinstall Resonance to restore full functionality."] =
+    "找不到Resonance Data模組。重新安裝Resonance以恢復完整功能。"
   L["Could not load Resonance Data: %s"] = "無法載入Resonance Data：%s"
   -- Tab heading descriptions
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] = "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。"
-  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] = "按類型瀏覽和靜音個別聲音。搜尋法術聲音、角色語音、NPC聲音，或直接輸入FileDataID。"
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] = "切換功能，設定釣魚和打斷警示聲音，選擇替換聲音頻道。"
-  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] = "設定要靜音的遊戲聲音類別：武器衝擊聲、語音、生物聲音和專業技能音效。"
-  L["Manage saved profiles. Copy settings between characters or switch configurations."] = "管理已儲存的設定檔。在角色之間複製設定或切換設定。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。"
+  L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
+    "按類型瀏覽和靜音個別聲音。搜尋法術聲音、角色語音、NPC聲音，或直接輸入FileDataID。"
+  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
+    "切換功能，設定釣魚和打斷警示聲音，選擇替換聲音頻道。"
+  L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
+    "設定要靜音的遊戲聲音類別：武器衝擊聲、語音、生物聲音和專業技能音效。"
+  L["Manage saved profiles. Copy settings between characters or switch configurations."] =
+    "管理已儲存的設定檔。在角色之間複製設定或切換設定。"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "地心之戰"

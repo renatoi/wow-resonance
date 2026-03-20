@@ -12,6 +12,9 @@ ignore:
   - "*.zip"
   - __pycache__
   - .gitignore
+  - .luacheckrc
+  - stylua.toml
+  - Makefile
   - README.md
   - LISTING.md
   - LICENSE

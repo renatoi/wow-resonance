@@ -183,8 +183,6 @@ Resonance_ClassicSpellSounds = {
   [5176] = { 568516, 569031, 569767 },
   -- Starsurge (retail: 197626, name-matched to 417157 — verify!)
   [417157] = { 568128, 568377, 568420, 568493, 568542, 568843, 568938, 569145, 569304, 569361, 569766 },
-  -- Starsurge (retail: 78674, name-matched to 417157 — verify!)
-  [417157] = { 568128, 568377, 568420, 568493, 568542, 568843, 568938, 569145, 569304, 569361, 569766 },
   -- Moonfire
   [8921] = { 569023, 569766 },
   -- Starfire (retail: 194153, name-matched to 2912 — verify!)

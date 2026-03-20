@@ -9,11 +9,17 @@ Repetitive game sounds can be a real problem for players with sensory hypersensi
 ## Features
 
 - **Per-spell sound replacement** -- Replace any spell's sound with a different one (Vanilla/TBC/Wrath era sounds, or any FileDataID)
+- **Cast phase triggers** -- Choose when replacement sounds play: on cast complete, cast bar start (precast), or both
+- **Sound duration & looping** -- Limit playback length or loop sounds continuously
+- **Interrupt alert** -- Play a custom alert sound when your cast is interrupted by an enemy
 - **Auto-muting** -- When you configure a replacement sound, the original spell sounds are automatically muted
 - **Character vocalization muting** -- Silence your own combat grunts, shouts, and exertion sounds (or all player races)
 - **Creature vocalization muting** -- Mute monster attack/injury/death sounds by category (Beasts, Demons, Dragons, etc.) or individual creature type (spiders, murlocs, raptors, etc.)
+- **Ambient sound muting** -- Mute ambient sounds by zone with per-zone toggles, or search and mute individual ambient sounds
+- **Per-NPC sound muting** -- Mute sounds from specific NPCs
 - **Weapon impact muting** -- Mute melee hit and swing sounds
-- **Sound browser** -- Search through thousands of available spell and character sounds with preview playback
+- **Profession sound muting** -- Mute crafting, gathering, and other profession-related sounds per profession
+- **Sound browser** -- Search through thousands of available spell and character sounds with autocomplete and preview playback
 - **Class presets** -- Built-in sound configurations for every class, auto-updated when templates improve
 - **Profile support** -- Save different configurations and switch between them
 
@@ -36,8 +42,10 @@ Open settings from the game menu (**Esc > Options > AddOns > Resonance**) or typ
 
 | Tab | What it does |
 |---|---|
-| **General** | Toggle the addon, debug mode, vocalization muting, creature muting, weapon muting, sound channel |
-| **Spell Sounds** | Add/edit per-spell sound replacements with search and preview |
+| **General** | Toggle the addon, debug mode, sound channel, interrupt alert |
+| **Spell Sounds** | Add/edit per-spell sound replacements with cast phase triggers, duration, and looping |
+| **Muting** | Character vocalizations, creature vocalizations, weapon impacts, professions, per-NPC sounds |
+| **Ambient** | Mute ambient sounds by zone or search individual ambient sounds |
 | **Muted Sounds** | Manage manually muted FileDataIDs |
 | **Presets** | Apply built-in class presets or save/load your own |
 | **Profiles** | Create, copy, or reset setting profiles |
@@ -69,28 +77,35 @@ Open settings from the game menu (**Esc > Options > AddOns > Resonance**) or typ
 ### Project structure
 
 ```
-Resonance.toc          -- Addon manifest
-Core.lua               -- Event handling, sound playback, mute management
-Options.lua            -- Settings UI (AceConfig + custom spell editor)
-Locales.lua            -- Localization strings (10 languages)
-embeds.xml             -- Ace library loader
+Resonance.toc            -- Addon manifest (core)
+Resonance_Data.toc       -- LoadOnDemand data manifest
+Core.lua                 -- Event handling, sound playback, mute management
+Options.lua              -- Settings UI (AceConfig + custom spell editor)
+Locales.lua              -- Localization strings (10 languages)
+embeds.xml               -- Ace library loader
 data/
-  SpellSounds.lua      -- Searchable database of spell sound paths + FileDataIDs
-  CharacterSounds.lua  -- Searchable database of character/emote sounds
-  ClassTemplates.lua   -- Built-in class presets (spells across 11 classes)
-  SpellMuteData.lua    -- Auto-generated: spell->FileDataID mute mappings,
-                         vocalization data, weapon impact data
-  CreatureVoxData.lua  -- Auto-generated: creature vocalization mute mappings
+  SpellSounds.lua        -- Searchable database of spell sound paths + FileDataIDs
+  CharacterSounds.lua    -- Searchable database of character/emote sounds
+  ClassTemplates.lua     -- Built-in class presets (spells across 11 classes)
+  SpellMuteData.lua      -- Auto-generated: spell->FileDataID mute mappings,
+                           vocalization data, weapon impact data
+  CreatureVoxData.lua    -- Auto-generated: creature vocalization mute mappings
+  NPCSoundData.lua       -- Auto-generated: NPC sound data for per-NPC muting
+  ProfessionSoundData.lua -- Auto-generated: profession sound FIDs
+  AmbientSoundData.lua   -- Auto-generated: ambient sound data by zone
   ClassicSpellSounds.lua -- Reference: spellID -> classic-era sound FIDs
-                         (not loaded at runtime, used for template development)
+                           (not loaded at runtime, used for template development)
 docs/
   creature-sound-architecture.md -- Research on WoW's creature sound system
-libs/                  -- Embedded Ace3 framework + LibDBIcon + LibDataBroker
-sounds/                -- Bundled fallback sound files
+libs/                    -- Embedded Ace3 framework + LibDBIcon + LibDataBroker
+sounds/                  -- Bundled fallback sound files
 tools/
-  spell_sounds.py      -- DB2 chain walker + data generation script
-  compact_mute_data.py -- Compacts SpellMuteData.lua for smaller file size
-build.py               -- Build/deploy script
+  spell_sounds.py        -- DB2 chain walker + data generation script
+  compact_mute_data.py   -- Compacts SpellMuteData.lua for smaller file size
+  update_wow_globals.py  -- Downloads latest WoW API globals for luacheck
+  generate_ambient_data.lua -- Generates AmbientSoundData.lua
+  verify_classic_sounds.py -- Verifies classic sound FID mappings
+build.py                 -- Build/deploy script
 ```
 
 ### Sound mute architecture
@@ -102,7 +117,11 @@ The addon maintains four independent mute layers, each tracking which FileDataID
 | Manual mutes | `db.mute_file_data_ids` (saved) | User-added FileDataIDs via `/res muteadd` or the UI |
 | Auto-mutes | `autoMutedFIDs` (runtime, refcounted) | Spell sounds muted when a replacement sound is configured |
 | Character vox | `voxMutedFIDs` (runtime) | Player race/gender vocalization sounds |
+| Creature vox | `creatureMutedFIDs` (runtime) | Creature vocalization sounds by category |
 | Weapon impacts | `weaponMutedFIDs` (runtime) | All weapon hit/swing sounds |
+| Professions | `professionMutedFIDs` (runtime) | Profession crafting/gathering sounds |
+| NPC sounds | `npcMutedFIDs` (runtime) | Per-NPC sound muting |
+| Ambient | `ambientMutedFIDs` (runtime) | Ambient zone sounds |
 
 When unmuting from one layer, the code checks all other layers before calling `UnmuteSoundFile()` to avoid accidentally unmuting a FID that another layer still wants muted. WoW's `MuteSoundFile` API is refcounted internally, so the addon is careful to call `MuteSoundFile`/`UnmuteSoundFile` symmetrically.
 
@@ -172,6 +191,29 @@ python spell_sounds.py --clear-cache
 Build aliases: `retail` (default), `mop` (MoP Classic 5.5.x), `cata` (Cataclysm Classic 3.80.x), `classic` (Classic Era 1.15.x). Each build's CSV cache is stored separately under `tools/.db2_cache/<version>/`.
 
 The `SpellSounds.lua` and `CharacterSounds.lua` files are sourced from [Leatrix Sounds](https://www.curseforge.com/wow/addons/leatrix-sounds) -- these provide the browsable sound library in the addon's UI.
+
+### Linting & formatting
+
+The project uses [luacheck](https://github.com/lunarmodules/luacheck) for linting and [StyLua](https://github.com/JohnnyMorganz/StyLua) for formatting. WoW API globals are downloaded from [LiangYuxuan/wow-addon-luacheckrc](https://github.com/LiangYuxuan/wow-addon-luacheckrc) (auto-updated daily from Blizzard's interface source).
+
+```bash
+# Install tools (macOS)
+brew install luacheck stylua
+
+# Download/update WoW API globals
+make update-globals
+
+# Run linter (auto-downloads globals if missing)
+make lint
+
+# Check formatting
+make format-check
+
+# Auto-format
+make format
+```
+
+CI runs both checks on every push and PR via `.github/workflows/lint.yml`.
 
 ### Building
 
