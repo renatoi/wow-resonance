@@ -2511,6 +2511,28 @@ function Resonance:OnEnable()
       end
     end
   end
+
+  -- Clear stale snapshot mutes from previous sessions for disabled features.
+  -- If a feature was disabled between sessions, its snapshot FIDs are still
+  -- muted in WoW's internal state. Drain them now.
+  local snapshotKeys = {
+    { flag = "muteWeaponImpacts",  key = "_lastWeaponMutedFIDs" },
+    { flag = nil, flagFn = function() return getVoxMode() ~= "off" end, key = "_lastVoxMutedFIDs" },
+    { flag = nil, flagFn = hasAnyCreatureVoxEnabled, key = "_lastCreatureMutedFIDs" },
+    { flag = nil, flagFn = hasAnyProfessionMuteEnabled, key = "_lastProfessionMutedFIDs" },
+    { flag = nil, flagFn = hasAnyNPCMuteEnabled, key = "_lastNPCMutedFIDs" },
+    { flag = nil, flagFn = hasAnyAmbientMuteEnabled, key = "_lastAmbientMutedFIDs" },
+  }
+  for _, entry in ipairs(snapshotKeys) do
+    local active = entry.flag and db[entry.flag] or (entry.flagFn and entry.flagFn())
+    if not active and db[entry.key] then
+      for fid in pairs(db[entry.key]) do
+        for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+      end
+      wipe(db[entry.key])
+    end
+  end
+
   msg(L["Loaded. Type /res or go to Esc > Options > Addons > Resonance."])
 end
 
@@ -2784,6 +2806,38 @@ function Resonance:ChatCommand(input)
     local name = getSpellName(sid) or ""
     msg(L["Testing sound for: %s (spellID %d)"]:format(name ~= "" and name or "<?>", sid))
     playResolvedSound(sid, name)
+  elseif cmd == "checkfid" then
+    local fid = tonumber(rest)
+    if not fid then msg("Usage: /res checkfid <fileDataID>"); return end
+    msg("=== Checking FID " .. fid .. " ===")
+    local sources = {}
+    if db.mute_file_data_ids and db.mute_file_data_ids[fid] then sources[#sources + 1] = "Manual mute (mute_file_data_ids)" end
+    if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then sources[#sources + 1] = "Auto-muted (spell config, refcount=" .. autoMutedFIDs[fid] .. ")" end
+    if voxMutedFIDs[fid] then sources[#sources + 1] = "Vocalization mute" end
+    if weaponMutedFIDs[fid] then sources[#sources + 1] = "Weapon impact mute" end
+    if creatureMutedFIDs[fid] then sources[#sources + 1] = "Creature vocalization mute" end
+    if autoShotMutedFIDs[fid] then sources[#sources + 1] = "Auto-shot mute" end
+    if professionMutedFIDs[fid] then sources[#sources + 1] = "Profession mute" end
+    if npcMutedFIDs[fid] then sources[#sources + 1] = "NPC mute" end
+    if ambientMutedFIDs[fid] then sources[#sources + 1] = "Ambient mute" end
+    -- Check snapshots
+    if db._lastWeaponMutedFIDs and db._lastWeaponMutedFIDs[fid] then sources[#sources + 1] = "Stale weapon snapshot" end
+    if db._lastVoxMutedFIDs and db._lastVoxMutedFIDs[fid] then sources[#sources + 1] = "Stale vox snapshot" end
+    if db._lastCreatureMutedFIDs and db._lastCreatureMutedFIDs[fid] then sources[#sources + 1] = "Stale creature snapshot" end
+    if db._lastProfessionMutedFIDs and db._lastProfessionMutedFIDs[fid] then sources[#sources + 1] = "Stale profession snapshot" end
+    if db._lastNPCMutedFIDs and db._lastNPCMutedFIDs[fid] then sources[#sources + 1] = "Stale NPC snapshot" end
+    if db._lastAmbientMutedFIDs and db._lastAmbientMutedFIDs[fid] then sources[#sources + 1] = "Stale ambient snapshot" end
+    if db._lastAutoMutedFIDs and db._lastAutoMutedFIDs[fid] then sources[#sources + 1] = "Stale auto-mute snapshot" end
+    if #sources == 0 then
+      msg("  Not muted by Resonance. Try: /res testfid " .. fid)
+    else
+      for _, s in ipairs(sources) do msg("  MUTED by: " .. s) end
+    end
+    -- Force-unmute and test play
+    msg("  Force-unmuting and playing...")
+    for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+    local ok = PlaySoundFile(fid, "Master")
+    msg("  PlaySoundFile result: " .. tostring(ok))
   elseif cmd == "diag" then
     msg(L["=== Resonance Diagnostics ==="])
     local libs = {
