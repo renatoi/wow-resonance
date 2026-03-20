@@ -520,7 +520,7 @@ local subcategories = {}  -- name -> { category, panel, built }
 
 local SUB_NAMES = {
   "General", "Spell Sounds", "Muting", "Ambient",
-  "Muted Sounds", "Presets", "Profiles",
+  "Sound Browser", "Presets", "Profiles",
 }
 
 local function createSubPanel()
@@ -3158,7 +3158,7 @@ buildTab3_MutedSounds = function(ctx)
     local totalH = math.max(yOff, ROW_HEIGHT)
     muteListContainer:SetHeight(totalH)
     muteListEmpty:SetShown(yOff == 0)
-    recalcContentHeight(3)
+    recalcContentHeight(5)
   end
 
   setMuteMode("spells")
@@ -3646,7 +3646,7 @@ buildTab4_Presets = function(ctx)
     -- Remove All button
     presetRemoveAllBtn:SetShown(hasActivePresetSpells)
 
-    recalcContentHeight(5)
+    recalcContentHeight(6)
   end
 
   -- Save Current Config button
@@ -3662,7 +3662,7 @@ buildTab4_Presets = function(ctx)
       presetListAnchor:ClearAllPoints()
       presetListAnchor:SetPoint("TOPLEFT", presetSaveFrame, "BOTTOMLEFT", 0, -6)
     end
-    recalcContentHeight(5)
+    recalcContentHeight(6)
   end)
 
   presetSaveConfirmBtn:SetScript("OnClick", function()
@@ -3684,7 +3684,7 @@ buildTab4_Presets = function(ctx)
     presetSaveFrame:Hide()
     presetListAnchor:ClearAllPoints()
     presetListAnchor:SetPoint("TOPLEFT", presetSaveBtn, "BOTTOMLEFT", 0, -10)
-    recalcContentHeight(5)
+    recalcContentHeight(6)
   end)
 
   presetSaveNameBox:SetScript("OnEnterPressed", function() presetSaveConfirmBtn:Click() end)
@@ -4154,10 +4154,10 @@ local function buildSubcategoryContent(name, panel)
     return
   end
 
-  if name == "Muted Sounds" then
+  if name == "Sound Browser" then
     local sf, content = createScrollableContent(panel)
     ctx.mutedSoundsContent = content
-    ctx.contentFrames[3] = content
+    ctx.contentFrames[5] = content
     buildTab3_MutedSounds(ctx)
     -- Register mute dropdown for click-catcher management
     if ctx.muteDD then ctx.allDropdowns[#ctx.allDropdowns + 1] = ctx.muteDD end
@@ -4175,7 +4175,7 @@ local function buildSubcategoryContent(name, panel)
   if name == "Presets" then
     local sf, content = createScrollableContent(panel)
     ctx.presetsContent = content
-    ctx.contentFrames[5] = content
+    ctx.contentFrames[6] = content
     buildTab4_Presets(ctx)
     return
   end
@@ -4207,7 +4207,7 @@ function Resonance:SetupOptions()
           invalidateSpellCache()
           startBuildPlayerSpellCache()
           if ctx.refreshList then ctx.refreshList() end
-        elseif name == "Muted Sounds" then
+        elseif name == "Sound Browser" then
           if ctx.refreshMuteList then ctx.refreshMuteList() end
         elseif name == "Ambient" then
           if ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
@@ -4237,7 +4237,7 @@ function Resonance:SetupOptions()
   end
 
   -- Dropdown management: hide dropdowns when custom panels hide
-  for _, sname in ipairs({"Spell Sounds", "Muted Sounds", "Ambient"}) do
+  for _, sname in ipairs({"Spell Sounds", "Sound Browser", "Ambient"}) do
     if subcategories[sname] then
       subcategories[sname].panel:HookScript("OnHide", function()
         if ctx and ctx.allDropdowns then
@@ -4288,7 +4288,7 @@ Resonance.refreshVisibleOptionPanels = function()
   for name, entry in pairs(subcategories) do
     if entry.built and entry.panel:IsVisible() then
       if name == "Spell Sounds" and ctx.refreshList then ctx.refreshList() end
-      if name == "Muted Sounds" and ctx.refreshMuteList then ctx.refreshMuteList() end
+      if name == "Sound Browser" and ctx.refreshMuteList then ctx.refreshMuteList() end
       if name == "Presets" and ctx.refreshPresetList then ctx.refreshPresetList() end
       if name == "Ambient" and ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
     end

@@ -104,6 +104,7 @@ if locale == "ptBR" then
   L["General"] = "Geral"
   L["Spell Sounds"] = "Sons de Magias"
   L["Muted Sounds"] = "Sons Silenciados"
+  L["Sound Browser"] = "Explorador de Sons"
   L["Presets"] = "Predefinições"
   L["Profiles"] = "Perfis"
   -- Subcategory names
@@ -340,6 +341,7 @@ elseif locale == "deDE" then
   L["General"] = "Allgemein"
   L["Spell Sounds"] = "Zauberklänge"
   L["Muted Sounds"] = "Stummgeschaltete Klänge"
+  L["Sound Browser"] = "Klang-Suche"
   L["Presets"] = "Voreinstellungen"
   L["Profiles"] = "Profile"
   -- Subcategory names
@@ -569,6 +571,7 @@ elseif locale == "frFR" then
   L["General"] = "Général"
   L["Spell Sounds"] = "Sons de sorts"
   L["Muted Sounds"] = "Sons coupés"
+  L["Sound Browser"] = "Navigateur de sons"
   L["Presets"] = "Préréglages"
   L["Profiles"] = "Profils"
   -- Subcategory names
@@ -798,6 +801,7 @@ elseif locale == "esES" or locale == "esMX" then
   L["General"] = "General"
   L["Spell Sounds"] = "Sonidos de hechizos"
   L["Muted Sounds"] = "Sonidos silenciados"
+  L["Sound Browser"] = "Explorador de sonidos"
   L["Presets"] = "Predefinidos"
   L["Profiles"] = "Perfiles"
   -- Subcategory names
@@ -998,6 +1002,7 @@ elseif locale == "itIT" then
   L["General"] = "Generale"
   L["Spell Sounds"] = "Suoni incantesimi"
   L["Muted Sounds"] = "Suoni silenziati"
+  L["Sound Browser"] = "Sfoglia suoni"
   L["Presets"] = "Preset"
   L["Profiles"] = "Profili"
   -- Subcategory names
@@ -1226,6 +1231,7 @@ elseif locale == "ruRU" then
   L["General"] = "Общие"
   L["Spell Sounds"] = "Звуки заклинаний"
   L["Muted Sounds"] = "Приглушённые звуки"
+  L["Sound Browser"] = "Обозреватель звуков"
   L["Presets"] = "Шаблоны"
   L["Profiles"] = "Профили"
   -- Subcategory names
@@ -1454,6 +1460,7 @@ elseif locale == "koKR" then
   L["General"] = "일반"
   L["Spell Sounds"] = "주문 소리"
   L["Muted Sounds"] = "음소거된 소리"
+  L["Sound Browser"] = "사운드 브라우저"
   L["Presets"] = "프리셋"
   L["Profiles"] = "프로필"
   -- Subcategory names
@@ -1682,6 +1689,7 @@ elseif locale == "zhCN" then
   L["General"] = "常规"
   L["Spell Sounds"] = "法术音效"
   L["Muted Sounds"] = "已静音音效"
+  L["Sound Browser"] = "音效浏览器"
   L["Presets"] = "预设"
   L["Profiles"] = "配置文件"
   -- Subcategory names
@@ -1910,6 +1918,7 @@ elseif locale == "zhTW" then
   L["General"] = "一般"
   L["Spell Sounds"] = "法術音效"
   L["Muted Sounds"] = "已靜音音效"
+  L["Sound Browser"] = "音效瀏覽器"
   L["Presets"] = "預設"
   L["Profiles"] = "設定檔"
   -- Subcategory names
