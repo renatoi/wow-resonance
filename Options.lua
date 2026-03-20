@@ -519,8 +519,7 @@ local parentCategory
 local subcategories = {}  -- name -> { category, panel, built }
 
 local SUB_NAMES = {
-  "General", "Spell Sounds", "Combat Sounds", "Fishing",
-  "Vocalizations", "Interrupt", "Professions", "Ambient",
+  "General", "Spell Sounds", "Muting", "Ambient",
   "Muted Sounds", "Presets", "Profiles",
 }
 
@@ -4126,17 +4125,11 @@ local function buildSubcategoryContent(name, panel)
   Resonance.loadDataAddon()
 
   -- AceConfig-based panels
-  if name == "General" or name == "Combat Sounds" or name == "Fishing"
-     or name == "Vocalizations" or name == "Interrupt" or name == "Professions"
-     or name == "Profiles" then
+  if name == "General" or name == "Muting" or name == "Profiles" then
     local aceKey = ({
-      ["General"]       = "Resonance_General",
-      ["Combat Sounds"] = "Resonance_CombatSounds",
-      ["Fishing"]       = "Resonance_Fishing",
-      ["Vocalizations"] = "Resonance_Vocalizations",
-      ["Interrupt"]     = "Resonance_Interrupt",
-      ["Professions"]   = "Resonance_Professions",
-      ["Profiles"]      = "Resonance_Profiles",
+      ["General"]  = "Resonance_General",
+      ["Muting"]   = "Resonance_Muting",
+      ["Profiles"] = "Resonance_Profiles",
     })[name]
     buildAceConfigPanel(panel, aceKey)
     return
