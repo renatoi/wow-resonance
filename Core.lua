@@ -745,8 +745,12 @@ end
 
 local function applyVoxMutes()
   local mode = getVoxMode()
-  if mode == "off" then
-    return
+  if mode == "off" then return end
+  -- Cache race/gender key so UNIT_MODEL_CHANGED can detect real changes
+  if mode == "mine" then
+    local _, raceKey = UnitRace("player")
+    local gender = UnitSex("player")
+    lastVoxRaceGender = (raceKey or "") .. (gender or "")
   end
   local count = 0
   local hasData = Resonance.VoxFIDs and Resonance.RaceCSD
@@ -3222,15 +3226,19 @@ local function resolveSpellConfig(spellID)
   return cfg
 end
 
+local lastVoxRaceGender  -- cached to detect actual race/gender changes
 function Resonance:UNIT_MODEL_CHANGED(_, unit)
-  if unit ~= "player" then
-    return
-  end
-  -- Player changed appearance (barbershop gender change, etc.) — re-apply vox mutes
-  -- Only relevant for "mine" mode; "all" already covers everything
-  if getVoxMode() == "mine" then
-    refreshVoxMutes()
-  end
+  if unit ~= "player" then return end
+  if getVoxMode() ~= "mine" then return end
+  -- UNIT_MODEL_CHANGED fires very frequently (gear, mounts, effects).
+  -- Only refresh vox mutes if the player's race/gender actually changed
+  -- (barbershop, Orb of Deception, etc.), not on every model update.
+  local _, raceKey = UnitRace("player")
+  local gender = UnitSex("player")
+  local key = (raceKey or "") .. (gender or "")
+  if key == lastVoxRaceGender then return end
+  lastVoxRaceGender = key
+  refreshVoxMutes()
 end
 
 function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
