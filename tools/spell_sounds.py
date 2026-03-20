@@ -1881,6 +1881,16 @@ def main():
                         for fid_s in m.group(2).split(","):
                             spell_fids.add(int(fid_s))
             print(f"  Loaded {len(spell_fids)} spell FIDs to exclude from creature vox")
+        # Also exclude profession sound FIDs — these are often shared with
+        # creature vox data (e.g. mining pick sounds classified as humanoid
+        # combat audio) and muting creature vox should never silence professions.
+        prof_data_path = Path(__file__).parent.parent / "data" / "ProfessionSoundData.lua"
+        if prof_data_path.exists():
+            with open(prof_data_path, "r", encoding="utf-8") as pf:
+                for m in re.finditer(r'"([\d,]+)"', pf.read()):
+                    for fid_s in m.group(1).split(","):
+                        spell_fids.add(int(fid_s))
+            print(f"  Total FIDs to exclude (spells + professions): {len(spell_fids)}")
         generate_creature_vox_data(ske_idx, output_path, build=build,
                                    exclude_fids=spell_fids or None)
         return
