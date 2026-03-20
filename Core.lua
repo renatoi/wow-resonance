@@ -96,7 +96,6 @@ local StopSound       = StopSound
 local C_Timer         = C_Timer
 local UnitGUID        = UnitGUID
 local GetTime         = GetTime
-local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 
 -- Local aliases for hot-path access (core-addon data, always available)
 local ClassTemplates   = Resonance.ClassTemplates
@@ -121,7 +120,6 @@ local creatureMutedFIDs = {}  -- runtime-only: FIDs muted by creature vox toggle
 local autoShotMutedFIDs = {}  -- runtime-only: FIDs muted by classic auto-shot toggle
 local professionMutedFIDs = {} -- runtime-only: FIDs muted by profession sound toggle
 local npcMutedFIDs = {}        -- runtime-only: FIDs muted by NPC sound muting
-local lastInterruptInfo = nil  -- { time, spellID } set by CLEU SPELL_INTERRUPT
 local activeAlertHandle = nil  -- sound handle for debouncing interrupt alerts
 local ambientMutedFIDs = {}   -- runtime-only: FIDs muted by ambient sound toggles
 
@@ -291,7 +289,6 @@ local function previewSound(value)
 end
 
 local function clearInterruptAlertState()
-  lastInterruptInfo = nil
   if activeAlertHandle then
     StopSound(activeAlertHandle)
     activeAlertHandle = nil
@@ -2043,7 +2040,6 @@ local function getGeneralOptions()
             clearNPCMutes()
             clearAmbientMutes()
             Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-            Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
             clearInterruptAlertState()
             clearProfessionMutes()
             clearCreatureVoxMutes()
@@ -2113,10 +2109,8 @@ local function getGeneralOptions()
           db.interruptAlert = v
           if v then
             Resonance:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-            Resonance:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
           else
             Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-            Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
             clearInterruptAlertState()
           end
         end,
@@ -2157,7 +2151,6 @@ local function getGeneralOptions()
           end
           if db.interruptAlert and db.enabled then
             Resonance:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-            Resonance:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
           end
         end,
       },
@@ -2344,7 +2337,6 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         clearNPCMutes()
         clearAmbientMutes()
         Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-        Resonance:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
         clearInterruptAlertState()
         clearProfessionMutes()
         clearCreatureVoxMutes()
@@ -2459,7 +2451,6 @@ function Resonance:OnInitialize()
     clearVoxMutes()
     clearMutes()
     self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     clearInterruptAlertState()
     db = self.db.profile
     wipe(autoMutedFIDs)
@@ -2478,7 +2469,6 @@ function Resonance:OnInitialize()
     if db.classicAutoShot then applyAutoShotMutes() end
     if db.interruptAlert then
       self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-      self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     end
     if Resonance.refreshVisibleOptionPanels then
       Resonance.refreshVisibleOptionPanels()
@@ -2512,7 +2502,6 @@ function Resonance:OnEnable()
   self:RegisterEvent("UNIT_MODEL_CHANGED")
   if db.interruptAlert then
     self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
   end
   refreshPresetsFromTemplates()
   -- Use snapshot at login (fast, no SpellMuteData needed).
@@ -2591,22 +2580,22 @@ function Resonance:UNIT_MODEL_CHANGED(_, unit)
   end
 end
 
-function Resonance:COMBAT_LOG_EVENT_UNFILTERED()
-  if not db.interruptAlert then return end
-  local _, subevent, _, _, _, _, _, destGUID, _, _, _, _, _, _, interruptedSpellID = CombatLogGetCurrentEventInfo()
-  if subevent ~= "SPELL_INTERRUPT" then return end
-  if destGUID ~= UnitGUID("player") then return end
-  lastInterruptInfo = { time = GetTime(), spellID = interruptedSpellID }
-end
-
 function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
   if unit ~= "player" then return end
   if not db.enabled or not db.interruptAlert or not spellID then return end
-  -- Only alert on enemy interrupts (confirmed by CLEU SPELL_INTERRUPT)
-  if not lastInterruptInfo then return end
-  if lastInterruptInfo.spellID ~= spellID then return end
-  if GetTime() - lastInterruptInfo.time > 1 then return end
-  lastInterruptInfo = nil
+  -- UNIT_SPELLCAST_INTERRUPTED only fires for actual interrupts (enemy kicks,
+  -- silences, etc.). Self-cancels (movement, Escape, /stopcasting) fire
+  -- UNIT_SPELLCAST_FAILED instead. Confirm via C_LossOfControl: a school
+  -- lockout is only applied by enemy interrupts, never by self-cancels.
+  local confirmed = false
+  for i = 1, C_LossOfControl.GetActiveLossOfControlDataCount() do
+    local data = C_LossOfControl.GetActiveLossOfControlData(i)
+    if data and data.locType == "SCHOOL_INTERRUPT" then
+      confirmed = true
+      break
+    end
+  end
+  if not confirmed then return end
   local sound = db.interruptAlertSound
   if not sound then return end
   if db.debug then
@@ -2715,7 +2704,6 @@ function Resonance:ChatCommand(input)
     if db.muteAmbientSounds then wipe(db.muteAmbientSounds) end
     clearAutoShotMutes()
     self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     clearInterruptAlertState()
     clearNPCMutes()
     clearAmbientMutes()
