@@ -2417,6 +2417,36 @@ function Resonance:OnInitialize()
   self.db = LibStub("AceDB-3.0"):New("ResonanceDB", defaults, true)
   db = self.db.profile
 
+  -- One-time migration: strip profession sound FIDs from creature vox
+  -- snapshots.  Previous versions included mining/crafting sounds in the
+  -- Humanoid creature vox data; these stale snapshot entries would keep
+  -- profession sounds muted even after the data fix.
+  if not db._creatureVoxProfFixApplied then
+    local profFIDs = {
+      [565539]=1,[565568]=1,[565570]=1,[565577]=1,[565642]=1,[565703]=1,
+      [565850]=1,[565877]=1,[565908]=1,[565944]=1,[566336]=1,[566365]=1,
+      [566369]=1,[566670]=1,[566721]=1,[566989]=1,[566998]=1,[567063]=1,
+      [567081]=1,[567101]=1,[567585]=1,[567587]=1,[567590]=1,[567592]=1,
+      [567593]=1,[567594]=1,[567597]=1,[567600]=1,[567603]=1,[567605]=1,
+      [569559]=1,[569792]=1,[569794]=1,[569799]=1,[569801]=1,[569811]=1,
+      [569814]=1,[569821]=1,[569822]=1,[937258]=1,[937260]=1,[937262]=1,
+      [937264]=1,[937266]=1,[937268]=1,[937270]=1,[937272]=1,[937274]=1,
+      [937276]=1,[971155]=1,[971157]=1,[971159]=1,[1717093]=1,[1717094]=1,
+      [1717095]=1,[1717096]=1,[1717097]=1,[2066564]=1,[2066565]=1,
+      [2066566]=1,[2066568]=1,[2066569]=1,[2066570]=1,
+    }
+    local snapshot = db._lastCreatureMutedFIDs
+    if snapshot then
+      for fid in pairs(profFIDs) do
+        if snapshot[fid] then
+          snapshot[fid] = nil
+          for _ = 1, MAX_MUTE_DEPTH do UnmuteSoundFile(fid) end
+        end
+      end
+    end
+    db._creatureVoxProfFixApplied = true
+  end
+
   -- Profile change callbacks
   local function onProfileChanged()
     cancelActiveLoop()
