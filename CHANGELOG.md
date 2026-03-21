@@ -3,10 +3,14 @@
 ## v1.3.0
 
 ### New Features
+- **Alerts tab:** Configure alert sounds for combat events with a dropdown + table UI. Select an event type, pick a sound (with autocomplete search), and manage alerts with enable/disable toggles.
+  - **Interrupt alert:** Play a sound when your cast is interrupted by an enemy kick or counterspell. Uses `LOSS_OF_CONTROL_ADDED` + `UNIT_SPELLCAST_INTERRUPTED` dual-direction correlation — fully compatible with Midnight 12.0.1 instanced content.
+  - **Loss of Control alert:** Play a sound when you are stunned, feared, silenced, or otherwise lose control of your character.
+  - **Death alert:** Play a sound when you die.
+- **Custom Sounds tab:** Register your own .ogg/.mp3 sound files and use them throughout the addon. Place files in `Interface/AddOns/Resonance_Sounds/`, register them with a display name, and they appear in all sound search autocomplete dropdowns (highlighted in green).
 - **Cast phase triggers:** Choose when spell replacement sounds play — on cast complete, cast bar start (precast), or both with separate sounds for each phase.
 - **Sound duration cutoff:** Limit how long a replacement sound plays (in seconds).
 - **Sound looping:** Loop a replacement sound continuously or a set number of times.
-- **Interrupt alert sound:** Play a custom sound when your spell is interrupted. Uses `C_LossOfControl` school lockout confirmation — fully compatible with Midnight 12.0.1 instanced content (M+, raids, PvP).
 - **Ambient sound muting:** Mute ambient sounds by zone with per-zone toggles in a new Ambient tab. Includes a search feature to find and mute individual ambient sounds, with expansion/zone info in results.
 - **Per-NPC sound muting:** Mute sounds from specific NPCs.
 - **Sound autocomplete:** Autocomplete dropdown when selecting replacement sounds, with a redesigned two-line layout showing expansion/zone and FID info.
@@ -16,12 +20,14 @@
 - Options panel reorganized into Settings subcategories with dedicated panels and tab headings.
 - Redesigned dropdown rows with per-row variable height and inline mute icon button with visual feedback.
 - Improved WCAG contrast and color consistency across the UI.
+- Sound channel dropdown now uses Blizzard's localized global strings — labels match the game's Sound settings in every language.
 
 ### Performance
 - **LoadOnDemand data split:** Addon split into Resonance (core) + Resonance_Data, deferring large data tables until options are first opened.
 - Memory optimizations: table reuse, deferred snapshots, prefix pools, eliminated string concatenation during search.
 
 ### Bug Fixes
+- Fix UNIT_MODEL_CHANGED spam: cache race/gender key so vocalization mute refreshes only trigger on actual changes (barbershop, Orb of Deception), not on every model update.
 - Auto-migrate stale creature vox snapshots on addon upgrade.
 - Exclude profession sound FIDs from creature vocalization muting.
 - Clear stale mute snapshots on startup.
@@ -30,8 +36,13 @@
 - Fixed mojibake caused by UTF-8 arrow character in disabled message.
 
 ### Tooling
+- Added luacheck and StyLua linting/formatting with CI workflow.
+- Cross-platform dev setup docs in README (macOS, Linux apt/pacman, Windows).
 - `/res checkfid <id>` diagnostic command to inspect which muting systems affect a given FileDataID.
 - `tools/generate_ambient_data.lua` for generating ambient sound data.
+
+### Localization
+- All new keys translated across 9 languages (ptBR, deDE, frFR, esES, itIT, ruRU, koKR, zhCN, zhTW).
 
 ## v1.2.0
 
