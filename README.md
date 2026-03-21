@@ -196,10 +196,16 @@ The `SpellSounds.lua` and `CharacterSounds.lua` files are sourced from [Leatrix 
 
 The project uses [luacheck](https://github.com/lunarmodules/luacheck) for linting and [StyLua](https://github.com/JohnnyMorganz/StyLua) for formatting. WoW API globals are downloaded from [LiangYuxuan/wow-addon-luacheckrc](https://github.com/LiangYuxuan/wow-addon-luacheckrc) (auto-updated daily from Blizzard's interface source).
 
-```bash
-# Install tools (macOS)
-brew install luacheck stylua
+Install dependencies:
 
+| Tool | macOS | Linux (apt) | Linux (pacman) | Windows | Generic |
+|---|---|---|---|---|---|
+| **luacheck** | `brew install luacheck` | `sudo apt install luarocks && luarocks install luacheck` | `sudo pacman -S luarocks && luarocks install luacheck` | `luarocks install luacheck` | `luarocks install luacheck` |
+| **StyLua** | `brew install stylua` | `cargo install stylua` | `cargo install stylua` | `cargo install stylua` | Download from [GitHub Releases](https://github.com/JohnnyMorganz/StyLua/releases) |
+
+> **Note:** [LuaRocks](https://luarocks.org/) is required for luacheck. On Windows, install it via the [LuaRocks installer](https://luarocks.org/#quick-start) or [scoop](https://scoop.sh/) (`scoop install luarocks`). StyLua can also be installed via `npm i -g @johnnymorganz/stylua-bin` if you prefer npm over cargo.
+
+```bash
 # Download/update WoW API globals
 make update-globals
 

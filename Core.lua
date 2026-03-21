@@ -160,6 +160,8 @@ local UnitClass = UnitClass
 local StopSound = StopSound
 local C_Timer = C_Timer
 
+local lastVoxRaceGender -- cached to detect actual race/gender changes
+
 -- Local aliases for hot-path access (core-addon data, always available)
 local ClassTemplates = Resonance.ClassTemplates
 local ProfessionSoundData = Resonance.ProfessionSoundData
@@ -745,7 +747,9 @@ end
 
 local function applyVoxMutes()
   local mode = getVoxMode()
-  if mode == "off" then return end
+  if mode == "off" then
+    return
+  end
   -- Cache race/gender key so UNIT_MODEL_CHANGED can detect real changes
   if mode == "mine" then
     local _, raceKey = UnitRace("player")
@@ -3226,17 +3230,22 @@ local function resolveSpellConfig(spellID)
   return cfg
 end
 
-local lastVoxRaceGender  -- cached to detect actual race/gender changes
 function Resonance:UNIT_MODEL_CHANGED(_, unit)
-  if unit ~= "player" then return end
-  if getVoxMode() ~= "mine" then return end
+  if unit ~= "player" then
+    return
+  end
+  if getVoxMode() ~= "mine" then
+    return
+  end
   -- UNIT_MODEL_CHANGED fires very frequently (gear, mounts, effects).
   -- Only refresh vox mutes if the player's race/gender actually changed
   -- (barbershop, Orb of Deception, etc.), not on every model update.
   local _, raceKey = UnitRace("player")
   local gender = UnitSex("player")
   local key = (raceKey or "") .. (gender or "")
-  if key == lastVoxRaceGender then return end
+  if key == lastVoxRaceGender then
+    return
+  end
   lastVoxRaceGender = key
   refreshVoxMutes()
 end
