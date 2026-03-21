@@ -185,8 +185,46 @@ local creatureMutedFIDs = {} -- runtime-only: FIDs muted by creature vox toggle
 local autoShotMutedFIDs = {} -- runtime-only: FIDs muted by classic auto-shot toggle
 local professionMutedFIDs = {} -- runtime-only: FIDs muted by profession sound toggle
 local npcMutedFIDs = {} -- runtime-only: FIDs muted by NPC sound muting
-local activeAlertHandle = nil -- sound handle for debouncing interrupt alerts
+local alertHandles = {} -- { [alertKey] = soundHandle } for debouncing alert sounds
+local lastLoCInterrupt = nil -- timestamp set by LOSS_OF_CONTROL_ADDED on SCHOOL_INTERRUPT
+local pendingInterrupt = nil -- { time, spellID } set by UNIT_SPELLCAST_INTERRUPTED awaiting LoC confirmation
+local lowHealthTriggered = false -- debounce flag for low health alert
 local ambientMutedFIDs = {} -- runtime-only: FIDs muted by ambient sound toggles
+
+-- Alert event metadata: drives the Alerts UI dropdown and event handler registration
+Resonance.ALERT_EVENTS = {
+  {
+    key = "interrupt",
+    name = "Interrupt",
+    desc = "Play a sound when your cast is interrupted by an enemy kick or counterspell.",
+    order = 1,
+  },
+  {
+    key = "lossOfControl",
+    name = "Loss of Control",
+    desc = "Play a sound when you are stunned, feared, silenced, or otherwise lose control of your character.",
+    order = 2,
+  },
+  {
+    key = "death",
+    name = "Death",
+    desc = "Play a sound when you die.",
+    order = 3,
+  },
+  {
+    key = "lowHealth",
+    name = "Low Health",
+    desc = "Play a sound when your health drops below a threshold. Resets when health recovers above the threshold.",
+    order = 4,
+    hasThreshold = true,
+    defaultThreshold = 30,
+  },
+}
+-- Build lookup by key for fast access
+Resonance.ALERT_EVENTS_BY_KEY = {}
+for _, evt in ipairs(Resonance.ALERT_EVENTS) do
+  Resonance.ALERT_EVENTS_BY_KEY[evt.key] = evt
+end
 
 -- Returns true if a FID is held muted by manual mutes or any runtime layer
 -- OTHER than the specified skip table.  Used when clearing one layer to avoid
@@ -315,9 +353,7 @@ local defaults = {
     muteAmbientSounds = {}, -- { ["Midnight|Silvermoon City"] = true, ... }
     classicAutoShot = false,
     mutedNPCs = {}, -- { [npcID] = true } NPCs whose sounds are muted
-    interruptAlert = false,
-    interruptAlertSound = nil,
-    interruptAlertDuration = nil,
+    alerts = {},
     minimap = { hide = false },
     _lastAutoMutedFIDs = {}, -- persisted snapshot for stale-mute cleanup across /reload
     _lastCreatureMutedFIDs = {}, -- same for creature vox mutes
@@ -417,11 +453,53 @@ local function previewSound(value)
   return false
 end
 
-local function clearInterruptAlertState()
-  if activeAlertHandle then
-    StopSound(activeAlertHandle)
-    activeAlertHandle = nil
+local function clearAlertState()
+  lastLoCInterrupt = nil
+  pendingInterrupt = nil
+  lowHealthTriggered = false
+  for key, handle in pairs(alertHandles) do
+    StopSound(handle)
+    alertHandles[key] = nil
   end
+end
+
+local function refreshAlertEvents()
+  local alerts = db.alerts or {}
+  -- Interrupt needs UNIT_SPELLCAST_INTERRUPTED
+  if alerts.interrupt and alerts.interrupt.enabled then
+    Resonance:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
+  else
+    pcall(function() Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED") end)
+  end
+  -- LOSS_OF_CONTROL_ADDED is shared by interrupt + lossOfControl
+  local needLoC = (alerts.interrupt and alerts.interrupt.enabled)
+    or (alerts.lossOfControl and alerts.lossOfControl.enabled)
+  if needLoC then
+    Resonance:RegisterEvent("LOSS_OF_CONTROL_ADDED")
+  else
+    pcall(function() Resonance:UnregisterEvent("LOSS_OF_CONTROL_ADDED") end)
+  end
+  -- Death
+  if alerts.death and alerts.death.enabled then
+    Resonance:RegisterEvent("PLAYER_DEAD")
+  else
+    pcall(function() Resonance:UnregisterEvent("PLAYER_DEAD") end)
+  end
+  -- Low health
+  if alerts.lowHealth and alerts.lowHealth.enabled then
+    Resonance:RegisterEvent("UNIT_HEALTH")
+  else
+    pcall(function() Resonance:UnregisterEvent("UNIT_HEALTH") end)
+  end
+end
+Resonance.refreshAlertEvents = refreshAlertEvents
+Resonance.clearAlertState = clearAlertState
+
+local function clearAlertEvents()
+  pcall(function() Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED") end)
+  pcall(function() Resonance:UnregisterEvent("LOSS_OF_CONTROL_ADDED") end)
+  pcall(function() Resonance:UnregisterEvent("PLAYER_DEAD") end)
+  pcall(function() Resonance:UnregisterEvent("UNIT_HEALTH") end)
 end
 
 -- Ref-counted tracker for FIDs with in-flight playback.
@@ -434,6 +512,27 @@ local function scheduleStopSound(handle, duration)
     C_Timer.After(duration, function()
       StopSound(handle, 0)
     end)
+  end
+end
+
+local function playAlertSound(key, debugMsg)
+  local alerts = db.alerts
+  if not alerts then return end
+  local cfg = alerts[key]
+  if not cfg or not cfg.sound then return end
+  if db.debug and debugMsg then
+    msg(debugMsg)
+  end
+  if alertHandles[key] then
+    StopSound(alertHandles[key])
+    alertHandles[key] = nil
+  end
+  local ok, handle = previewSound(cfg.sound)
+  if ok then
+    alertHandles[key] = handle
+    if cfg.duration then
+      scheduleStopSound(handle, cfg.duration)
+    end
   end
 end
 
@@ -2460,6 +2559,7 @@ local function getGeneralOptions()
             if db.classicAutoShot then
               applyAutoShotMutes()
             end
+            refreshAlertEvents()
           else
             cancelActiveLoop()
             db.muteWeaponImpacts = false
@@ -2480,8 +2580,8 @@ local function getGeneralOptions()
             clearAutoShotMutes()
             clearNPCMutes()
             clearAmbientMutes()
-            Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-            clearInterruptAlertState()
+            clearAlertEvents()
+            clearAlertState()
             clearProfessionMutes()
             clearCreatureVoxMutes()
             clearVoxMutes()
@@ -2543,114 +2643,6 @@ local function getGeneralOptions()
         end,
         set = function(_, v)
           db.soundChannel = v
-        end,
-      },
-      interruptAlertHeader = {
-        type = "header",
-        name = L["Interrupt Alert"],
-        order = 20,
-      },
-      interruptAlertDesc = {
-        type = "description",
-        fontSize = "medium",
-        name = L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."],
-        order = 20.5,
-      },
-      interruptAlert = {
-        type = "toggle",
-        name = L["Play sound when interrupted"],
-        desc = L["Play a custom alert sound when your cast is interrupted by another player or NPC."],
-        order = 21,
-        width = "full",
-        disabled = function()
-          return not db.enabled
-        end,
-        get = function()
-          return db.interruptAlert
-        end,
-        set = function(_, v)
-          db.interruptAlert = v
-          if v then
-            Resonance:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-          else
-            Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-            clearInterruptAlertState()
-          end
-        end,
-      },
-      interruptAlertSound = {
-        type = "input",
-        dialogControl = "Resonance_SoundEditBox",
-        name = L["Custom sound"],
-        desc = L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"],
-        order = 22,
-        width = "double",
-        hidden = function()
-          return not db.interruptAlert
-        end,
-        disabled = function()
-          return not db.enabled
-        end,
-        get = function()
-          return db.interruptAlertSound and tostring(db.interruptAlertSound) or ""
-        end,
-        set = function(_, v)
-          if v == "" then
-            db.interruptAlertSound = nil
-          else
-            local n = tonumber(v)
-            db.interruptAlertSound = n or v
-          end
-        end,
-      },
-      interruptAlertDuration = {
-        type = "input",
-        name = L["Duration cutoff (seconds)"],
-        desc = L["Stop the alert sound after this many seconds. Leave blank to let it play fully."],
-        order = 23,
-        hidden = function()
-          return not db.interruptAlert
-        end,
-        disabled = function()
-          return not db.enabled
-        end,
-        get = function()
-          return db.interruptAlertDuration and tostring(db.interruptAlertDuration) or ""
-        end,
-        set = function(_, v)
-          if v == "" then
-            db.interruptAlertDuration = nil
-          else
-            local n = tonumber(v)
-            if n and n > 0 then
-              db.interruptAlertDuration = n
-            end
-          end
-          if db.interruptAlert and db.enabled then
-            Resonance:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-          end
-        end,
-      },
-      interruptAlertTest = {
-        type = "execute",
-        name = L["Test"],
-        desc = L["Play the configured interrupt alert sound."],
-        order = 24,
-        hidden = function()
-          return not db.interruptAlert
-        end,
-        disabled = function()
-          return not db.enabled or not db.interruptAlertSound
-        end,
-        func = function()
-          local sound = db.interruptAlertSound
-          if not sound then
-            return
-          end
-          local ok, handle = previewSound(sound)
-          if ok then
-            scheduleStopSound(handle, db.interruptAlertDuration)
-          end
         end,
       },
     },
@@ -2861,6 +2853,7 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         if db.classicAutoShot then
           applyAutoShotMutes()
         end
+        refreshAlertEvents()
       else
         cancelActiveLoop()
         db.muteWeaponImpacts = false
@@ -2881,8 +2874,8 @@ local ldbObj = LDB:NewDataObject("Resonance", {
         clearAutoShotMutes()
         clearNPCMutes()
         clearAmbientMutes()
-        Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-        clearInterruptAlertState()
+        clearAlertEvents()
+        clearAlertState()
         clearProfessionMutes()
         clearCreatureVoxMutes()
         clearVoxMutes()
@@ -2972,6 +2965,32 @@ function Resonance:OnInitialize()
   -- Create AceDB
   self.db = LibStub("AceDB-3.0"):New("ResonanceDB", defaults, true)
   db = self.db.profile
+
+  -- Migrate flat alert keys to unified alerts table (v2.1)
+  if db.interruptAlert ~= nil or db.interruptAlertSound ~= nil then
+    if not db.alerts then db.alerts = {} end
+    db.alerts.interrupt = {
+      enabled = db.interruptAlert or false,
+      sound = db.interruptAlertSound,
+      duration = db.interruptAlertDuration,
+      loop = false,
+    }
+    db.interruptAlert = nil
+    db.interruptAlertSound = nil
+    db.interruptAlertDuration = nil
+  end
+  if db.lossOfControlAlert ~= nil or db.lossOfControlAlertSound ~= nil then
+    if not db.alerts then db.alerts = {} end
+    db.alerts.lossOfControl = {
+      enabled = db.lossOfControlAlert or false,
+      sound = db.lossOfControlAlertSound,
+      duration = db.lossOfControlAlertDuration,
+      loop = false,
+    }
+    db.lossOfControlAlert = nil
+    db.lossOfControlAlertSound = nil
+    db.lossOfControlAlertDuration = nil
+  end
 
   -- One-time migration: strip profession sound FIDs from creature vox
   -- snapshots.  Previous versions included mining/crafting sounds in the
@@ -3068,8 +3087,8 @@ function Resonance:OnInitialize()
     clearWeaponMutes()
     clearVoxMutes()
     clearMutes()
-    self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-    clearInterruptAlertState()
+    clearAlertEvents()
+    clearAlertState()
     db = self.db.profile
     wipe(autoMutedFIDs)
     if Resonance.SpellMuteData then
@@ -3101,9 +3120,7 @@ function Resonance:OnInitialize()
     if db.classicAutoShot then
       applyAutoShotMutes()
     end
-    if db.interruptAlert then
-      self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-    end
+    refreshAlertEvents()
     if Resonance.refreshVisibleOptionPanels then
       Resonance.refreshVisibleOptionPanels()
     end
@@ -3135,9 +3152,7 @@ function Resonance:OnEnable()
   self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
   self:RegisterEvent("UNIT_SPELLCAST_START")
   self:RegisterEvent("UNIT_MODEL_CHANGED")
-  if db.interruptAlert then
-    self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-  end
+  refreshAlertEvents()
   refreshPresetsFromTemplates()
   -- Use snapshot at login (fast, no SpellMuteData needed).
   -- Full rebuild deferred to when Resonance_Data loads.
@@ -3250,44 +3265,89 @@ function Resonance:UNIT_MODEL_CHANGED(_, unit)
   refreshVoxMutes()
 end
 
+function Resonance:LOSS_OF_CONTROL_ADDED()
+  local alerts = db.alerts
+  if not alerts then return end
+  local schoolInterrupt = false
+  local otherLoC = nil
+  for i = 1, C_LossOfControl.GetActiveLossOfControlDataCount() do
+    local data = C_LossOfControl.GetActiveLossOfControlData(i)
+    if data then
+      if data.locType == "SCHOOL_INTERRUPT" then
+        schoolInterrupt = true
+      elseif not otherLoC then
+        otherLoC = data.locType
+      end
+    end
+  end
+  -- Interrupt alert: correlate SCHOOL_INTERRUPT with UNIT_SPELLCAST_INTERRUPTED
+  local intCfg = alerts.interrupt
+  if schoolInterrupt and intCfg and intCfg.enabled then
+    if pendingInterrupt and GetTime() - pendingInterrupt.time <= 1 then
+      local spellID = pendingInterrupt.spellID
+      pendingInterrupt = nil
+      local name = _GetSpellName(spellID) or ""
+      playAlertSound("interrupt", ("Interrupted: %s (spellID %d)"):format(
+        name ~= "" and name or "<?>", spellID))
+    else
+      lastLoCInterrupt = GetTime()
+    end
+  end
+  -- Loss of control alert: any non-SCHOOL_INTERRUPT LoC
+  local locCfg = alerts.lossOfControl
+  if otherLoC and locCfg and locCfg.enabled then
+    playAlertSound("lossOfControl", ("Loss of control: %s"):format(otherLoC))
+  end
+end
+
 function Resonance:UNIT_SPELLCAST_INTERRUPTED(_, unit, _, spellID)
   if unit ~= "player" then
     return
   end
-  if not db.enabled or not db.interruptAlert or not spellID then
+  local alerts = db.alerts
+  if not alerts then return end
+  local cfg = alerts.interrupt
+  if not db.enabled or not cfg or not cfg.enabled or not spellID then
     return
   end
-  -- UNIT_SPELLCAST_INTERRUPTED only fires for actual interrupts (enemy kicks,
-  -- silences, etc.). Self-cancels (movement, Escape, /stopcasting) fire
-  -- UNIT_SPELLCAST_FAILED instead. Confirm via C_LossOfControl: a school
-  -- lockout is only applied by enemy interrupts, never by self-cancels.
-  local confirmed = false
-  for i = 1, C_LossOfControl.GetActiveLossOfControlDataCount() do
-    local data = C_LossOfControl.GetActiveLossOfControlData(i)
-    if data and data.locType == "SCHOOL_INTERRUPT" then
-      confirmed = true
-      break
-    end
-  end
-  if not confirmed then
-    return
-  end
-  local sound = db.interruptAlertSound
-  if not sound then
-    return
-  end
-  if db.debug then
+  -- If LOSS_OF_CONTROL_ADDED already confirmed a school interrupt, play now
+  if lastLoCInterrupt and GetTime() - lastLoCInterrupt <= 1 then
+    lastLoCInterrupt = nil
     local name = _GetSpellName(spellID) or ""
-    msg(("Interrupted: %s (spellID %d)"):format(name ~= "" and name or "<?>", spellID))
+    playAlertSound("interrupt", ("Interrupted: %s (spellID %d)"):format(
+      name ~= "" and name or "<?>", spellID))
+  else
+    -- Cache for LOSS_OF_CONTROL_ADDED to pick up (it may fire after)
+    pendingInterrupt = { time = GetTime(), spellID = spellID }
   end
-  if activeAlertHandle then
-    StopSound(activeAlertHandle)
-    activeAlertHandle = nil
-  end
-  local ok, handle = previewSound(sound)
-  if ok then
-    activeAlertHandle = handle
-    scheduleStopSound(handle, db.interruptAlertDuration)
+end
+
+function Resonance:PLAYER_DEAD()
+  local alerts = db.alerts
+  if not alerts then return end
+  local cfg = alerts.death
+  if not db.enabled or not cfg or not cfg.enabled then return end
+  playAlertSound("death", "Player died")
+end
+
+function Resonance:UNIT_HEALTH(_, unit)
+  if unit ~= "player" then return end
+  local alerts = db.alerts
+  if not alerts then return end
+  local cfg = alerts.lowHealth
+  if not db.enabled or not cfg or not cfg.enabled then return end
+  local health = UnitHealth("player")
+  local maxHealth = UnitHealthMax("player")
+  if maxHealth == 0 then return end
+  local pct = health / maxHealth * 100
+  local threshold = cfg.threshold or 30
+  if pct <= threshold then
+    if not lowHealthTriggered then
+      lowHealthTriggered = true
+      playAlertSound("lowHealth", ("Low health: %.0f%%"):format(pct))
+    end
+  else
+    lowHealthTriggered = false
   end
 end
 
@@ -3397,6 +3457,7 @@ function Resonance:ChatCommand(input)
     if db.classicAutoShot then
       applyAutoShotMutes()
     end
+    refreshAlertEvents()
     msg(L["Enabled."])
   elseif cmd == "off" then
     cancelActiveLoop()
@@ -3417,8 +3478,8 @@ function Resonance:ChatCommand(input)
       wipe(db.muteAmbientSounds)
     end
     clearAutoShotMutes()
-    self:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED")
-    clearInterruptAlertState()
+    clearAlertEvents()
+    clearAlertState()
     clearNPCMutes()
     clearAmbientMutes()
     clearProfessionMutes()

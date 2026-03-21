@@ -659,6 +659,7 @@ local SUB_NAMES = {
   "Spell Sounds",
   "Muting",
   "Ambient",
+  "Alerts",
   "Sound Browser",
   "Presets",
   "Profiles",
@@ -1476,6 +1477,7 @@ local buildTab2_SpellSounds
 local buildTab3_MutedSounds
 local buildTab4_Presets
 local buildTab5_Ambient
+local buildTab_Alerts
 
 ---------------------------------------------------------------------------
 -- Tab 2: Spell Sounds
@@ -5005,6 +5007,479 @@ buildTab5_Ambient = function(ctx)
 end
 
 ---------------------------------------------------------------------------
+-- Alerts tab: custom UI with dropdown + table
+---------------------------------------------------------------------------
+buildTab_Alerts = function(buildCtx)
+  local content = buildCtx.alertsContent
+  local profile = Resonance.db.profile
+  local ALERT_EVENTS = Resonance.ALERT_EVENTS
+  local ALERT_BY_KEY = Resonance.ALERT_EVENTS_BY_KEY
+  local ROW_H = 24
+  local COL_ENABLED = 30
+  local COL_EVENT = 130
+  local COL_DURATION = 65
+  local COL_ACTIONS = 26
+
+  -- ── Tab heading ────────────────────────────────────────────────────
+  local tabHdr = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  tabHdr:SetPoint("TOPLEFT", content, "TOPLEFT", 16, -16)
+  tabHdr:SetText(L["Alerts"])
+
+  -- ── Disclaimer ───────────────────────────────────────────────────────
+  local disclaimer = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  disclaimer:SetPoint("TOPLEFT", tabHdr, "BOTTOMLEFT", 0, -8)
+  disclaimer:SetPoint("RIGHT", content, "RIGHT", -16, 0)
+  disclaimer:SetJustifyH("LEFT")
+  disclaimer:SetWordWrap(true)
+  disclaimer:SetText(L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."])
+
+  -- ── "Add Alert" form ─────────────────────────────────────────────────
+  -- Label
+  local addLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  addLabel:SetPoint("TOPLEFT", disclaimer, "BOTTOMLEFT", 0, -12)
+  addLabel:SetText(L["Play a sound when:"])
+
+  -- Dropdown button
+  local ddBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+  ddBtn:SetSize(180, 24)
+  ddBtn:SetPoint("LEFT", addLabel, "RIGHT", 8, 0)
+  local selectedEventKey = nil
+
+  -- Event description (below dropdown)
+  local eventDesc = content:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  eventDesc:SetPoint("TOPLEFT", addLabel, "BOTTOMLEFT", 0, -6)
+  eventDesc:SetPoint("RIGHT", content, "RIGHT", -16, 0)
+  eventDesc:SetJustifyH("LEFT")
+  eventDesc:SetWordWrap(true)
+  eventDesc:SetText("")
+
+  -- Labels row (all aligned on the same baseline)
+  local soundLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  soundLabel:SetPoint("TOPLEFT", eventDesc, "BOTTOMLEFT", 0, -8)
+  soundLabel:SetText(L["Sound:"])
+
+  local durLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  durLabel:SetPoint("LEFT", soundLabel, "LEFT", 210, 0)
+  durLabel:SetText(L["Duration (s):"])
+
+  local threshLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  threshLabel:SetPoint("LEFT", durLabel, "LEFT", 75, 0)
+  threshLabel:SetText(L["Threshold (%):"])
+  threshLabel:Hide()
+
+  -- Inputs row (all aligned below the labels)
+  local soundBox = makeEditBox(content, 200, soundLabel, -2, -2, "FileDataID, path, or search")
+  soundBox:SetPoint("TOPLEFT", soundLabel, "BOTTOMLEFT", -2, -2)
+
+  -- Sound autocomplete dropdown
+  local alertSoundDD
+  alertSoundDD = createAutocomplete(
+    soundBox,
+    function(e) if e then return e.fileDataID end end, -- onPlay
+    function(e) -- onAction: populate soundBox with FID
+      if e then
+        soundBox:SetText(tostring(e.fileDataID))
+        soundBox:ClearFocus()
+        alertSoundDD:Hide()
+      end
+    end,
+    { label = L["Use"], width = 36 }
+  )
+
+  local function doAlertSoundSearch()
+    if not soundBox:HasFocus() then return end
+    if not hasSpellDB() then alertSoundDD:Hide(); return end
+    local q = soundBox:GetText()
+    if tonumber(q) or q:find("\\") or q:find("/") then
+      alertSoundDD:SetData({}, "")
+      alertSoundDD:Hide()
+      return
+    end
+    if #q < 3 then
+      alertSoundDD:SetData({}, "")
+      alertSoundDD:Hide()
+      return
+    end
+    searchDB(Resonance.SpellSounds, q, "alertSound", function(results)
+      for _, r in ipairs(results) do
+        r.display = formatSoundDisplay(r.path, r.fileDataID)
+      end
+      alertSoundDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
+    end, Resonance.SpellSoundPrefixes)
+  end
+
+  soundBox:SetScript("OnTextChanged", function()
+    debounce("alertSound", 0.3, doAlertSoundSearch)
+  end)
+  soundBox:SetScript("OnEscapePressed", function(self)
+    self:ClearFocus()
+    alertSoundDD:Hide()
+  end)
+
+  local durBox = makeEditBox(content, 55, durLabel, -2, -2, "")
+  durBox:SetPoint("TOPLEFT", durLabel, "BOTTOMLEFT", -2, -2)
+
+  local threshBox = makeEditBox(content, 45, threshLabel, -2, -2, "30")
+  threshBox:SetPoint("TOPLEFT", threshLabel, "BOTTOMLEFT", -2, -2)
+  threshBox:Hide()
+
+  -- Test button (aligned with the edit boxes)
+  local testBtn = makeButton(content, L["Test"], 40, function()
+    local snd = soundBox:GetText()
+    if snd == "" then return end
+    local n = tonumber(snd)
+    local sound = n or snd
+    local ok, handle = Resonance.previewSound(sound)
+    if ok and handle then
+      local dur = tonumber(durBox:GetText())
+      if dur and dur > 0 then
+        C_Timer.After(dur, function() StopSound(handle, 0) end)
+      end
+    end
+  end)
+
+  -- Add button
+  local addBtn
+  local refreshAlertList -- forward declaration
+
+  addBtn = makeButton(content, L["Add"], 40, function()
+    if not selectedEventKey then return end
+    local snd = soundBox:GetText()
+    if snd == "" then return end
+    local n = tonumber(snd)
+    local sound = n or snd
+    if not profile.alerts then profile.alerts = {} end
+    local cfg = { enabled = true, sound = sound, loop = false }
+    local dur = tonumber(durBox:GetText())
+    if dur and dur > 0 then cfg.duration = dur end
+    local meta = ALERT_BY_KEY[selectedEventKey]
+    if meta and meta.hasThreshold then
+      local t = tonumber(threshBox:GetText())
+      cfg.threshold = (t and t > 0 and t <= 100) and t or (meta.defaultThreshold or 30)
+    end
+    profile.alerts[selectedEventKey] = cfg
+    Resonance.refreshAlertEvents()
+    -- Reset form
+    soundBox:SetText("")
+    durBox:SetText("")
+    threshBox:SetText("")
+    selectedEventKey = nil
+    ddBtn:SetText(L["Select event..."])
+    eventDesc:SetText("")
+    threshLabel:Hide()
+    threshBox:Hide()
+    refreshAlertList()
+  end)
+  addBtn:SetPoint("LEFT", testBtn, "RIGHT", 4, 0)
+
+  -- Reanchor test/add buttons based on which fields are visible
+  local function reanchorFormButtons()
+    testBtn:ClearAllPoints()
+    if threshBox:IsShown() then
+      testBtn:SetPoint("LEFT", threshBox, "RIGHT", 8, 0)
+    else
+      testBtn:SetPoint("LEFT", durBox, "RIGHT", 8, 0)
+    end
+  end
+  reanchorFormButtons()
+
+  -- Dropdown behavior
+  local function updateDropdown()
+    local configured = profile.alerts or {}
+    ddBtn:SetScript("OnClick", function(self)
+      MenuUtil.CreateContextMenu(self, function(_, rootDescription)
+        for _, evt in ipairs(ALERT_EVENTS) do
+          if not configured[evt.key] then
+            local btn = rootDescription:CreateButton(evt.name, function()
+              selectedEventKey = evt.key
+              ddBtn:SetText(evt.name)
+              eventDesc:SetText(evt.desc)
+              if evt.hasThreshold then
+                threshLabel:Show()
+                threshBox:Show()
+                threshBox:SetText(tostring(evt.defaultThreshold or 30))
+              else
+                threshLabel:Hide()
+                threshBox:Hide()
+              end
+              reanchorFormButtons()
+            end)
+            btn:SetTooltip(function(tooltip)
+              GameTooltip_SetTitle(tooltip, evt.name)
+              GameTooltip_AddNormalLine(tooltip, evt.desc)
+            end)
+          end
+        end
+        -- If all events are configured, show a disabled note
+        local anyAvailable = false
+        for _, evt in ipairs(ALERT_EVENTS) do
+          if not configured[evt.key] then anyAvailable = true; break end
+        end
+        if not anyAvailable then
+          rootDescription:CreateButton(L["All events configured"]):SetEnabled(false)
+        end
+      end)
+    end)
+  end
+
+  -- ── Configured alerts table ──────────────────────────────────────────
+  local tableHeader = CreateFrame("Frame", nil, content)
+  tableHeader:SetHeight(ROW_H)
+
+  -- Header labels
+  local hdrEnabled = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  hdrEnabled:SetPoint("LEFT", 4, 0)
+  hdrEnabled:SetWidth(COL_ENABLED)
+  hdrEnabled:SetText("")
+
+  local hdrEvent = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  hdrEvent:SetPoint("LEFT", hdrEnabled, "RIGHT", 4, 0)
+  hdrEvent:SetWidth(COL_EVENT)
+  hdrEvent:SetJustifyH("LEFT")
+  hdrEvent:SetText(L["Event"])
+
+  local hdrSound = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  hdrSound:SetPoint("LEFT", hdrEvent, "RIGHT", 4, 0)
+  hdrSound:SetJustifyH("LEFT")
+  hdrSound:SetText(L["Sound"])
+
+  local hdrDuration = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  hdrDuration:SetWidth(COL_DURATION)
+  hdrDuration:SetJustifyH("LEFT")
+  hdrDuration:SetText(L["Duration"])
+
+  local hdrActions = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  hdrActions:SetWidth(COL_ACTIONS)
+  hdrActions:SetText("")
+
+  -- Right-anchor duration and actions
+  hdrActions:SetPoint("RIGHT", tableHeader, "RIGHT", -4, 0)
+  hdrDuration:SetPoint("RIGHT", hdrActions, "LEFT", -4, 0)
+  hdrSound:SetPoint("RIGHT", hdrDuration, "LEFT", -4, 0)
+
+  -- Separator line under header
+  local hdrLine = tableHeader:CreateTexture(nil, "ARTWORK")
+  hdrLine:SetHeight(1)
+  hdrLine:SetPoint("BOTTOMLEFT", 0, 0)
+  hdrLine:SetPoint("BOTTOMRIGHT", 0, 0)
+  hdrLine:SetColorTexture(0.4, 0.4, 0.4, 0.5)
+
+  -- Alert rows (pre-allocated)
+  local alertRows = {}
+  local emptyText = content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  emptyText:SetText(L["No alerts configured. Select an event above and click Add."])
+  emptyText:SetJustifyH("LEFT")
+
+  local function getOrCreateAlertRow(idx)
+    if alertRows[idx] then return alertRows[idx] end
+    local row = CreateFrame("Frame", nil, content)
+    row:SetHeight(ROW_H)
+    alertRows[idx] = row
+
+    -- Alternating stripe
+    row.stripe = row:CreateTexture(nil, "BACKGROUND")
+    row.stripe:SetAllPoints()
+    row.stripe:SetColorTexture(1, 0.82, 0, 0.08)
+    row.stripe:Hide()
+
+    -- Enabled checkbox
+    row.enableCB = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+    row.enableCB:SetSize(22, 22)
+    row.enableCB:SetPoint("LEFT", 4, 0)
+    row.enableCB:SetScript("OnEnter", function(self)
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      GameTooltip:AddLine(L["Enable or disable this alert"], 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    row.enableCB:SetScript("OnLeave", function()
+      GameTooltip:Hide()
+    end)
+
+    -- Event name
+    row.eventText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.eventText:SetPoint("LEFT", row.enableCB, "RIGHT", 4, 0)
+    row.eventText:SetWidth(COL_EVENT)
+    row.eventText:SetJustifyH("LEFT")
+    row.eventText:SetWordWrap(false)
+
+    -- Delete button (rightmost)
+    row.delBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, L["Delete"])
+    row.delBtn:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+
+    -- Play button
+    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
+    row.playBtn:SetPoint("RIGHT", row.delBtn, "LEFT", -4, 0)
+
+    -- Duration text
+    row.durText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.durText:SetWidth(COL_DURATION)
+    row.durText:SetJustifyH("LEFT")
+    row.durText:SetPoint("RIGHT", row.playBtn, "LEFT", -4, 0)
+
+    -- Sound text (fills remaining space)
+    row.soundText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.soundText:SetPoint("LEFT", row.eventText, "RIGHT", 4, 0)
+    row.soundText:SetPoint("RIGHT", row.durText, "LEFT", -4, 0)
+    row.soundText:SetJustifyH("LEFT")
+    row.soundText:SetWordWrap(false)
+
+    -- Tooltip on event name
+    row.eventHit = CreateFrame("Frame", nil, row)
+    row.eventHit:SetPoint("TOPLEFT", row.eventText, "TOPLEFT", 0, 0)
+    row.eventHit:SetPoint("BOTTOMRIGHT", row.eventText, "BOTTOMRIGHT", 0, 0)
+    row.eventHit:SetScript("OnEnter", function(self)
+      if row._desc then
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(row._name or "", 1, 1, 1)
+        GameTooltip:AddLine(row._desc, nil, nil, nil, true)
+        GameTooltip:Show()
+      end
+    end)
+    row.eventHit:SetScript("OnLeave", function()
+      GameTooltip:Hide()
+    end)
+
+    return row
+  end
+
+  -- ── Refresh function ─────────────────────────────────────────────────
+  refreshAlertList = function()
+    profile = Resonance.db.profile
+    local alerts = profile.alerts or {}
+
+    -- Collect configured alerts in metadata order
+    local ordered = {}
+    for _, evt in ipairs(ALERT_EVENTS) do
+      if alerts[evt.key] then
+        ordered[#ordered + 1] = { key = evt.key, meta = evt, cfg = alerts[evt.key] }
+      end
+    end
+
+    -- Title + table header: anchored below the edit box row
+    local configuredLabel = content._configuredLabel
+    if not configuredLabel then
+      configuredLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+      content._configuredLabel = configuredLabel
+    end
+    configuredLabel:ClearAllPoints()
+    configuredLabel:SetPoint("TOPLEFT", soundBox, "BOTTOMLEFT", 2, -16)
+    configuredLabel:SetText(L["Configured alerts:"])
+    configuredLabel:Show()
+
+    tableHeader:ClearAllPoints()
+    tableHeader:SetPoint("TOPLEFT", configuredLabel, "BOTTOMLEFT", 0, -4)
+    tableHeader:SetPoint("RIGHT", content, "RIGHT", -16, 0)
+    tableHeader:Show()
+
+    -- Hide all existing rows
+    for _, row in ipairs(alertRows) do
+      row:Hide()
+    end
+
+    if #ordered == 0 then
+      emptyText:ClearAllPoints()
+      emptyText:SetPoint("TOPLEFT", tableHeader, "BOTTOMLEFT", 4, -8)
+      emptyText:Show()
+    else
+      emptyText:Hide()
+    end
+
+    local yOff = 0
+    for i, entry in ipairs(ordered) do
+      local row = getOrCreateAlertRow(i)
+      row:ClearAllPoints()
+      row:SetPoint("TOPLEFT", tableHeader, "BOTTOMLEFT", 0, -yOff)
+      row:SetPoint("RIGHT", tableHeader, "RIGHT", 0, 0)
+
+      -- Stripe alternating rows
+      if i % 2 == 0 then
+        row.stripe:Show()
+      else
+        row.stripe:Hide()
+      end
+
+      -- Event name + tooltip data
+      local displayName = entry.meta.name
+      if entry.meta.hasThreshold and entry.cfg.threshold then
+        displayName = displayName .. " |cff888888(<" .. entry.cfg.threshold .. "%)|r"
+      end
+      row.eventText:SetText(displayName)
+      row._name = entry.meta.name
+      row._desc = entry.meta.desc
+
+      -- Sound display
+      local snd = entry.cfg.sound
+      local soundDisplay
+      if type(snd) == "number" then
+        local path = lookupFIDPath(snd)
+        if path then
+          -- Show short filename + FID
+          local filename = path:match("[^/\\]+$") or path
+          soundDisplay = filename .. " |cff888888#" .. snd .. "|r"
+        else
+          soundDisplay = "#" .. snd
+        end
+      elseif type(snd) == "string" then
+        local filename = snd:match("[^/\\]+$") or snd
+        soundDisplay = filename
+      else
+        soundDisplay = "—"
+      end
+      row.soundText:SetText(soundDisplay or "—")
+
+      -- Duration display
+      if entry.cfg.duration then
+        row.durText:SetText(("%.1fs"):format(entry.cfg.duration))
+      else
+        row.durText:SetText("—")
+      end
+
+      -- Enabled checkbox
+      row.enableCB:SetChecked(entry.cfg.enabled)
+      row.enableCB:SetScript("OnClick", function(self)
+        entry.cfg.enabled = self:GetChecked()
+        Resonance.refreshAlertEvents()
+      end)
+
+      -- Play/stop button
+      wirePlayStop(row.playBtn, function() return entry.cfg.sound end)
+
+      -- Delete button
+      row.delBtn:SetScript("OnClick", function()
+        profile.alerts[entry.key] = nil
+        Resonance.refreshAlertEvents()
+        refreshAlertList()
+      end)
+
+      row:Show()
+      yOff = yOff + ROW_H
+    end
+
+    -- Update dropdown to exclude configured events
+    updateDropdown()
+    -- If the currently selected event was just configured, reset selection
+    if selectedEventKey and alerts[selectedEventKey] then
+      selectedEventKey = nil
+      ddBtn:SetText(L["Select event..."])
+      eventDesc:SetText("")
+      threshLabel:Hide()
+      threshBox:Hide()
+      reanchorFormButtons()
+    end
+
+    buildCtx.recalcContentHeight(content)
+  end
+
+  -- Store refresh callback for re-show
+  buildCtx.refreshAlertList = refreshAlertList
+
+  -- Initial render
+  ddBtn:SetText(L["Select event..."])
+  updateDropdown()
+  refreshAlertList()
+end
+
+---------------------------------------------------------------------------
 -- Subcategory panel infrastructure
 ---------------------------------------------------------------------------
 
@@ -5172,11 +5647,18 @@ local function buildSubcategoryContent(name, panel)
       ["Profiles"] = L["Profiles"],
     })[name]
     local aceDesc = ({
-      ["General"] = L["Toggle features, configure the interrupt alert sound, and choose the replacement sound channel."],
+      ["General"] = L["Toggle features and choose the replacement sound channel."],
       ["Muting"] = L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."],
       ["Profiles"] = L["Manage saved profiles. Copy settings between characters or switch configurations."],
     })[name]
     buildAceConfigPanel(panel, aceKey, aceTitle, aceDesc)
+    return
+  end
+
+  if name == "Alerts" then
+    local _, content = createScrollableContent(panel)
+    ctx.alertsContent = content
+    buildTab_Alerts(ctx)
     return
   end
 
@@ -5275,6 +5757,10 @@ function Resonance:SetupOptions()
         elseif name == "Presets" then
           if ctx.refreshPresetList then
             ctx.refreshPresetList()
+          end
+        elseif name == "Alerts" then
+          if ctx.refreshAlertList then
+            ctx.refreshAlertList()
           end
         end
         return

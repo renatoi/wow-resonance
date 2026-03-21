@@ -24,7 +24,6 @@ if locale == "enUS" or locale == "enGB" then
   L["Sound Browser"] = "Sound Browser"
   -- Section headers
   L["Weapon & Combat"] = "Weapon & Combat"
-  L["Interrupt Alert"] = "Interrupt Alert"
   L["Character Vocalizations"] = "Character Vocalizations"
   L["Creature Vocalizations"] = "Creature Vocalizations"
   -- Spell editor
@@ -43,9 +42,6 @@ if locale == "enUS" or locale == "enGB" then
   L["Cast Complete Sound"] = "Cast Complete Sound"
   L["Loading spell data..."] = "Loading spell data..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "Play sound when interrupted"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "Play a custom alert sound when your cast is interrupted by another player or NPC."
   L["Alert sound (FID or file path)"] = "Alert sound (FID or file path)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -53,10 +49,25 @@ if locale == "enUS" or locale == "enGB" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "Stop the alert sound after this many seconds. Leave blank to let it play fully."
   L["Test"] = "Test"
-  L["Play the configured interrupt alert sound."] = "Play the configured interrupt alert sound."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."
   L["Play the configured replacement fishing bobber sound."] = "Play the configured replacement fishing bobber sound."
+  -- Alerts tab
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."
+  L["Play a sound when:"] = "Play a sound when:"
+  L["Select event..."] = "Select event..."
+  L["All events configured"] = "All events configured"
+  L["Sound:"] = "Sound:"
+  L["Duration (s):"] = "Duration (s):"
+  L["Threshold (%):"] = "Threshold (%):"
+  L["Add"] = "Add"
+  L["Configured alerts:"] = "Configured alerts:"
+  L["No alerts configured. Select an event above and click Add."] =
+    "No alerts configured. Select an event above and click Add."
+  L["Event"] = "Event"
+  L["Sound"] = "Sound"
+  L["Duration"] = "Duration"
+  L["Play / Stop"] = "Play / Stop"
+  L["Enable or disable this alert"] = "Enable or disable this alert"
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
     "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."
   -- Ambient tab
@@ -84,8 +95,11 @@ if locale == "enUS" or locale == "enGB" then
     "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."
+  L["Toggle features and choose the replacement sound channel."] =
+    "Toggle features and choose the replacement sound channel."
+  L["Alerts"] = "Alerts"
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
@@ -216,7 +230,6 @@ if locale == "ptBR" then
   L["Weapon & Combat"] = "Arma e Combate"
   L["Vocalizations"] = "Vocalizações"
   L["Interrupt"] = "Interrupção"
-  L["Interrupt Alert"] = "Alerta de Interrupção"
   L["Professions"] = "Profissões"
   L["Ambient"] = "Ambiente"
   L["Character Vocalizations"] = "Vocalizações de Personagem"
@@ -387,9 +400,6 @@ if locale == "ptBR" then
   L["Cast Complete Sound"] = "Som de Conjuração Completa"
   L["Loading spell data..."] = "Carregando dados de magias..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "Tocar som ao ser interrompido"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "Tocar um som de alerta personalizado quando sua conjuração for interrompida por outro jogador ou NPC."
   L["Alert sound (FID or file path)"] = "Som de alerta (FID ou caminho do arquivo)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (número) ou caminho para um arquivo de som, ex: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -397,9 +407,6 @@ if locale == "ptBR" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "Parar o som de alerta após essa quantidade de segundos. Deixe em branco para tocar completamente."
   L["Test"] = "Testar"
-  L["Play the configured interrupt alert sound."] = "Tocar o som de alerta de interrupção configurado."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "Toca um som de alerta adicional quando sua conjuração é interrompida. Isso não silencia nem substitui o som padrão de interrupção do jogo — ele toca junto."
   L["Play the configured replacement fishing bobber sound."] =
     "Tocar o som substituto configurado para a bóia de pesca."
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
@@ -429,12 +436,33 @@ if locale == "ptBR" then
     "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "Navegue e silencie sons individuais por tipo. Busque sons de magias, vocalizações de personagem, sons de NPC ou insira um FileDataID diretamente."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "Ative recursos, configure sons de pesca e alerta de interrupção e escolha o canal de som substituto."
+  L["Toggle features and choose the replacement sound channel."] =
+    "Ativar/desativar funcionalidades e escolher o canal de som substituto."
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "Configurar sons de alerta que tocam quando você é interrompido, atordoado ou perde o controle do seu personagem."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "Configure quais categorias de sons do jogo silenciar: impactos de arma, vocalizações, sons de criaturas e áudio de profissões."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "Gerencie perfis salvos. Copie configurações entre personagens ou alterne configurações."
+  -- Alerts tab
+  L["Alerts"] = "Alertas"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "Sons de alerta são reproduzidos junto com os sons padrão do jogo — eles não silenciam nem substituem nada. Use-os para chamar sua atenção para eventos de combate importantes."
+  L["Play a sound when:"] = "Tocar um som quando:"
+  L["Select event..."] = "Selecionar evento..."
+  L["All events configured"] = "Todos os eventos configurados"
+  L["Sound:"] = "Som:"
+  L["Duration (s):"] = "Duração (s):"
+  L["Threshold (%):"] = "Limite (%):"
+  L["Add"] = "Adicionar"
+  L["Configured alerts:"] = "Alertas configurados:"
+  L["No alerts configured. Select an event above and click Add."] =
+    "Nenhum alerta configurado. Selecione um evento acima e clique em Adicionar."
+  L["Event"] = "Evento"
+  L["Sound"] = "Som"
+  L["Duration"] = "Duração"
+  L["Play / Stop"] = "Reproduzir / Parar"
+  L["Enable or disable this alert"] = "Ativar ou desativar este alerta"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -553,7 +581,6 @@ elseif locale == "deDE" then
   L["Weapon & Combat"] = "Waffe & Kampf"
   L["Vocalizations"] = "Lautäußerungen"
   L["Interrupt"] = "Unterbrechung"
-  L["Interrupt Alert"] = "Unterbrechungsalarm"
   L["Professions"] = "Berufe"
   L["Ambient"] = "Umgebung"
   L["Character Vocalizations"] = "Charakterstimmen"
@@ -717,9 +744,6 @@ elseif locale == "deDE" then
   L["Cast Complete Sound"] = "Zauber-Abschluss-Klang"
   L["Loading spell data..."] = "Lade Zauberdaten..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "Klang bei Unterbrechung abspielen"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "Einen benutzerdefinierten Alarmklang abspielen, wenn dein Zauber von einem anderen Spieler oder NPC unterbrochen wird."
   L["Alert sound (FID or file path)"] = "Alarmklang (FID oder Dateipfad)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (Zahl) oder Pfad zu einer Sounddatei, z.B. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -727,9 +751,6 @@ elseif locale == "deDE" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "Den Alarmklang nach dieser Anzahl Sekunden stoppen. Leer lassen für vollständige Wiedergabe."
   L["Test"] = "Testen"
-  L["Play the configured interrupt alert sound."] = "Den konfigurierten Unterbrechungs-Alarmklang abspielen."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "Spielt einen zusätzlichen Alarmklang ab, wenn dein Zauber unterbrochen wird. Dies schaltet den Standard-Unterbrechungsklang des Spiels nicht stumm und ersetzt ihn nicht — er wird zusätzlich abgespielt."
   L["Play the configured replacement fishing bobber sound."] = "Den konfigurierten Ersatz-Angelklang abspielen."
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
     "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu. Du kannst auch eigene Klangdateien verwenden — lege sie in Interface/AddOns/Resonance_Sounds/ ab (erstelle diesen Ordner), um sie vor Addon-Updates zu schützen, und gib den vollständigen Pfad als Ersatzklang ein."
@@ -758,12 +779,33 @@ elseif locale == "deDE" then
     "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "Durchsuche und schalte einzelne Klänge nach Typ stumm. Suche Zauberklänge, Charakterstimmen, NPC-Klänge oder gib eine FileDataID direkt ein."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "Funktionen umschalten, Angel- und Unterbrechungs-Alarmklänge konfigurieren und den Ersatzklang-Kanal wählen."
+  L["Toggle features and choose the replacement sound channel."] =
+    "Funktionen ein-/ausschalten und den Ersatzsound-Kanal wählen."
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "Konfiguriere Alarmtöne, die abgespielt werden, wenn du unterbrochen, betäubt oder anderweitig die Kontrolle über deinen Charakter verlierst."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "Konfiguriere welche Kategorien von Spielklängen stummgeschaltet werden: Waffenaufprall, Lautäußerungen, Kreaturenlaute und Berufsgeräusche."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "Gespeicherte Profile verwalten. Einstellungen zwischen Charakteren kopieren oder Konfigurationen wechseln."
+  -- Alerts tab
+  L["Alerts"] = "Alarme"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "Alarmtöne werden zusätzlich zu den Standardsounds des Spiels abgespielt — sie stummschalten oder ersetzen nichts. Verwende sie, um auf wichtige Kampfereignisse aufmerksam zu werden."
+  L["Play a sound when:"] = "Ton abspielen bei:"
+  L["Select event..."] = "Ereignis auswählen..."
+  L["All events configured"] = "Alle Ereignisse konfiguriert"
+  L["Sound:"] = "Sound:"
+  L["Duration (s):"] = "Dauer (s):"
+  L["Threshold (%):"] = "Schwelle (%):"
+  L["Add"] = "Hinzufügen"
+  L["Configured alerts:"] = "Konfigurierte Alarme:"
+  L["No alerts configured. Select an event above and click Add."] =
+    "Keine Alarme konfiguriert. Wähle oben ein Ereignis und klicke auf Hinzufügen."
+  L["Event"] = "Ereignis"
+  L["Sound"] = "Sound"
+  L["Duration"] = "Dauer"
+  L["Play / Stop"] = "Abspielen / Stopp"
+  L["Enable or disable this alert"] = "Diesen Alarm aktivieren oder deaktivieren"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -882,7 +924,6 @@ elseif locale == "frFR" then
   L["Weapon & Combat"] = "Arme & Combat"
   L["Vocalizations"] = "Vocalisations"
   L["Interrupt"] = "Interruption"
-  L["Interrupt Alert"] = "Alerte d'interruption"
   L["Professions"] = "Métiers"
   L["Ambient"] = "Ambiance"
   L["Character Vocalizations"] = "Vocalisations du personnage"
@@ -1047,9 +1088,6 @@ elseif locale == "frFR" then
   L["Cast Complete Sound"] = "Son d'incantation terminée"
   L["Loading spell data..."] = "Chargement des données de sorts..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "Jouer un son en cas d'interruption"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "Jouer un son d'alerte personnalisé lorsque votre incantation est interrompue par un autre joueur ou PNJ."
   L["Alert sound (FID or file path)"] = "Son d'alerte (FID ou chemin de fichier)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (nombre) ou chemin vers un fichier son, ex : Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -1057,9 +1095,6 @@ elseif locale == "frFR" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "Arrêter le son d'alerte après ce nombre de secondes. Laisser vide pour le laisser jouer entièrement."
   L["Test"] = "Tester"
-  L["Play the configured interrupt alert sound."] = "Jouer le son d'alerte d'interruption configuré."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "Joue un son d'alerte supplémentaire lorsque votre incantation est interrompue. Cela ne coupe pas et ne remplace pas le son d'interruption par défaut du jeu — il se joue en plus."
   L["Play the configured replacement fishing bobber sound."] =
     "Jouer le son de remplacement configuré pour le bouchon de pêche."
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
@@ -1089,12 +1124,33 @@ elseif locale == "frFR" then
     "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "Parcourez et coupez des sons individuels par type. Cherchez des sons de sorts, vocalisations de personnage, sons de PNJ ou entrez un FileDataID directement."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "Activez les fonctionnalités, configurez les sons de pêche et d'alerte d'interruption et choisissez le canal de son de remplacement."
+  L["Toggle features and choose the replacement sound channel."] =
+    "Activer/désactiver les fonctionnalités et choisir le canal audio de remplacement."
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "Configurez les sons d'alerte joués lorsque vous êtes interrompu, étourdi ou perdez le contrôle de votre personnage."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "Configurez quelles catégories de sons du jeu couper : impacts d'arme, vocalisations, sons de créatures et sons de métiers."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "Gérez les profils sauvegardés. Copiez les paramètres entre personnages ou changez de configuration."
+  -- Alerts tab
+  L["Alerts"] = "Alertes"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "Les sons d'alerte sont joués en plus des sons par défaut du jeu — ils ne coupent ni ne remplacent rien. Utilisez-les pour attirer votre attention sur les événements de combat importants."
+  L["Play a sound when:"] = "Jouer un son quand :"
+  L["Select event..."] = "Sélectionner un événement..."
+  L["All events configured"] = "Tous les événements configurés"
+  L["Sound:"] = "Son :"
+  L["Duration (s):"] = "Durée (s) :"
+  L["Threshold (%):"] = "Seuil (%) :"
+  L["Add"] = "Ajouter"
+  L["Configured alerts:"] = "Alertes configurées :"
+  L["No alerts configured. Select an event above and click Add."] =
+    "Aucune alerte configurée. Sélectionnez un événement ci-dessus et cliquez sur Ajouter."
+  L["Event"] = "Événement"
+  L["Sound"] = "Son"
+  L["Duration"] = "Durée"
+  L["Play / Stop"] = "Lecture / Arrêt"
+  L["Enable or disable this alert"] = "Activer ou désactiver cette alerte"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -1213,7 +1269,6 @@ elseif locale == "esES" or locale == "esMX" then
   L["Weapon & Combat"] = "Arma y combate"
   L["Vocalizations"] = "Vocalizaciones"
   L["Interrupt"] = "Interrupción"
-  L["Interrupt Alert"] = "Alerta de interrupción"
   L["Professions"] = "Profesiones"
   L["Ambient"] = "Ambiental"
   L["Character Vocalizations"] = "Vocalizaciones de personaje"
@@ -1377,9 +1432,6 @@ elseif locale == "esES" or locale == "esMX" then
   L["Cast Complete Sound"] = "Sonido de lanzamiento completo"
   L["Loading spell data..."] = "Cargando datos de hechizos..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "Reproducir sonido al ser interrumpido"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "Reproducir un sonido de alerta personalizado cuando tu lanzamiento sea interrumpido por otro jugador o NPC."
   L["Alert sound (FID or file path)"] = "Sonido de alerta (FID o ruta de archivo)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (número) o ruta a un archivo de sonido, ej: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -1387,9 +1439,6 @@ elseif locale == "esES" or locale == "esMX" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "Parar el sonido de alerta después de estos segundos. Dejar vacío para que se reproduzca completamente."
   L["Test"] = "Probar"
-  L["Play the configured interrupt alert sound."] = "Reproducir el sonido de alerta de interrupción configurado."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "Reproduce un sonido de alerta adicional cuando tu lanzamiento es interrumpido. Esto no silencia ni reemplaza el sonido de interrupción predeterminado del juego — se reproduce encima de él."
   L["Play the configured replacement fishing bobber sound."] =
     "Reproducir el sonido de reemplazo configurado para el flotador de pesca."
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
@@ -1419,12 +1468,33 @@ elseif locale == "esES" or locale == "esMX" then
     "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "Explora y silencia sonidos individuales por tipo. Busca sonidos de hechizos, vocalizaciones de personaje, sonidos de NPC o introduce un FileDataID directamente."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "Activa funciones, configura sonidos de pesca y alerta de interrupción y elige el canal de sonido de reemplazo."
+  L["Toggle features and choose the replacement sound channel."] =
+    "Activar/desactivar funciones y elegir el canal de sonido de reemplazo."
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "Configura sonidos de alerta que se reproducen cuando eres interrumpido, aturdido o pierdes el control de tu personaje."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "Configura qué categorías de sonidos del juego silenciar: impactos de arma, vocalizaciones, sonidos de criaturas y audio de profesiones."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "Gestiona perfiles guardados. Copia configuraciones entre personajes o cambia de configuración."
+  -- Alerts tab
+  L["Alerts"] = "Alertas"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "Los sonidos de alerta se reproducen junto con los sonidos predeterminados del juego — no silencian ni reemplazan nada. Úsalos para llamar tu atención sobre eventos de combate importantes."
+  L["Play a sound when:"] = "Reproducir un sonido cuando:"
+  L["Select event..."] = "Seleccionar evento..."
+  L["All events configured"] = "Todos los eventos configurados"
+  L["Sound:"] = "Sonido:"
+  L["Duration (s):"] = "Duración (s):"
+  L["Threshold (%):"] = "Umbral (%):"
+  L["Add"] = "Añadir"
+  L["Configured alerts:"] = "Alertas configuradas:"
+  L["No alerts configured. Select an event above and click Add."] =
+    "No hay alertas configuradas. Selecciona un evento arriba y haz clic en Añadir."
+  L["Event"] = "Evento"
+  L["Sound"] = "Sonido"
+  L["Duration"] = "Duración"
+  L["Play / Stop"] = "Reproducir / Parar"
+  L["Enable or disable this alert"] = "Activar o desactivar esta alerta"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -1512,7 +1582,6 @@ elseif locale == "itIT" then
   L["Weapon & Combat"] = "Arma e combattimento"
   L["Vocalizations"] = "Vocalizzazioni"
   L["Interrupt"] = "Interruzione"
-  L["Interrupt Alert"] = "Avviso interruzione"
   L["Professions"] = "Professioni"
   L["Ambient"] = "Ambiente"
   L["Character Vocalizations"] = "Vocalizzazioni del personaggio"
@@ -1704,9 +1773,6 @@ elseif locale == "itIT" then
   L["Cast Complete Sound"] = "Suono lancio completato"
   L["Loading spell data..."] = "Caricamento dati incantesimi..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "Riproduci suono quando interrotto"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "Riproduce un suono di avviso personalizzato quando il tuo lancio viene interrotto da un altro giocatore o NPC."
   L["Alert sound (FID or file path)"] = "Suono di avviso (FID o percorso file)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (numero) o percorso a un file audio, es: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -1714,9 +1780,6 @@ elseif locale == "itIT" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "Ferma il suono di avviso dopo questi secondi. Lascia vuoto per riprodurlo completamente."
   L["Test"] = "Prova"
-  L["Play the configured interrupt alert sound."] = "Riproduce il suono di avviso interruzione configurato."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "Riproduce un suono di avviso aggiuntivo quando il tuo lancio viene interrotto. Questo non silenzia né sostituisce il suono di interruzione predefinito del gioco — viene riprodotto in aggiunta."
   L["Play the configured replacement fishing bobber sound."] =
     "Riproduce il suono sostitutivo configurato per il galleggiante da pesca."
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
@@ -1746,12 +1809,33 @@ elseif locale == "itIT" then
     "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "Sfoglia e silenzia singoli suoni per tipo. Cerca suoni incantesimi, vocalizzazioni personaggio, suoni NPC o inserisci un FileDataID direttamente."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "Attiva funzionalità, configura suoni di pesca e avviso interruzione e scegli il canale del suono sostitutivo."
+  L["Toggle features and choose the replacement sound channel."] =
+    "Attiva/disattiva funzionalità e scegli il canale audio sostitutivo."
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "Configura i suoni di avviso che vengono riprodotti quando vieni interrotto, stordito o perdi il controllo del tuo personaggio."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "Configura quali categorie di suoni del gioco silenziare: impatti d'arma, vocalizzazioni, suoni delle creature e audio delle professioni."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "Gestisci i profili salvati. Copia le impostazioni tra personaggi o cambia configurazione."
+  -- Alerts tab
+  L["Alerts"] = "Avvisi"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "I suoni di avviso vengono riprodotti insieme ai suoni predefiniti del gioco — non disattivano né sostituiscono nulla. Usali per attirare la tua attenzione su eventi di combattimento importanti."
+  L["Play a sound when:"] = "Riproduci un suono quando:"
+  L["Select event..."] = "Seleziona evento..."
+  L["All events configured"] = "Tutti gli eventi configurati"
+  L["Sound:"] = "Suono:"
+  L["Duration (s):"] = "Durata (s):"
+  L["Threshold (%):"] = "Soglia (%):"
+  L["Add"] = "Aggiungi"
+  L["Configured alerts:"] = "Avvisi configurati:"
+  L["No alerts configured. Select an event above and click Add."] =
+    "Nessun avviso configurato. Seleziona un evento sopra e clicca Aggiungi."
+  L["Event"] = "Evento"
+  L["Sound"] = "Suono"
+  L["Duration"] = "Durata"
+  L["Play / Stop"] = "Riproduci / Ferma"
+  L["Enable or disable this alert"] = "Attiva o disattiva questo avviso"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -1841,7 +1925,6 @@ elseif locale == "ruRU" then
   L["Weapon & Combat"] = "Оружие и бой"
   L["Vocalizations"] = "Вокализации"
   L["Interrupt"] = "Прерывание"
-  L["Interrupt Alert"] = "Сигнал прерывания"
   L["Professions"] = "Профессии"
   L["Ambient"] = "Окружение"
   L["Character Vocalizations"] = "Голос персонажа"
@@ -2047,9 +2130,6 @@ elseif locale == "ruRU" then
   L["Cast Complete Sound"] = "Звук завершения каста"
   L["Loading spell data..."] = "Загрузка данных заклинаний..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "Воспроизводить звук при прерывании"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "Воспроизводить пользовательский звук оповещения, когда ваш каст прерван другим игроком или НИП."
   L["Alert sound (FID or file path)"] = "Звук оповещения (FID или путь к файлу)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (число) или путь к звуковому файлу, напр. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -2057,10 +2137,6 @@ elseif locale == "ruRU" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "Остановить звук оповещения через это количество секунд. Оставьте пустым для полного воспроизведения."
   L["Test"] = "Тест"
-  L["Play the configured interrupt alert sound."] =
-    "Воспроизвести настроенный звук оповещения о прерывании."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "Воспроизводит дополнительный звук оповещения при прерывании вашего каста. Стандартный звук прерывания игры не заглушается и не заменяется — этот звук воспроизводится поверх него."
   L["Play the configured replacement fishing bobber sound."] =
     "Воспроизвести настроенный замещающий звук поплавка."
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
@@ -2090,12 +2166,33 @@ elseif locale == "ruRU" then
     "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "Просматривайте и заглушайте отдельные звуки по типу. Ищите звуки заклинаний, голоса персонажей, звуки НИП или введите FileDataID напрямую."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "Переключайте функции, настраивайте звуки рыбалки и оповещения о прерывании и выбирайте канал замещающего звука."
+  L["Toggle features and choose the replacement sound channel."] =
+    "Переключение функций и выбор канала замещающих звуков."
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "Настройте звуки оповещений, воспроизводимые при прерывании, оглушении или потере контроля над персонажем."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "Настройте какие категории игровых звуков заглушить: удары оружия, вокализации, звуки существ и звуки профессий."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "Управляйте сохранёнными профилями. Копируйте настройки между персонажами или переключайте конфигурации."
+  -- Alerts tab
+  L["Alerts"] = "Оповещения"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "Звуки оповещений воспроизводятся вместе со стандартными звуками игры — они ничего не отключают и не заменяют. Используйте их, чтобы привлечь внимание к важным боевым событиям."
+  L["Play a sound when:"] = "Воспроизвести звук при:"
+  L["Select event..."] = "Выбрать событие..."
+  L["All events configured"] = "Все события настроены"
+  L["Sound:"] = "Звук:"
+  L["Duration (s):"] = "Длительность (с):"
+  L["Threshold (%):"] = "Порог (%):"
+  L["Add"] = "Добавить"
+  L["Configured alerts:"] = "Настроенные оповещения:"
+  L["No alerts configured. Select an event above and click Add."] =
+    "Оповещения не настроены. Выберите событие выше и нажмите Добавить."
+  L["Event"] = "Событие"
+  L["Sound"] = "Звук"
+  L["Duration"] = "Длительность"
+  L["Play / Stop"] = "Воспроизвести / Стоп"
+  L["Enable or disable this alert"] = "Включить или отключить это оповещение"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -2183,7 +2280,6 @@ elseif locale == "koKR" then
   L["Weapon & Combat"] = "무기 & 전투"
   L["Vocalizations"] = "음성"
   L["Interrupt"] = "차단"
-  L["Interrupt Alert"] = "차단 알림"
   L["Professions"] = "전문 기술"
   L["Ambient"] = "환경음"
   L["Character Vocalizations"] = "캐릭터 음성"
@@ -2378,9 +2474,6 @@ elseif locale == "koKR" then
   L["Cast Complete Sound"] = "시전 완료 소리"
   L["Loading spell data..."] = "주문 데이터 로드 중..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "차단당했을 때 소리 재생"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "다른 플레이어나 NPC에 의해 시전이 차단되었을 때 사용자 정의 알림 소리를 재생합니다."
   L["Alert sound (FID or file path)"] = "알림 소리 (FID 또는 파일 경로)"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID (숫자) 또는 사운드 파일 경로, 예: Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -2388,9 +2481,6 @@ elseif locale == "koKR" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "이 시간(초) 후 알림 소리를 중지합니다. 전체 재생하려면 비워 두세요."
   L["Test"] = "테스트"
-  L["Play the configured interrupt alert sound."] = "설정된 차단 알림 소리를 재생합니다."
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "시전이 차단되었을 때 추가 알림 소리를 재생합니다. 게임의 기본 차단 소리를 음소거하거나 대체하지 않으며 — 그 위에 추가로 재생됩니다."
   L["Play the configured replacement fishing bobber sound."] = "설정된 대체 낚시 찌 소리를 재생합니다."
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
     "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다. 자신의 사운드 파일도 사용할 수 있습니다 — Interface/AddOns/Resonance_Sounds/ 폴더를 만들어 파일을 넣으면 애드온 업데이트로부터 안전하게 보호되며, 전체 경로를 대체 소리로 입력하세요."
@@ -2419,12 +2509,33 @@ elseif locale == "koKR" then
     "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다."
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "유형별로 개별 소리를 탐색하고 음소거합니다. 주문 소리, 캐릭터 음성, NPC 소리를 검색하거나 FileDataID를 직접 입력합니다."
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "기능을 전환하고, 낚시 및 차단 알림 소리를 설정하고, 대체 소리 채널을 선택합니다."
+  L["Toggle features and choose the replacement sound channel."] =
+    "기능을 전환하고 대체 소리 채널을 선택합니다."
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "차단, 기절 또는 캐릭터 제어를 잃었을 때 재생되는 알림 소리를 구성합니다."
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "어떤 게임 소리 카테고리를 음소거할지 설정합니다: 무기 충격음, 음성, 생물 소리, 전문 기술 소리."
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "저장된 프로필을 관리합니다. 캐릭터 간 설정을 복사하거나 구성을 전환합니다."
+  -- Alerts tab
+  L["Alerts"] = "알림"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "알림 소리는 게임의 기본 소리와 함께 재생됩니다 — 소리를 끄거나 대체하지 않습니다. 중요한 전투 이벤트에 주의를 끌기 위해 사용하세요."
+  L["Play a sound when:"] = "소리 재생 조건:"
+  L["Select event..."] = "이벤트 선택..."
+  L["All events configured"] = "모든 이벤트가 구성됨"
+  L["Sound:"] = "소리:"
+  L["Duration (s):"] = "지속 시간 (초):"
+  L["Threshold (%):"] = "임계값 (%):"
+  L["Add"] = "추가"
+  L["Configured alerts:"] = "구성된 알림:"
+  L["No alerts configured. Select an event above and click Add."] =
+    "구성된 알림이 없습니다. 위에서 이벤트를 선택하고 추가를 클릭하세요."
+  L["Event"] = "이벤트"
+  L["Sound"] = "소리"
+  L["Duration"] = "지속 시간"
+  L["Play / Stop"] = "재생 / 정지"
+  L["Enable or disable this alert"] = "이 알림 활성화 또는 비활성화"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "The War Within"
@@ -2512,7 +2623,6 @@ elseif locale == "zhCN" then
   L["Weapon & Combat"] = "武器与战斗"
   L["Vocalizations"] = "角色叫声"
   L["Interrupt"] = "打断"
-  L["Interrupt Alert"] = "打断提示"
   L["Professions"] = "专业技能"
   L["Ambient"] = "环境音效"
   L["Character Vocalizations"] = "角色语音"
@@ -2701,9 +2811,6 @@ elseif locale == "zhCN" then
   L["Cast Complete Sound"] = "施法完成声音"
   L["Loading spell data..."] = "正在加载法术数据..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "被打断时播放声音"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "当你的施法被其他玩家或NPC打断时播放自定义警报声音。"
   L["Alert sound (FID or file path)"] = "警报声音（FID或文件路径）"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID（数字）或声音文件路径，例如：Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -2711,9 +2818,6 @@ elseif locale == "zhCN" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "在此秒数后停止警报声音。留空则完整播放。"
   L["Test"] = "测试"
-  L["Play the configured interrupt alert sound."] = "播放已配置的打断警报声音。"
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "当你的施法被打断时播放额外的警报声音。这不会静音或替换游戏默认的打断声音——它在其之上播放。"
   L["Play the configured replacement fishing bobber sound."] = "播放已配置的替换钓鱼浮标声音。"
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
     "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。你也可以使用自己的声音文件——将它们放在Interface/AddOns/Resonance_Sounds/文件夹中（创建此文件夹）以防止插件更新时丢失，然后输入完整路径作为替换声音。"
@@ -2742,12 +2846,33 @@ elseif locale == "zhCN" then
     "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。"
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "按类型浏览和静音单个声音。搜索法术声音、角色语音、NPC声音，或直接输入FileDataID。"
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "切换功能，配置钓鱼和打断警报声音，选择替换声音频道。"
+  L["Toggle features and choose the replacement sound channel."] =
+    "切换功能并选择替换声音频道。"
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "配置在被打断、击晕或失去角色控制时播放的警报声音。"
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "配置要静音的游戏声音类别：武器冲击声、语音、生物声音和专业技能音效。"
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "管理已保存的配置文件。在角色之间复制设置或切换配置。"
+  -- Alerts tab
+  L["Alerts"] = "警报"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "警报声音会与游戏默认声音一起播放——不会静音或替换任何内容。用它们来提醒你注意重要的战斗事件。"
+  L["Play a sound when:"] = "播放声音当："
+  L["Select event..."] = "选择事件..."
+  L["All events configured"] = "所有事件已配置"
+  L["Sound:"] = "声音："
+  L["Duration (s):"] = "持续时间（秒）："
+  L["Threshold (%):"] = "阈值（%）："
+  L["Add"] = "添加"
+  L["Configured alerts:"] = "已配置的警报："
+  L["No alerts configured. Select an event above and click Add."] =
+    "未配置警报。请在上方选择事件并点击添加。"
+  L["Event"] = "事件"
+  L["Sound"] = "声音"
+  L["Duration"] = "持续时间"
+  L["Play / Stop"] = "播放 / 停止"
+  L["Enable or disable this alert"] = "启用或禁用此警报"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "地心之战"
@@ -2835,7 +2960,6 @@ elseif locale == "zhTW" then
   L["Weapon & Combat"] = "武器與戰鬥"
   L["Vocalizations"] = "角色叫聲"
   L["Interrupt"] = "打斷"
-  L["Interrupt Alert"] = "打斷提示"
   L["Professions"] = "專業技能"
   L["Ambient"] = "環境音效"
   L["Character Vocalizations"] = "角色語音"
@@ -3024,9 +3148,6 @@ elseif locale == "zhTW" then
   L["Cast Complete Sound"] = "施法完成聲音"
   L["Loading spell data..."] = "正在載入法術資料..."
   -- Interrupt alert
-  L["Play sound when interrupted"] = "被打斷時播放聲音"
-  L["Play a custom alert sound when your cast is interrupted by another player or NPC."] =
-    "當你的施法被其他玩家或NPC打斷時播放自訂警示聲音。"
   L["Alert sound (FID or file path)"] = "警示聲音（FID或檔案路徑）"
   L["FileDataID (number) or path to a sound file, e.g. Interface\\AddOns\\Resonance\\sounds\\alert.ogg"] =
     "FileDataID（數字）或聲音檔案路徑，例如：Interface\\AddOns\\Resonance\\sounds\\alert.ogg"
@@ -3034,9 +3155,6 @@ elseif locale == "zhTW" then
   L["Stop the alert sound after this many seconds. Leave blank to let it play fully."] =
     "在此秒數後停止警示聲音。留空則完整播放。"
   L["Test"] = "測試"
-  L["Play the configured interrupt alert sound."] = "播放已設定的打斷警示聲音。"
-  L["Play an additional alert sound when your cast is interrupted. This does not mute or replace the game's default interrupt sound — it plays on top of it."] =
-    "當你的施法被打斷時播放額外的警示聲音。這不會靜音或替換遊戲預設的打斷聲音——它在其之上播放。"
   L["Play the configured replacement fishing bobber sound."] = "播放已設定的替換釣魚浮標聲音。"
   L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
     "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。你也可以使用自己的聲音檔案——將它們放在Interface/AddOns/Resonance_Sounds/資料夾中（建立此資料夾）以防止插件更新時遺失，然後輸入完整路徑作為替換聲音。"
@@ -3065,12 +3183,33 @@ elseif locale == "zhTW" then
     "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。"
   L["Browse and mute individual sounds by type. Search spell sounds, character vocalizations, NPC sounds, or enter a FileDataID directly."] =
     "按類型瀏覽和靜音個別聲音。搜尋法術聲音、角色語音、NPC聲音，或直接輸入FileDataID。"
-  L["Toggle features, configure fishing and interrupt alert sounds, and choose the replacement sound channel."] =
-    "切換功能，設定釣魚和打斷警示聲音，選擇替換聲音頻道。"
+  L["Toggle features and choose the replacement sound channel."] =
+    "切換功能並選擇替換音效頻道。"
+  L["Configure alert sounds that play when you are interrupted, stunned, or otherwise lose control of your character."] =
+    "設定在被打斷、擊暈或失去角色控制時播放的警報音效。"
   L["Configure which categories of game sounds to mute: weapon impacts, vocalizations, creature sounds, and profession audio."] =
     "設定要靜音的遊戲聲音類別：武器衝擊聲、語音、生物聲音和專業技能音效。"
   L["Manage saved profiles. Copy settings between characters or switch configurations."] =
     "管理已儲存的設定檔。在角色之間複製設定或切換設定。"
+  -- Alerts tab
+  L["Alerts"] = "警報"
+  L["Alert sounds play alongside the game's default sounds — they do not mute or replace anything. Use them to draw your attention to important combat events."] =
+    "警報音效會與遊戲預設音效一起播放——不會靜音或替換任何內容。用它們來提醒你注意重要的戰鬥事件。"
+  L["Play a sound when:"] = "播放音效當："
+  L["Select event..."] = "選擇事件..."
+  L["All events configured"] = "所有事件已設定"
+  L["Sound:"] = "音效："
+  L["Duration (s):"] = "持續時間（秒）："
+  L["Threshold (%):"] = "閾值（%）："
+  L["Add"] = "新增"
+  L["Configured alerts:"] = "已設定的警報："
+  L["No alerts configured. Select an event above and click Add."] =
+    "尚未設定警報。請在上方選擇事件並點擊新增。"
+  L["Event"] = "事件"
+  L["Sound"] = "音效"
+  L["Duration"] = "持續時間"
+  L["Play / Stop"] = "播放 / 停止"
+  L["Enable or disable this alert"] = "啟用或停用此警報"
   -- Expansion names
   L["Midnight"] = "Midnight"
   L["The War Within"] = "地心之戰"
