@@ -50,6 +50,11 @@ read_globals = {
 	"GameFontNormal",
 	"GetSpellInfo",
 	"IsPlayerSpell",
+	"MASTER_VOLUME",
+	"SOUND_VOLUME",
+	"MUSIC_VOLUME",
+	"AMBIENCE_VOLUME",
+	"DIALOG_VOLUME",
 }
 
 -- Addon globals: set in one file, read in others

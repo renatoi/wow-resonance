@@ -182,6 +182,38 @@ local function formatSoundDisplay(path, fid)
   return filename .. "  |cff808080#" .. fid .. "|r"
 end
 
+-- Append matching custom sounds to search results
+local function appendCustomSounds(results, query)
+  local custom = Resonance.db and Resonance.db.profile and Resonance.db.profile.customSounds
+  if not custom or #custom == 0 then return end
+  local terms = {}
+  for word in query:lower():gmatch("%S+") do
+    terms[#terms + 1] = word
+  end
+  if #terms == 0 then return end
+  local root = Resonance.CUSTOM_SOUNDS_ROOT or "Interface\\AddOns\\Resonance_Sounds\\"
+  for _, entry in ipairs(custom) do
+    local searchStr = (entry.name .. " " .. entry.file):lower()
+    local match = true
+    for _, t in ipairs(terms) do
+      if not searchStr:find(t, 1, true) then
+        match = false
+        break
+      end
+    end
+    if match then
+      local path = root .. entry.file
+      results[#results + 1] = {
+        path = path,
+        fileDataID = path,
+        display = "|cff00cc66" .. entry.name .. "|r |cff888888(" .. entry.file .. ")|r",
+        subdisplay = "Custom Sound",
+        isCustom = true,
+      }
+    end
+  end
+end
+
 -- Reverse lookup: FID -> path (built lazily, cached)
 local fidPathCache
 local function lookupFIDPath(fid)
@@ -660,6 +692,7 @@ local SUB_NAMES = {
   "Muting",
   "Ambient",
   "Alerts",
+  "Custom Sounds",
   "Sound Browser",
   "Presets",
   "Profiles",
@@ -1391,6 +1424,7 @@ do
         for _, r in ipairs(results) do
           r.display = formatSoundDisplay(r.path, r.fileDataID)
         end
+        appendCustomSounds(results, q)
         dd:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
       end, Resonance.SpellSoundPrefixes)
     end
@@ -1478,6 +1512,7 @@ local buildTab3_MutedSounds
 local buildTab4_Presets
 local buildTab5_Ambient
 local buildTab_Alerts
+local buildTab_CustomSounds
 
 ---------------------------------------------------------------------------
 -- Tab 2: Spell Sounds
@@ -1512,7 +1547,7 @@ buildTab2_SpellSounds = function(ctx)
   spellTabDesc:SetJustifyH("LEFT")
   spellTabDesc:SetSpacing(3)
   spellTabDesc:SetText(
-    L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."]
+    L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."]
   )
 
   -- Anchor frame positioned after the heading + description
@@ -2161,6 +2196,7 @@ buildTab2_SpellSounds = function(ctx)
         r.display = filename
         r.subdisplay = (parent and (parent .. "/  \194\183  ") or "") .. "#" .. r.fileDataID
       end
+      appendCustomSounds(results, q)
       edBrowseDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
     end, Resonance.SpellSoundPrefixes)
   end
@@ -5013,7 +5049,6 @@ buildTab_Alerts = function(buildCtx)
   local content = buildCtx.alertsContent
   local profile = Resonance.db.profile
   local ALERT_EVENTS = Resonance.ALERT_EVENTS
-  local ALERT_BY_KEY = Resonance.ALERT_EVENTS_BY_KEY
   local ROW_H = 24
   local COL_ENABLED = 30
   local COL_EVENT = 130
@@ -5062,10 +5097,6 @@ buildTab_Alerts = function(buildCtx)
   durLabel:SetPoint("LEFT", soundLabel, "LEFT", 210, 0)
   durLabel:SetText(L["Duration (s):"])
 
-  local threshLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  threshLabel:SetPoint("LEFT", durLabel, "LEFT", 75, 0)
-  threshLabel:SetText(L["Threshold (%):"])
-  threshLabel:Hide()
 
   -- Inputs row (all aligned below the labels)
   local soundBox = makeEditBox(content, 200, soundLabel, -2, -2, "FileDataID, path, or search")
@@ -5104,6 +5135,7 @@ buildTab_Alerts = function(buildCtx)
       for _, r in ipairs(results) do
         r.display = formatSoundDisplay(r.path, r.fileDataID)
       end
+      appendCustomSounds(results, q)
       alertSoundDD:SetData(results, #results == 0 and L["No matches."] or L["%d results"]:format(#results))
     end, Resonance.SpellSoundPrefixes)
   end
@@ -5119,14 +5151,23 @@ buildTab_Alerts = function(buildCtx)
   local durBox = makeEditBox(content, 55, durLabel, -2, -2, "")
   durBox:SetPoint("TOPLEFT", durLabel, "BOTTOMLEFT", -2, -2)
 
-  local threshBox = makeEditBox(content, 45, threshLabel, -2, -2, "30")
-  threshBox:SetPoint("TOPLEFT", threshLabel, "BOTTOMLEFT", -2, -2)
-  threshBox:Hide()
+
+  -- Show a brief tooltip anchored to a button
+  local function flashTooltip(btn, text)
+    GameTooltip:SetOwner(btn, "ANCHOR_TOP")
+    GameTooltip:AddLine(text, 1, 0.3, 0.3)
+    GameTooltip:Show()
+    C_Timer.After(2, function() GameTooltip:Hide() end)
+  end
 
   -- Test button (aligned with the edit boxes)
-  local testBtn = makeButton(content, L["Test"], 40, function()
+  local testBtn
+  testBtn = makeButton(content, L["Test"], 40, function()
     local snd = soundBox:GetText()
-    if snd == "" then return end
+    if snd == "" then
+      flashTooltip(testBtn, L["Enter a sound first."])
+      return
+    end
     local n = tonumber(snd)
     local sound = n or snd
     local ok, handle = Resonance.previewSound(sound)
@@ -5143,31 +5184,33 @@ buildTab_Alerts = function(buildCtx)
   local refreshAlertList -- forward declaration
 
   addBtn = makeButton(content, L["Add"], 40, function()
-    if not selectedEventKey then return end
+    if not selectedEventKey and soundBox:GetText() == "" then
+      flashTooltip(addBtn, L["Select an event and enter a sound."])
+      return
+    end
+    if not selectedEventKey then
+      flashTooltip(addBtn, L["Select an event first."])
+      return
+    end
     local snd = soundBox:GetText()
-    if snd == "" then return end
+    if snd == "" then
+      flashTooltip(addBtn, L["Enter a sound first."])
+      return
+    end
     local n = tonumber(snd)
     local sound = n or snd
     if not profile.alerts then profile.alerts = {} end
     local cfg = { enabled = true, sound = sound, loop = false }
     local dur = tonumber(durBox:GetText())
     if dur and dur > 0 then cfg.duration = dur end
-    local meta = ALERT_BY_KEY[selectedEventKey]
-    if meta and meta.hasThreshold then
-      local t = tonumber(threshBox:GetText())
-      cfg.threshold = (t and t > 0 and t <= 100) and t or (meta.defaultThreshold or 30)
-    end
     profile.alerts[selectedEventKey] = cfg
     Resonance.refreshAlertEvents()
     -- Reset form
     soundBox:SetText("")
     durBox:SetText("")
-    threshBox:SetText("")
     selectedEventKey = nil
     ddBtn:SetText(L["Select event..."])
     eventDesc:SetText("")
-    threshLabel:Hide()
-    threshBox:Hide()
     refreshAlertList()
   end)
   addBtn:SetPoint("LEFT", testBtn, "RIGHT", 4, 0)
@@ -5175,11 +5218,7 @@ buildTab_Alerts = function(buildCtx)
   -- Reanchor test/add buttons based on which fields are visible
   local function reanchorFormButtons()
     testBtn:ClearAllPoints()
-    if threshBox:IsShown() then
-      testBtn:SetPoint("LEFT", threshBox, "RIGHT", 8, 0)
-    else
-      testBtn:SetPoint("LEFT", durBox, "RIGHT", 8, 0)
-    end
+    testBtn:SetPoint("LEFT", durBox, "RIGHT", 8, 0)
   end
   reanchorFormButtons()
 
@@ -5194,15 +5233,6 @@ buildTab_Alerts = function(buildCtx)
               selectedEventKey = evt.key
               ddBtn:SetText(evt.name)
               eventDesc:SetText(evt.desc)
-              if evt.hasThreshold then
-                threshLabel:Show()
-                threshBox:Show()
-                threshBox:SetText(tostring(evt.defaultThreshold or 30))
-              else
-                threshLabel:Hide()
-                threshBox:Hide()
-              end
-              reanchorFormButtons()
             end)
             btn:SetTooltip(function(tooltip)
               GameTooltip_SetTitle(tooltip, evt.name)
@@ -5399,11 +5429,7 @@ buildTab_Alerts = function(buildCtx)
       end
 
       -- Event name + tooltip data
-      local displayName = entry.meta.name
-      if entry.meta.hasThreshold and entry.cfg.threshold then
-        displayName = displayName .. " |cff888888(<" .. entry.cfg.threshold .. "%)|r"
-      end
-      row.eventText:SetText(displayName)
+      row.eventText:SetText(entry.meta.name)
       row._name = entry.meta.name
       row._desc = entry.meta.desc
 
@@ -5462,9 +5488,6 @@ buildTab_Alerts = function(buildCtx)
       selectedEventKey = nil
       ddBtn:SetText(L["Select event..."])
       eventDesc:SetText("")
-      threshLabel:Hide()
-      threshBox:Hide()
-      reanchorFormButtons()
     end
 
     buildCtx.recalcContentHeight(content)
@@ -5477,6 +5500,227 @@ buildTab_Alerts = function(buildCtx)
   ddBtn:SetText(L["Select event..."])
   updateDropdown()
   refreshAlertList()
+end
+
+---------------------------------------------------------------------------
+-- Custom Sounds tab
+---------------------------------------------------------------------------
+buildTab_CustomSounds = function(buildCtx)
+  local content = buildCtx.customSoundsContent
+  local profile = Resonance.db.profile
+  local CUSTOM_ROOT = Resonance.CUSTOM_SOUNDS_ROOT
+  local ROW_H = 24
+
+  -- Tab heading
+  local tabHdr = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  tabHdr:SetPoint("TOPLEFT", content, "TOPLEFT", 16, -16)
+  tabHdr:SetText(L["Custom Sounds"])
+
+  -- Instructions
+  local instructions = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  instructions:SetPoint("TOPLEFT", tabHdr, "BOTTOMLEFT", 0, -8)
+  instructions:SetPoint("RIGHT", content, "RIGHT", -16, 0)
+  instructions:SetJustifyH("LEFT")
+  instructions:SetWordWrap(true)
+  instructions:SetText(L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."])
+
+  -- Register a sound section
+  local registerLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  registerLabel:SetPoint("TOPLEFT", instructions, "BOTTOMLEFT", 0, -16)
+  registerLabel:SetText(L["Register a sound:"])
+
+  -- Filename label + input
+  local fileLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  fileLabel:SetPoint("TOPLEFT", registerLabel, "BOTTOMLEFT", 0, -8)
+  fileLabel:SetText(L["Filename:"])
+
+  local fileBox = makeEditBox(content, 180, fileLabel, -2, -2, "mysound.ogg")
+  fileBox:SetPoint("TOPLEFT", fileLabel, "BOTTOMLEFT", -2, -2)
+
+  -- Name label + input (same row, offset to the right)
+  local nameLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  nameLabel:SetPoint("LEFT", fileLabel, "LEFT", 190, 0)
+  nameLabel:SetText(L["Display name (optional):"])
+
+  local nameBox = makeEditBox(content, 160, nameLabel, -2, -2, "")
+  nameBox:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", -2, -2)
+
+  -- Flash tooltip helper
+  local function flashTooltip(btn, text)
+    GameTooltip:SetOwner(btn, "ANCHOR_TOP")
+    GameTooltip:AddLine(text, 1, 0.3, 0.3)
+    GameTooltip:Show()
+    C_Timer.After(2, function() GameTooltip:Hide() end)
+  end
+
+  -- Play button
+  local playBtn
+  playBtn = makeButton(content, L["Test"], 40, function()
+    local file = fileBox:GetText()
+    if file == "" then
+      flashTooltip(playBtn, L["Enter a filename first."])
+      return
+    end
+    local path = CUSTOM_ROOT .. file
+    Resonance.previewSound(path)
+  end)
+  playBtn:SetPoint("LEFT", nameBox, "RIGHT", 8, 0)
+
+  -- Add button
+  local addBtn
+  local refreshCustomSounds
+
+  addBtn = makeButton(content, L["Add"], 40, function()
+    local file = fileBox:GetText()
+    if file == "" then
+      flashTooltip(addBtn, L["Enter a filename first."])
+      return
+    end
+    -- Check for duplicate filenames
+    if not profile.customSounds then profile.customSounds = {} end
+    for _, entry in ipairs(profile.customSounds) do
+      if entry.file == file then
+        flashTooltip(addBtn, L["This file is already registered."])
+        return
+      end
+    end
+    local name = nameBox:GetText()
+    if name == "" then
+      -- Use filename without extension as display name
+      name = file:match("(.+)%..+$") or file
+    end
+    profile.customSounds[#profile.customSounds + 1] = { name = name, file = file }
+    fileBox:SetText("")
+    nameBox:SetText("")
+    refreshCustomSounds()
+  end)
+  addBtn:SetPoint("LEFT", playBtn, "RIGHT", 4, 0)
+
+  -- Registered sounds table
+  local tableLabel = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+
+  local tableHeader = CreateFrame("Frame", nil, content)
+  tableHeader:SetHeight(ROW_H)
+
+  -- Column headers
+  local COL_NAME = 160
+  local COL_FILE = 180
+
+  local hdrName = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  hdrName:SetPoint("LEFT", 4, 0)
+  hdrName:SetWidth(COL_NAME)
+  hdrName:SetJustifyH("LEFT")
+  hdrName:SetText(L["Name"])
+
+  local hdrFile = tableHeader:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  hdrFile:SetPoint("LEFT", hdrName, "RIGHT", 4, 0)
+  hdrFile:SetWidth(COL_FILE)
+  hdrFile:SetJustifyH("LEFT")
+  hdrFile:SetText(L["File"])
+
+  local hdrLine = tableHeader:CreateTexture(nil, "ARTWORK")
+  hdrLine:SetHeight(1)
+  hdrLine:SetPoint("BOTTOMLEFT", 0, 0)
+  hdrLine:SetPoint("BOTTOMRIGHT", 0, 0)
+  hdrLine:SetColorTexture(0.4, 0.4, 0.4, 0.5)
+
+  -- Rows
+  local rows = {}
+  local emptyText = content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  emptyText:SetText(L["No custom sounds registered."])
+  emptyText:SetJustifyH("LEFT")
+
+  local function getOrCreateRow(idx)
+    if rows[idx] then return rows[idx] end
+    local row = CreateFrame("Frame", nil, content)
+    row:SetHeight(ROW_H)
+    rows[idx] = row
+
+    row.stripe = row:CreateTexture(nil, "BACKGROUND")
+    row.stripe:SetAllPoints()
+    row.stripe:SetColorTexture(1, 0.82, 0, 0.08)
+    row.stripe:Hide()
+
+    row.nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.nameText:SetPoint("LEFT", 4, 0)
+    row.nameText:SetWidth(COL_NAME)
+    row.nameText:SetJustifyH("LEFT")
+    row.nameText:SetWordWrap(false)
+
+    row.fileText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.fileText:SetPoint("LEFT", row.nameText, "RIGHT", 4, 0)
+    row.fileText:SetWidth(COL_FILE)
+    row.fileText:SetJustifyH("LEFT")
+    row.fileText:SetWordWrap(false)
+    row.fileText:SetTextColor(0.6, 0.6, 0.6)
+
+    row.delBtn = makeIconButton(row, "Interface\\Buttons\\UI-StopButton", 18, L["Delete"])
+    row.delBtn:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+
+    row.playBtn = makeIconButton(row, "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", 22, L["Play / Stop"])
+    row.playBtn:SetPoint("RIGHT", row.delBtn, "LEFT", -4, 0)
+
+    return row
+  end
+
+  -- Refresh function
+  refreshCustomSounds = function()
+    profile = Resonance.db.profile
+    local sounds = profile.customSounds or {}
+
+    -- Position table
+    tableLabel:ClearAllPoints()
+    tableLabel:SetPoint("TOPLEFT", fileBox, "BOTTOMLEFT", 2, -16)
+    tableLabel:SetText(L["Registered sounds:"])
+    tableLabel:Show()
+
+    tableHeader:ClearAllPoints()
+    tableHeader:SetPoint("TOPLEFT", tableLabel, "BOTTOMLEFT", 0, -4)
+    tableHeader:SetPoint("RIGHT", content, "RIGHT", -16, 0)
+    tableHeader:Show()
+
+    for _, row in ipairs(rows) do
+      row:Hide()
+    end
+
+    if #sounds == 0 then
+      emptyText:ClearAllPoints()
+      emptyText:SetPoint("TOPLEFT", tableHeader, "BOTTOMLEFT", 4, -8)
+      emptyText:Show()
+    else
+      emptyText:Hide()
+    end
+
+    local yOff = 0
+    for i, entry in ipairs(sounds) do
+      local row = getOrCreateRow(i)
+      row:ClearAllPoints()
+      row:SetPoint("TOPLEFT", tableHeader, "BOTTOMLEFT", 0, -yOff)
+      row:SetPoint("RIGHT", tableHeader, "RIGHT", 0, 0)
+
+      if i % 2 == 0 then row.stripe:Show() else row.stripe:Hide() end
+
+      row.nameText:SetText(entry.name)
+      row.fileText:SetText(entry.file)
+
+      wirePlayStop(row.playBtn, function()
+        return CUSTOM_ROOT .. entry.file
+      end)
+
+      row.delBtn:SetScript("OnClick", function()
+        table.remove(profile.customSounds, i)
+        refreshCustomSounds()
+      end)
+
+      row:Show()
+      yOff = yOff + ROW_H
+    end
+
+    buildCtx.recalcContentHeight(content)
+  end
+
+  buildCtx.refreshCustomSounds = refreshCustomSounds
+  refreshCustomSounds()
 end
 
 ---------------------------------------------------------------------------
@@ -5662,6 +5906,13 @@ local function buildSubcategoryContent(name, panel)
     return
   end
 
+  if name == "Custom Sounds" then
+    local _, content = createScrollableContent(panel)
+    ctx.customSoundsContent = content
+    buildTab_CustomSounds(ctx)
+    return
+  end
+
   -- Custom UI panels need scrollable content areas
   if name == "Spell Sounds" then
     local _, content = createScrollableContent(panel)
@@ -5761,6 +6012,10 @@ function Resonance:SetupOptions()
         elseif name == "Alerts" then
           if ctx.refreshAlertList then
             ctx.refreshAlertList()
+          end
+        elseif name == "Custom Sounds" then
+          if ctx.refreshCustomSounds then
+            ctx.refreshCustomSounds()
           end
         end
         return

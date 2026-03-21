@@ -44,6 +44,7 @@ local bit = bit
 
 local L = Resonance_L
 local ADDON_ROOT = "Interface\\AddOns\\Resonance\\"
+local CUSTOM_SOUNDS_ROOT = "Interface\\AddOns\\Resonance_Sounds\\"
 
 local ADDON_VERSION = C_AddOns and C_AddOns.GetAddOnMetadata("Resonance", "Version") or "unknown"
 if ADDON_VERSION:find("@") then
@@ -188,7 +189,6 @@ local npcMutedFIDs = {} -- runtime-only: FIDs muted by NPC sound muting
 local alertHandles = {} -- { [alertKey] = soundHandle } for debouncing alert sounds
 local lastLoCInterrupt = nil -- timestamp set by LOSS_OF_CONTROL_ADDED on SCHOOL_INTERRUPT
 local pendingInterrupt = nil -- { time, spellID } set by UNIT_SPELLCAST_INTERRUPTED awaiting LoC confirmation
-local lowHealthTriggered = false -- debounce flag for low health alert
 local ambientMutedFIDs = {} -- runtime-only: FIDs muted by ambient sound toggles
 
 -- Alert event metadata: drives the Alerts UI dropdown and event handler registration
@@ -210,14 +210,6 @@ Resonance.ALERT_EVENTS = {
     name = "Death",
     desc = "Play a sound when you die.",
     order = 3,
-  },
-  {
-    key = "lowHealth",
-    name = "Low Health",
-    desc = "Play a sound when your health drops below a threshold. Resets when health recovers above the threshold.",
-    order = 4,
-    hasThreshold = true,
-    defaultThreshold = 30,
   },
 }
 -- Build lookup by key for fast access
@@ -354,6 +346,7 @@ local defaults = {
     classicAutoShot = false,
     mutedNPCs = {}, -- { [npcID] = true } NPCs whose sounds are muted
     alerts = {},
+    customSounds = {}, -- { { name = "My Sound", file = "mysound.ogg" }, ... }
     minimap = { hide = false },
     _lastAutoMutedFIDs = {}, -- persisted snapshot for stale-mute cleanup across /reload
     _lastCreatureMutedFIDs = {}, -- same for creature vox mutes
@@ -456,7 +449,6 @@ end
 local function clearAlertState()
   lastLoCInterrupt = nil
   pendingInterrupt = nil
-  lowHealthTriggered = false
   for key, handle in pairs(alertHandles) do
     StopSound(handle)
     alertHandles[key] = nil
@@ -485,12 +477,6 @@ local function refreshAlertEvents()
   else
     pcall(function() Resonance:UnregisterEvent("PLAYER_DEAD") end)
   end
-  -- Low health
-  if alerts.lowHealth and alerts.lowHealth.enabled then
-    Resonance:RegisterEvent("UNIT_HEALTH")
-  else
-    pcall(function() Resonance:UnregisterEvent("UNIT_HEALTH") end)
-  end
 end
 Resonance.refreshAlertEvents = refreshAlertEvents
 Resonance.clearAlertState = clearAlertState
@@ -499,7 +485,6 @@ local function clearAlertEvents()
   pcall(function() Resonance:UnregisterEvent("UNIT_SPELLCAST_INTERRUPTED") end)
   pcall(function() Resonance:UnregisterEvent("LOSS_OF_CONTROL_ADDED") end)
   pcall(function() Resonance:UnregisterEvent("PLAYER_DEAD") end)
-  pcall(function() Resonance:UnregisterEvent("UNIT_HEALTH") end)
 end
 
 -- Ref-counted tracker for FIDs with in-flight playback.
@@ -2278,6 +2263,7 @@ end
 ---------------------------------------------------------------------------
 Resonance.MAX_MUTE_DEPTH = MAX_MUTE_DEPTH
 Resonance.ADDON_ROOT = ADDON_ROOT
+Resonance.CUSTOM_SOUNDS_ROOT = CUSTOM_SOUNDS_ROOT
 Resonance.msg = msg
 Resonance.getSpellName = getSpellName
 Resonance.normalizePath = normalizePath
@@ -2631,11 +2617,11 @@ local function getGeneralOptions()
           return not db.enabled
         end,
         values = {
-          Master = "Master",
-          SFX = "SFX",
-          Music = "Music",
-          Ambience = "Ambience",
-          Dialog = "Dialog",
+          Master = MASTER_VOLUME or "Master",
+          SFX = SOUND_VOLUME or "SFX",
+          Music = MUSIC_VOLUME or "Music",
+          Ambience = AMBIENCE_VOLUME or "Ambience",
+          Dialog = DIALOG_VOLUME or "Dialog",
         },
         sorting = { "Master", "SFX", "Music", "Ambience", "Dialog" },
         get = function()
@@ -3330,26 +3316,6 @@ function Resonance:PLAYER_DEAD()
   playAlertSound("death", "Player died")
 end
 
-function Resonance:UNIT_HEALTH(_, unit)
-  if unit ~= "player" then return end
-  local alerts = db.alerts
-  if not alerts then return end
-  local cfg = alerts.lowHealth
-  if not db.enabled or not cfg or not cfg.enabled then return end
-  local health = UnitHealth("player")
-  local maxHealth = UnitHealthMax("player")
-  if maxHealth == 0 then return end
-  local pct = health / maxHealth * 100
-  local threshold = cfg.threshold or 30
-  if pct <= threshold then
-    if not lowHealthTriggered then
-      lowHealthTriggered = true
-      playAlertSound("lowHealth", ("Low health: %.0f%%"):format(pct))
-    end
-  else
-    lowHealthTriggered = false
-  end
-end
 
 function Resonance:UNIT_SPELLCAST_START(_, unit, _, spellID)
   if unit ~= "player" then

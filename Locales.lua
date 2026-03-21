@@ -68,8 +68,24 @@ if locale == "enUS" or locale == "enGB" then
   L["Duration"] = "Duration"
   L["Play / Stop"] = "Play / Stop"
   L["Enable or disable this alert"] = "Enable or disable this alert"
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."
+  L["Enter a sound first."] = "Enter a sound first."
+  L["Select an event first."] = "Select an event first."
+  L["Select an event and enter a sound."] = "Select an event and enter a sound."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "Custom Sounds"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."
+  L["Register a sound:"] = "Register a sound:"
+  L["Filename:"] = "Filename:"
+  L["Display name (optional):"] = "Display name (optional):"
+  L["Enter a filename first."] = "Enter a filename first."
+  L["This file is already registered."] = "This file is already registered."
+  L["Registered sounds:"] = "Registered sounds:"
+  L["No custom sounds registered."] = "No custom sounds registered."
+  L["Name"] = "Name"
+  L["File"] = "File"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Mute ambient sounds by zone"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -409,8 +425,21 @@ if locale == "ptBR" then
   L["Test"] = "Testar"
   L["Play the configured replacement fishing bobber sound."] =
     "Tocar o som substituto configurado para a bóia de pesca."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados. Você também pode usar seus próprios arquivos de som — coloque-os em Interface/AddOns/Resonance_Sounds/ (crie esta pasta) para protegê-los de atualizações do addon, e insira o caminho completo como som substituto."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configure sons substitutos para magias individuais. Adicione magias por ID ou nome e atribua arquivos de som clássicos ou personalizados."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "Sons Personalizados"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "Coloque seus arquivos de som (.ogg, .mp3) em Interface/AddOns/Resonance_Sounds/ e registre-os abaixo. Sons registrados aparecem em todas as caixas de busca de som. Recarregue a UI (/reload) após adicionar novos arquivos à pasta."
+  L["Register a sound:"] = "Registrar um som:"
+  L["Filename:"] = "Nome do arquivo:"
+  L["Display name (optional):"] = "Nome de exibição (opcional):"
+  L["Enter a filename first."] = "Insira um nome de arquivo primeiro."
+  L["This file is already registered."] = "Este arquivo já está registrado."
+  L["Registered sounds:"] = "Sons registrados:"
+  L["No custom sounds registered."] = "Nenhum som personalizado registrado."
+  L["Name"] = "Nome"
+  L["File"] = "Arquivo"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenciar sons ambientes por zona"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -752,8 +781,21 @@ elseif locale == "deDE" then
     "Den Alarmklang nach dieser Anzahl Sekunden stoppen. Leer lassen für vollständige Wiedergabe."
   L["Test"] = "Testen"
   L["Play the configured replacement fishing bobber sound."] = "Den konfigurierten Ersatz-Angelklang abspielen."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu. Du kannst auch eigene Klangdateien verwenden — lege sie in Interface/AddOns/Resonance_Sounds/ ab (erstelle diesen Ordner), um sie vor Addon-Updates zu schützen, und gib den vollständigen Pfad als Ersatzklang ein."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Konfiguriere Ersatzklänge für einzelne Zauber. Füge Zauber per ID oder Name hinzu und weise klassische oder benutzerdefinierte Klangdateien zu."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "Eigene Klänge"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "Lege deine Klangdateien (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ ab und registriere sie unten. Registrierte Klänge erscheinen in allen Klangsuche-Feldern. Lade die Benutzeroberfläche neu (/reload) nach dem Hinzufügen neuer Dateien."
+  L["Register a sound:"] = "Klang registrieren:"
+  L["Filename:"] = "Dateiname:"
+  L["Display name (optional):"] = "Anzeigename (optional):"
+  L["Enter a filename first."] = "Gib zuerst einen Dateinamen ein."
+  L["This file is already registered."] = "Diese Datei ist bereits registriert."
+  L["Registered sounds:"] = "Registrierte Klänge:"
+  L["No custom sounds registered."] = "Keine eigenen Klänge registriert."
+  L["Name"] = "Name"
+  L["File"] = "Datei"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Umgebungsklänge nach Zone stummschalten"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -1097,8 +1139,21 @@ elseif locale == "frFR" then
   L["Test"] = "Tester"
   L["Play the configured replacement fishing bobber sound."] =
     "Jouer le son de remplacement configuré pour le bouchon de pêche."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés. Vous pouvez aussi utiliser vos propres fichiers sonores — placez-les dans Interface/AddOns/Resonance_Sounds/ (créez ce dossier) pour les protéger des mises à jour, puis entrez le chemin complet comme son de remplacement."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configurez des sons de remplacement pour des sorts individuels. Ajoutez des sorts par ID ou nom, puis assignez des fichiers sonores classiques ou personnalisés."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "Sons personnalisés"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "Placez vos fichiers sonores (.ogg, .mp3) dans Interface/AddOns/Resonance_Sounds/ et enregistrez-les ci-dessous. Les sons enregistrés apparaissent dans toutes les recherches de sons. Rechargez l'interface (/reload) après avoir ajouté de nouveaux fichiers."
+  L["Register a sound:"] = "Enregistrer un son :"
+  L["Filename:"] = "Nom du fichier :"
+  L["Display name (optional):"] = "Nom d'affichage (optionnel) :"
+  L["Enter a filename first."] = "Entrez d'abord un nom de fichier."
+  L["This file is already registered."] = "Ce fichier est déjà enregistré."
+  L["Registered sounds:"] = "Sons enregistrés :"
+  L["No custom sounds registered."] = "Aucun son personnalisé enregistré."
+  L["Name"] = "Nom"
+  L["File"] = "Fichier"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Couper les sons ambiants par zone"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -1441,8 +1496,21 @@ elseif locale == "esES" or locale == "esMX" then
   L["Test"] = "Probar"
   L["Play the configured replacement fishing bobber sound."] =
     "Reproducir el sonido de reemplazo configurado para el flotador de pesca."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados. También puedes usar tus propios archivos de sonido — colócalos en Interface/AddOns/Resonance_Sounds/ (crea esta carpeta) para protegerlos de actualizaciones del addon, e introduce la ruta completa como sonido de reemplazo."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configura sonidos de reemplazo para hechizos individuales. Añade hechizos por ID o nombre y asigna archivos de sonido clásicos o personalizados."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "Sonidos personalizados"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "Coloca tus archivos de sonido (.ogg, .mp3) en Interface/AddOns/Resonance_Sounds/ y regístralos abajo. Los sonidos registrados aparecen en todas las búsquedas de sonido. Recarga la interfaz (/reload) tras añadir nuevos archivos."
+  L["Register a sound:"] = "Registrar un sonido:"
+  L["Filename:"] = "Nombre del archivo:"
+  L["Display name (optional):"] = "Nombre de visualización (opcional):"
+  L["Enter a filename first."] = "Introduce un nombre de archivo primero."
+  L["This file is already registered."] = "Este archivo ya está registrado."
+  L["Registered sounds:"] = "Sonidos registrados:"
+  L["No custom sounds registered."] = "No hay sonidos personalizados registrados."
+  L["Name"] = "Nombre"
+  L["File"] = "Archivo"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenciar sonidos ambientales por zona"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -1782,8 +1850,21 @@ elseif locale == "itIT" then
   L["Test"] = "Prova"
   L["Play the configured replacement fishing bobber sound."] =
     "Riproduce il suono sostitutivo configurato per il galleggiante da pesca."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati. Puoi anche usare i tuoi file audio — posizionali in Interface/AddOns/Resonance_Sounds/ (crea questa cartella) per proteggerli dagli aggiornamenti dell'addon, poi inserisci il percorso completo come suono sostitutivo."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Configura suoni sostitutivi per singoli incantesimi. Aggiungi incantesimi per ID o nome, poi assegna file sonori classici o personalizzati."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "Suoni personalizzati"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "Posiziona i tuoi file audio (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ e registrali qui sotto. I suoni registrati appaiono in tutte le ricerche di suoni. Ricarica l'interfaccia (/reload) dopo aver aggiunto nuovi file."
+  L["Register a sound:"] = "Registra un suono:"
+  L["Filename:"] = "Nome file:"
+  L["Display name (optional):"] = "Nome visualizzato (opzionale):"
+  L["Enter a filename first."] = "Inserisci prima un nome file."
+  L["This file is already registered."] = "Questo file è già registrato."
+  L["Registered sounds:"] = "Suoni registrati:"
+  L["No custom sounds registered."] = "Nessun suono personalizzato registrato."
+  L["Name"] = "Nome"
+  L["File"] = "File"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Silenzia suoni ambientali per zona"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -2139,8 +2220,21 @@ elseif locale == "ruRU" then
   L["Test"] = "Тест"
   L["Play the configured replacement fishing bobber sound."] =
     "Воспроизвести настроенный замещающий звук поплавка."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы. Вы также можете использовать собственные звуковые файлы — поместите их в Interface/AddOns/Resonance_Sounds/ (создайте эту папку) для защиты от обновлений аддона, затем введите полный путь как замещающий звук."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "Настройте замещающие звуки для отдельных заклинаний. Добавляйте заклинания по ID или имени, затем назначайте классические или пользовательские звуковые файлы."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "Свои звуки"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "Поместите звуковые файлы (.ogg, .mp3) в Interface/AddOns/Resonance_Sounds/ и зарегистрируйте их ниже. Зарегистрированные звуки отображаются во всех полях поиска звуков. Перезагрузите интерфейс (/reload) после добавления новых файлов."
+  L["Register a sound:"] = "Зарегистрировать звук:"
+  L["Filename:"] = "Имя файла:"
+  L["Display name (optional):"] = "Отображаемое имя (необязательно):"
+  L["Enter a filename first."] = "Сначала введите имя файла."
+  L["This file is already registered."] = "Этот файл уже зарегистрирован."
+  L["Registered sounds:"] = "Зарегистрированные звуки:"
+  L["No custom sounds registered."] = "Нет зарегистрированных звуков."
+  L["Name"] = "Название"
+  L["File"] = "Файл"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "Заглушить окружающие звуки по зоне"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -2482,8 +2576,21 @@ elseif locale == "koKR" then
     "이 시간(초) 후 알림 소리를 중지합니다. 전체 재생하려면 비워 두세요."
   L["Test"] = "테스트"
   L["Play the configured replacement fishing bobber sound."] = "설정된 대체 낚시 찌 소리를 재생합니다."
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다. 자신의 사운드 파일도 사용할 수 있습니다 — Interface/AddOns/Resonance_Sounds/ 폴더를 만들어 파일을 넣으면 애드온 업데이트로부터 안전하게 보호되며, 전체 경로를 대체 소리로 입력하세요."
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "개별 주문에 대한 대체 소리를 설정합니다. ID 또는 이름으로 주문을 추가하고 클래식 또는 사용자 정의 사운드 파일을 지정합니다."
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "사용자 정의 소리"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "사운드 파일(.ogg, .mp3)을 Interface/AddOns/Resonance_Sounds/에 넣고 아래에서 등록하세요. 등록된 소리는 모든 소리 검색 상자에 표시됩니다. 새 파일 추가 후 UI를 새로고침(/reload)하세요."
+  L["Register a sound:"] = "소리 등록:"
+  L["Filename:"] = "파일명:"
+  L["Display name (optional):"] = "표시 이름 (선택사항):"
+  L["Enter a filename first."] = "먼저 파일명을 입력하세요."
+  L["This file is already registered."] = "이 파일은 이미 등록되어 있습니다."
+  L["Registered sounds:"] = "등록된 소리:"
+  L["No custom sounds registered."] = "등록된 사용자 정의 소리가 없습니다."
+  L["Name"] = "이름"
+  L["File"] = "파일"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "지역별 환경음 음소거"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -2819,8 +2926,21 @@ elseif locale == "zhCN" then
     "在此秒数后停止警报声音。留空则完整播放。"
   L["Test"] = "测试"
   L["Play the configured replacement fishing bobber sound."] = "播放已配置的替换钓鱼浮标声音。"
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。你也可以使用自己的声音文件——将它们放在Interface/AddOns/Resonance_Sounds/文件夹中（创建此文件夹）以防止插件更新时丢失，然后输入完整路径作为替换声音。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "为单个法术配置替换声音。通过ID或名称添加法术，然后分配经典或自定义声音文件。"
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "自定义声音"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "将声音文件（.ogg、.mp3）放在Interface/AddOns/Resonance_Sounds/中，然后在下方注册。注册的声音会出现在所有声音搜索框中。添加新文件后请重载界面（/reload）。"
+  L["Register a sound:"] = "注册声音："
+  L["Filename:"] = "文件名："
+  L["Display name (optional):"] = "显示名称（可选）："
+  L["Enter a filename first."] = "请先输入文件名。"
+  L["This file is already registered."] = "此文件已注册。"
+  L["Registered sounds:"] = "已注册的声音："
+  L["No custom sounds registered."] = "没有已注册的自定义声音。"
+  L["Name"] = "名称"
+  L["File"] = "文件"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "按区域静音环境声音"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
@@ -3156,8 +3276,21 @@ elseif locale == "zhTW" then
     "在此秒數後停止警示聲音。留空則完整播放。"
   L["Test"] = "測試"
   L["Play the configured replacement fishing bobber sound."] = "播放已設定的替換釣魚浮標聲音。"
-  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files. You can also use your own sound files — place them in Interface/AddOns/Resonance_Sounds/ (create this folder) to keep them safe from addon updates, then enter the full path as the replacement sound."] =
-    "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。你也可以使用自己的聲音檔案——將它們放在Interface/AddOns/Resonance_Sounds/資料夾中（建立此資料夾）以防止插件更新時遺失，然後輸入完整路徑作為替換聲音。"
+  L["Configure replacement sounds for individual spells. Add spells by ID or name, then assign classic or custom sound files."] =
+    "為個別法術設定替換聲音。透過ID或名稱新增法術，然後指派經典或自訂聲音檔案。"
+  -- Custom Sounds tab
+  L["Custom Sounds"] = "自訂聲音"
+  L["Place your sound files (.ogg, .mp3) in Interface/AddOns/Resonance_Sounds/ and register them below. Registered sounds appear in all sound search boxes. Reload the UI (/reload) after adding new files to the folder."] =
+    "將聲音檔案（.ogg、.mp3）放在Interface/AddOns/Resonance_Sounds/中，然後在下方註冊。註冊的聲音會出現在所有聲音搜尋框中。新增檔案後請重新載入介面（/reload）。"
+  L["Register a sound:"] = "註冊聲音："
+  L["Filename:"] = "檔案名稱："
+  L["Display name (optional):"] = "顯示名稱（可選）："
+  L["Enter a filename first."] = "請先輸入檔案名稱。"
+  L["This file is already registered."] = "此檔案已註冊。"
+  L["Registered sounds:"] = "已註冊的聲音："
+  L["No custom sounds registered."] = "沒有已註冊的自訂聲音。"
+  L["Name"] = "名稱"
+  L["File"] = "檔案"
   -- Ambient tab
   L["Mute ambient sounds by zone"] = "按區域靜音環境聲音"
   L["Mute environmental/ambient sounds for specific zones. Useful for silencing annoying drones, beams, or oppressive ambient audio."] =
