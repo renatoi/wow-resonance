@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.3.0
+## v1.3.1
 
 ### New Features
 - **Alerts tab:** Configure alert sounds for combat events with a dropdown + table UI. Select an event type, pick a sound (with autocomplete search), and manage alerts with enable/disable toggles.
