@@ -1,21 +1,11 @@
 -- Resonance project luacheck config
 -- WoW API globals are in .luacheckrc_wow (run: python3 tools/update_wow_globals.py)
+-- That file contains only a read_globals={...} assignment, extracted
+-- from LiangYuxuan/wow-addon-luacheckrc by update_wow_globals.py.
 
--- Load WoW API globals into a custom standard
-local wow_rg = {}
-local wow_chunk = loadfile(".luacheckrc_wow")
-if wow_chunk then
-	-- Lua 5.4: use load with custom env to capture read_globals
-	local env = {}
-	setmetatable(env, { __index = _ENV })
-	if debug and debug.setupvalue then
-		debug.setupvalue(wow_chunk, 1, env)
-	end
-	pcall(wow_chunk)
-	wow_rg = env.read_globals or {}
-end
-
-stds.wow = { read_globals = wow_rg }
+dofile(".luacheckrc_wow")
+stds.wow = { read_globals = read_globals or {} }
+read_globals = nil
 
 std = "lua51+wow"
 max_line_length = false

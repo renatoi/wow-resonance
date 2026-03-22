@@ -49,8 +49,27 @@ def main() -> None:
     except Exception:
         data = download_with_urllib()
 
-    DEST.write_bytes(data)
-    lines = data.count(b"\n")
+    # Extract just the read_globals table from the full config.
+    # The downloaded file is a complete .luacheckrc with std, ignore, etc.
+    # We only need the read_globals list to avoid clobbering our own config.
+    text = data.decode("utf-8", errors="replace")
+    start = text.find("read_globals = {")
+    if start == -1:
+        sys.exit("Error: could not find read_globals in downloaded file")
+    # Find the matching closing brace (handle nested tables)
+    depth = 0
+    end = start
+    for i, ch in enumerate(text[start:], start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    extracted = text[start:end] + "\n"
+    DEST.write_text(extracted, encoding="utf-8")
+    lines = extracted.count("\n")
     print(f"Updated {DEST.name} ({lines} lines)")
 
 
