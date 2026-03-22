@@ -9,9 +9,11 @@ import zipfile
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-WOW_ADDON_DIR = Path("/mnt/ssd1/games/World of Warcraft/_retail_/Interface/AddOns/Resonance")
+WOW_ADDONS_DIR = Path("/mnt/ssd1/games/World of Warcraft/_retail_/Interface/AddOns")
+WOW_ADDON_DIR = WOW_ADDONS_DIR / "Resonance"
+WOW_DATA_DIR = WOW_ADDONS_DIR / "Resonance_Data"
 
-# Files and directories to include in the addon
+# Files and directories to include in the main addon (Resonance/)
 ADDON_INCLUDES = [
     "Resonance.toc",
     "embeds.xml",
@@ -23,6 +25,12 @@ ADDON_INCLUDES = [
     "sounds",
 ]
 
+# Files and directories to include in the data addon (Resonance_Data/)
+DATA_INCLUDES = [
+    "Resonance_Data/Resonance_Data.toc",
+    "Resonance_Data/data",
+]
+
 
 def get_version():
     toc = (SCRIPT_DIR / "Resonance.toc").read_text()
@@ -32,9 +40,9 @@ def get_version():
     return match.group(1).strip()
 
 
-def addon_files():
-    """Yield (src_path, relative_path) for all addon files."""
-    for name in ADDON_INCLUDES:
+def iter_includes(includes):
+    """Yield (src_path, relative_path_from_SCRIPT_DIR) for a list of includes."""
+    for name in includes:
         src = SCRIPT_DIR / name
         if src.is_file():
             yield src, Path(name)
@@ -44,38 +52,43 @@ def addon_files():
                     yield child, child.relative_to(SCRIPT_DIR)
 
 
-def deploy():
-    """Sync addon files to the WoW AddOns directory."""
-    if not WOW_ADDON_DIR.parent.exists():
-        sys.exit(f"Error: WoW AddOns directory not found at {WOW_ADDON_DIR.parent}")
-
-    # Detect if source and dest are the same directory (e.g. symlink/bind mount)
-    same_dir = WOW_ADDON_DIR.resolve() == SCRIPT_DIR.resolve()
+def sync_folder(includes, dest_dir, strip_prefix=None):
+    """Sync files from includes list to dest_dir, removing stale files."""
+    same_dir = dest_dir.resolve() == SCRIPT_DIR.resolve()
     if same_dir:
-        print("  (source and addon dir are the same — skipping stale file cleanup)")
+        print(f"  ({dest_dir.name}: source and dest are the same — skipping stale cleanup)")
 
-    # Collect the set of relative paths we'll write
     expected = set()
-    for src, rel in addon_files():
-        dest = WOW_ADDON_DIR / rel
-        expected.add(rel)
+    for src, rel in iter_includes(includes):
+        # Strip prefix for sub-addons (e.g. Resonance_Data/ -> data/)
+        out_rel = rel.relative_to(strip_prefix) if strip_prefix else rel
+        dest = dest_dir / out_rel
+        expected.add(out_rel)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        # Only copy if source is newer or different size
         if not same_dir and (not dest.exists() or src.stat().st_mtime > dest.stat().st_mtime or src.stat().st_size != dest.stat().st_size):
             shutil.copy2(src, dest)
-            print(f"  updated: {rel}")
+            print(f"  updated: {dest_dir.name}/{out_rel}")
 
-    # Delete stale files (like rsync --delete) — skip when source == dest
-    if not same_dir and WOW_ADDON_DIR.exists():
-        for child in sorted(WOW_ADDON_DIR.rglob("*"), reverse=True):
-            rel = child.relative_to(WOW_ADDON_DIR)
+    if not same_dir and dest_dir.exists():
+        for child in sorted(dest_dir.rglob("*"), reverse=True):
+            rel = child.relative_to(dest_dir)
             if child.is_file() and rel not in expected:
                 child.unlink()
-                print(f"  deleted: {rel}")
+                print(f"  deleted: {dest_dir.name}/{rel}")
             elif child.is_dir() and not any(child.iterdir()):
                 child.rmdir()
-                print(f"  deleted: {rel}/")
+                print(f"  deleted: {dest_dir.name}/{rel}/")
 
+
+def deploy():
+    """Sync addon files to the WoW AddOns directory."""
+    if not WOW_ADDONS_DIR.exists():
+        sys.exit(f"Error: WoW AddOns directory not found at {WOW_ADDONS_DIR}")
+
+    print("Deploying Resonance...")
+    sync_folder(ADDON_INCLUDES, WOW_ADDON_DIR)
+    print("Deploying Resonance_Data...")
+    sync_folder(DATA_INCLUDES, WOW_DATA_DIR, strip_prefix=Path("Resonance_Data"))
     print("Deploy complete.")
 
 

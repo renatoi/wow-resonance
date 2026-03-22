@@ -6,7 +6,7 @@ update-globals:
 
 # Run luacheck (downloads globals if missing)
 lint: .luacheckrc_wow
-	luacheck Core.lua Options.lua Locales.lua data/
+	luacheck Core.lua Options.lua Locales.lua data/ Resonance_Data/data/
 
 # Format source files in-place (data/ excluded via stylua.toml)
 format:

@@ -1,5 +1,8 @@
 package-as: Resonance
 
+move-folders:
+  Resonance/Resonance_Data: Resonance_Data
+
 manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown

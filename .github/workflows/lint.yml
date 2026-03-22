@@ -24,7 +24,7 @@ jobs:
         run: python3 tools/update_wow_globals.py
 
       - name: Luacheck
-        run: luacheck Core.lua Options.lua Locales.lua data/
+        run: luacheck Core.lua Options.lua Locales.lua data/ Resonance_Data/data/
 
       - name: StyLua check
-        run: stylua --check Core.lua Options.lua Locales.lua data/
+        run: stylua --check Core.lua Options.lua Locales.lua
