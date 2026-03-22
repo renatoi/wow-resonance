@@ -42,11 +42,13 @@ Open settings from the game menu (**Esc > Options > AddOns > Resonance**) or typ
 
 | Tab | What it does |
 |---|---|
-| **General** | Toggle the addon, debug mode, sound channel, interrupt alert |
-| **Spell Sounds** | Add/edit per-spell sound replacements with cast phase triggers, duration, and looping |
+| **General** | Toggle the addon, debug mode, sound channel |
+| **Spell Sounds** | Add/edit per-spell sound replacements with cast phase triggers, duration, looping, and per-spell channel override |
 | **Muting** | Character vocalizations, creature vocalizations, weapon impacts, professions, per-NPC sounds |
 | **Ambient** | Mute ambient sounds by zone or search individual ambient sounds |
-| **Muted Sounds** | Manage manually muted FileDataIDs |
+| **Alerts** | Configure alert sounds for combat events (interrupt, loss of control, death) |
+| **Custom Sounds** | Register your own .ogg/.mp3 files — they appear in all sound search boxes |
+| **Sound Browser** | Browse and mute individual sounds by type or FileDataID |
 | **Presets** | Apply built-in class presets or save/load your own |
 | **Profiles** | Create, copy, or reset setting profiles |
 
@@ -78,22 +80,24 @@ Open settings from the game menu (**Esc > Options > AddOns > Resonance**) or typ
 
 ```
 Resonance.toc            -- Addon manifest (core)
-Resonance_Data.toc       -- LoadOnDemand data manifest
 Core.lua                 -- Event handling, sound playback, mute management
-Options.lua              -- Settings UI (AceConfig + custom spell editor)
+Options.lua              -- Settings UI (AceConfig + custom panels)
 Locales.lua              -- Localization strings (10 languages)
 embeds.xml               -- Ace library loader
 data/
-  SpellSounds.lua        -- Searchable database of spell sound paths + FileDataIDs
-  CharacterSounds.lua    -- Searchable database of character/emote sounds
   ClassTemplates.lua     -- Built-in class presets (spells across 11 classes)
-  SpellMuteData.lua      -- Auto-generated: spell->FileDataID mute mappings,
-                           vocalization data, weapon impact data
-  CreatureVoxData.lua    -- Auto-generated: creature vocalization mute mappings
-  NPCSoundData.lua       -- Auto-generated: NPC sound data for per-NPC muting
   ProfessionSoundData.lua -- Auto-generated: profession sound FIDs
-  AmbientSoundData.lua   -- Auto-generated: ambient sound data by zone
-  ClassicSpellSounds.lua -- Reference: spellID -> classic-era sound FIDs
+Resonance_Data/          -- LoadOnDemand sub-addon (deferred until options open)
+  Resonance_Data.toc     -- LoadOnDemand manifest
+  data/
+    SpellSounds.lua      -- Searchable database of spell sound paths + FileDataIDs
+    CharacterSounds.lua  -- Searchable database of character/emote sounds
+    SpellMuteData.lua    -- Auto-generated: spell->FileDataID mute mappings,
+                           vocalization data, weapon impact data
+    CreatureVoxData.lua  -- Auto-generated: creature vocalization mute mappings
+    NPCSoundData.lua     -- Auto-generated: NPC sound data for per-NPC muting
+    AmbientSoundData.lua -- Auto-generated: ambient sound data by zone
+    ClassicSpellSounds.lua -- Reference: spellID -> classic-era sound FIDs
                            (not loaded at runtime, used for template development)
 docs/
   creature-sound-architecture.md -- Research on WoW's creature sound system

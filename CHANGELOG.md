@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.3.1
+## v1.3.2
 
 ### New Features
 - **Alerts tab:** Configure alert sounds for combat events with a dropdown + table UI. Select an event type, pick a sound (with autocomplete search), and manage alerts with enable/disable toggles.
@@ -8,6 +8,7 @@
   - **Loss of Control alert:** Play a sound when you are stunned, feared, silenced, or otherwise lose control of your character.
   - **Death alert:** Play a sound when you die.
 - **Custom Sounds tab:** Register your own .ogg/.mp3 sound files and use them throughout the addon. Place files in `Interface/AddOns/Resonance_Sounds/`, register them with a display name, and they appear in all sound search autocomplete dropdowns (highlighted in green).
+- **Per-spell sound channel:** Override the sound channel for individual spells in the spell editor. Route specific replacement sounds to Master, SFX, Music, Ambience, or Dialog — useful for adjusting relative volume of replacements vs. game sounds.
 - **Cast phase triggers:** Choose when spell replacement sounds play — on cast complete, cast bar start (precast), or both with separate sounds for each phase.
 - **Sound duration cutoff:** Limit how long a replacement sound plays (in seconds).
 - **Sound looping:** Loop a replacement sound continuously or a set number of times.
@@ -21,12 +22,17 @@
 - Redesigned dropdown rows with per-row variable height and inline mute icon button with visual feedback.
 - Improved WCAG contrast and color consistency across the UI.
 - Sound channel dropdown now uses Blizzard's localized global strings — labels match the game's Sound settings in every language.
+- Preset spells deleted by the user no longer auto-repopulate on login. Excluded spells are tracked and skipped during template refresh. Re-applying a class template clears the exclusion list.
 
 ### Performance
 - **LoadOnDemand data split:** Addon split into Resonance (core) + Resonance_Data, deferring large data tables until options are first opened.
 - Memory optimizations: table reuse, deferred snapshots, prefix pools, eliminated string concatenation during search.
 
 ### Bug Fixes
+- Fix crash when copying AceDB profiles — nil-guard tables that may not exist after profile copy (`mute_file_data_ids`, `spell_config`, etc.).
+- Fix custom panels (Spell Sounds, Presets, Ambient) showing empty on first visit — add deferred refresh after initial build to allow WoW's layout pass to complete.
+- Fix Resonance_Data not found after addon update — moved to its own folder with BigWigs packager `move-folders` directive.
+- Fix CI lint failures — extract only `read_globals` from the WoW API globals file instead of loading the full config.
 - Fix UNIT_MODEL_CHANGED spam: cache race/gender key so vocalization mute refreshes only trigger on actual changes (barbershop, Orb of Deception), not on every model update.
 - Auto-migrate stale creature vox snapshots on addon upgrade.
 - Exclude profession sound FIDs from creature vocalization muting.

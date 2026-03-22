@@ -337,6 +337,7 @@ local defaults = {
     spell_to_play_file_data_id = {},
     spell_config = {},
     preset_spells = {}, -- { [spellID] = presetName } tracks which spells came from presets
+    removed_template_spells = {}, -- { [spellID] = true } prevents re-adding deleted template spells
     saved_presets = {}, -- { [name] = { spells = {[sid]={sound,muteExclusions}}, mutes = {[fid]=true} } }
     muteVocalizations = "off",
     muteWeaponImpacts = false,
@@ -427,8 +428,10 @@ local function resolveLocalFileForSpellName(spellName)
   return base .. ".wav", base .. ".ogg"
 end
 
+local activeSpellChannel = nil -- per-spell channel override, set during playResolvedSound
+
 local function getChannel()
-  return db and db.soundChannel or "Master"
+  return activeSpellChannel or (db and db.soundChannel) or "Master"
 end
 
 local function previewSound(value)
@@ -525,7 +528,7 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
   local isNum = type(snd) == "number"
   local isMuted = isNum
     and (
-      db.mute_file_data_ids[snd]
+      (db.mute_file_data_ids and db.mute_file_data_ids[snd])
       or autoMutedFIDs[snd]
       or voxMutedFIDs[snd]
       or weaponMutedFIDs[snd]
@@ -547,7 +550,7 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
   local handle
   if isMuted then
     local fid = snd
-    local ch = db.soundChannel or "Master"
+    local ch = getChannel()
     for _ = 1, MAX_MUTE_DEPTH do
       UnmuteSoundFile(fid)
     end
@@ -569,7 +572,7 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
       if autoMutedFIDs[fid] and autoMutedFIDs[fid] > 0 then
         MuteSoundFile(fid)
       end
-      if db.mute_file_data_ids[fid] then
+      if db.mute_file_data_ids and db.mute_file_data_ids[fid] then
         MuteSoundFile(fid)
       end
       if weaponMutedFIDs[fid] then
@@ -595,7 +598,7 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
       end
     end)
   elseif isNum then
-    _, handle = PlaySoundFile(snd, db.soundChannel or "Master")
+    _, handle = PlaySoundFile(snd, getChannel())
   else
     _, handle = previewSound(snd)
   end
@@ -651,6 +654,7 @@ local function playSoundCollectionWithLoop(soundData, dbg, duration, loop)
   end
   local maxIter = (type(loop) == "number") and loop or 999
   local iter = 0
+  local loopChannel = activeSpellChannel -- capture for ticker iterations
   local ticker
   ticker = C_Timer.NewTicker(duration, function()
     iter = iter + 1
@@ -658,7 +662,9 @@ local function playSoundCollectionWithLoop(soundData, dbg, duration, loop)
       cancelActiveLoop()
       return
     end
+    activeSpellChannel = loopChannel
     playSoundCollection(soundData, dbg, duration)
+    activeSpellChannel = nil
   end)
   activeLoop = { ticker = ticker }
 end
@@ -712,11 +718,13 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
       if phase == "precast" then
         local psnd = cfg.precastSound
         local pdur = cfg.precastDuration
+        activeSpellChannel = cfg.channel
         if psnd then
           playSoundCollection(psnd, dbg, pdur)
         elseif dbg then
           msg("  No precastSound configured for precast phase.")
         end
+        activeSpellChannel = nil
         return true
       end
       -- phase == "cast": fall through to play cfg.sound below
@@ -736,7 +744,9 @@ local function playResolvedSound(spellID, spellName, cfg, dbg, phase)
       end
     end
 
+    activeSpellChannel = cfg.channel
     playSoundCollectionWithLoop(cfg.sound, dbg, cfg.duration, cfg.loop)
+    activeSpellChannel = nil
     -- User explicitly configured this sound; don't fall through
     -- (PlaySoundFile may return nil for valid FileDataIDs)
     return true
@@ -2333,6 +2343,12 @@ function Resonance:ApplyClassTemplate(classKey)
     return 0, 0
   end
   local added, skipped = 0, 0
+  -- Clear removal markers so the template's spells can be re-added
+  if db.removed_template_spells then
+    for _, entry in ipairs(template) do
+      db.removed_template_spells[entry.spellID] = nil
+    end
+  end
   _deferSnapshot = true
   for _, entry in ipairs(template) do
     local sid = entry.spellID
@@ -2431,7 +2447,7 @@ local function refreshPresetsFromTemplates()
     if template then
       for _, entry in ipairs(template) do
         local sid = entry.spellID
-        if not db.spell_config[sid] then
+        if not db.spell_config[sid] and not (db.removed_template_spells and db.removed_template_spells[sid]) then
           local cfg = { sound = entry.sound }
           if entry.muteExclusions then
             cfg.muteExclusions = {}
@@ -3076,6 +3092,14 @@ function Resonance:OnInitialize()
     clearAlertEvents()
     clearAlertState()
     db = self.db.profile
+    -- Ensure tables exist (AceDB "Copy From" may not create default tables)
+    if not db.mute_file_data_ids then db.mute_file_data_ids = {} end
+    if not db.spell_config then db.spell_config = {} end
+    if not db.preset_spells then db.preset_spells = {} end
+    if not db.spell_to_play_file_data_id then db.spell_to_play_file_data_id = {} end
+    if not db.alerts then db.alerts = {} end
+    if not db.customSounds then db.customSounds = {} end
+    if not db.removed_template_spells then db.removed_template_spells = {} end
     wipe(autoMutedFIDs)
     if Resonance.SpellMuteData then
       rebuildAutoMutes()

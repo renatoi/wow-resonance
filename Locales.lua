@@ -38,6 +38,10 @@ if locale == "enUS" or locale == "enGB" then
   L["Loop"] = "Loop"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "Repeat the sound until the next cast. Requires a duration to be set."
+  L["Channel:"] = "Channel:"
+  L["Default"] = "Default"
+  L["Override the sound channel for this spell. Default uses the global channel from the General tab."] =
+    "Override the sound channel for this spell. Default uses the global channel from the General tab."
   L["Precast Sound"] = "Precast Sound"
   L["Cast Complete Sound"] = "Cast Complete Sound"
   L["Loading spell data..."] = "Loading spell data..."

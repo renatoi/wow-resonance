@@ -312,9 +312,6 @@ local function isFIDMuted(fid)
   if Resonance.professionMutedFIDs and Resonance.professionMutedFIDs[fid] then
     return true
   end
-  if Resonance.fishingMutedFIDs and Resonance.fishingMutedFIDs[fid] then
-    return true
-  end
   if Resonance.npcMutedFIDs and Resonance.npcMutedFIDs[fid] then
     return true
   end
@@ -354,9 +351,6 @@ local function safePlaySound(value)
           MuteSoundFile(fid)
         end
         if Resonance.professionMutedFIDs and Resonance.professionMutedFIDs[fid] then
-          MuteSoundFile(fid)
-        end
-        if Resonance.fishingMutedFIDs and Resonance.fishingMutedFIDs[fid] then
           MuteSoundFile(fid)
         end
         if Resonance.npcMutedFIDs and Resonance.npcMutedFIDs[fid] then
@@ -1664,6 +1658,7 @@ buildTab2_SpellSounds = function(ctx)
   local editorDuration = nil -- optional: stop sound after this many seconds
   local editorLoop = nil -- optional: loop sound (true or number of iterations)
   local editorTrigger = "cast" -- "cast", "precast", or "precast_and_cast"
+  local editorChannel = nil -- per-spell channel override (nil = use global)
   local editorPrecastSound = nil
   local editorPrecastDuration = nil
   local editorExclusions = {} -- local copy of muteExclusions during editing
@@ -2387,6 +2382,60 @@ buildTab2_SpellSounds = function(ctx)
     GameTooltip:Hide()
   end)
 
+  ---------------------------------------------------------------------------
+  -- Channel override row (below duration)
+  ---------------------------------------------------------------------------
+  local CHANNEL_OPTIONS = {
+    { key = nil, label = L["Default"] },
+    { key = "Master", label = MASTER_VOLUME or "Master" },
+    { key = "SFX", label = SOUND_VOLUME or "SFX" },
+    { key = "Music", label = MUSIC_VOLUME or "Music" },
+    { key = "Ambience", label = AMBIENCE_VOLUME or "Ambience" },
+    { key = "Dialog", label = DIALOG_VOLUME or "Dialog" },
+  }
+
+  local edChannelFrame = CreateFrame("Frame", nil, editorFrame)
+  edChannelFrame:SetSize(CONTENT_WIDTH - 20, 24)
+  edChannelFrame:SetPoint("TOPLEFT", edDurationFrame, "BOTTOMLEFT", 0, -4)
+
+  local edChannelLabel = edChannelFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  edChannelLabel:SetPoint("LEFT", edChannelFrame, "LEFT", 0, 0)
+  edChannelLabel:SetText(L["Channel:"])
+
+  local edChannelBtn = CreateFrame("Button", nil, edChannelFrame, "UIPanelButtonTemplate")
+  edChannelBtn:SetPoint("LEFT", edChannelLabel, "RIGHT", 6, 0)
+  edChannelBtn:SetSize(90, 22)
+
+  local function edUpdateChannelText()
+    for _, opt in ipairs(CHANNEL_OPTIONS) do
+      if opt.key == editorChannel then
+        edChannelBtn:SetText(opt.label)
+        return
+      end
+    end
+    edChannelBtn:SetText(L["Default"])
+  end
+  edUpdateChannelText()
+
+  edChannelBtn:SetScript("OnClick", function(self)
+    MenuUtil.CreateContextMenu(self, function(_, rootDescription)
+      for _, opt in ipairs(CHANNEL_OPTIONS) do
+        rootDescription:CreateButton(opt.label, function()
+          editorChannel = opt.key
+          edUpdateChannelText()
+        end)
+      end
+    end)
+  end)
+  edChannelBtn:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:AddLine(L["Override the sound channel for this spell. Default uses the global channel from the General tab."], 1, 1, 1, true)
+    GameTooltip:Show()
+  end)
+  edChannelBtn:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
   local function edSetMuteOnly(muteOnly)
     edMuteOnlyCheck:SetChecked(muteOnly)
     -- Hide/show the trigger and replacement sound sections
@@ -2407,6 +2456,7 @@ buildTab2_SpellSounds = function(ctx)
     end
     edFileFrame:SetShown(not muteOnly and not edBrowseRadio:GetChecked())
     edDurationFrame:SetShown(not muteOnly)
+    edChannelFrame:SetShown(not muteOnly)
     if muteOnly then
       edBrowseDD:Hide()
     end
@@ -2415,7 +2465,7 @@ buildTab2_SpellSounds = function(ctx)
     if muteOnly then
       autoMuteAnchor:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -12)
     else
-      autoMuteAnchor:SetPoint("TOPLEFT", edDurationFrame, "BOTTOMLEFT", 0, -8)
+      autoMuteAnchor:SetPoint("TOPLEFT", edChannelFrame, "BOTTOMLEFT", 0, -8)
     end
     if edResizeEditor and editorFrame:IsShown() then
       edResizeEditor()
@@ -2445,7 +2495,7 @@ buildTab2_SpellSounds = function(ctx)
     else
       local soundListH = edSoundListFrame:GetHeight()
       local extraSoundH = math.max(0, soundListH - ROW_HEIGHT)
-      baseH = 455 + extraSoundH -- includes trigger radios + duration section
+      baseH = 455 + 28 + extraSoundH -- includes trigger radios + duration + channel section
       if editorTrigger == "precast_and_cast" then
         baseH = baseH + (edPrecastSection:GetHeight() or 76) + 6
       end
@@ -2461,7 +2511,7 @@ buildTab2_SpellSounds = function(ctx)
 
   autoMuteAnchor = CreateFrame("Frame", nil, editorFrame)
   autoMuteAnchor:SetSize(CONTENT_WIDTH - 20, 1)
-  autoMuteAnchor:SetPoint("TOPLEFT", edDurationFrame, "BOTTOMLEFT", 0, -8)
+  autoMuteAnchor:SetPoint("TOPLEFT", edChannelFrame, "BOTTOMLEFT", 0, -8)
 
   local autoMuteHeader = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   autoMuteHeader:SetPoint("TOPLEFT", autoMuteAnchor, "TOPLEFT", 0, 0)
@@ -2635,6 +2685,7 @@ buildTab2_SpellSounds = function(ctx)
     editorDuration = nil
     editorLoop = nil
     editorTrigger = "cast"
+    editorChannel = nil
     editorPrecastSound = nil
     editorPrecastDuration = nil
     wipe(editorExclusions)
@@ -2685,6 +2736,9 @@ buildTab2_SpellSounds = function(ctx)
         if cfg.trigger then
           editorTrigger = cfg.trigger
         end
+        if cfg.channel then
+          editorChannel = cfg.channel
+        end
         if cfg.precastSound then
           editorPrecastSound = cfg.precastSound
           if type(cfg.precastSound) == "number" then
@@ -2722,6 +2776,7 @@ buildTab2_SpellSounds = function(ctx)
     edRefreshSoundList()
     edSetSoundMode(hasSpellDB())
     edSetTriggerMode(editorTrigger)
+    edUpdateChannelText()
     edRefreshPrecastList()
     edSetMuteOnly(editorSound == false)
     refreshAutoMuteSection(spellID)
@@ -2763,6 +2818,7 @@ buildTab2_SpellSounds = function(ctx)
         duration = editorDuration,
         loop = editorLoop,
         trigger = trigger,
+        channel = editorChannel,
         precastSound = precastSound,
         precastDuration = precastDuration,
       }
@@ -2776,6 +2832,7 @@ buildTab2_SpellSounds = function(ctx)
         duration = editorDuration,
         loop = editorLoop,
         trigger = trigger,
+        channel = editorChannel,
         precastSound = precastSound,
         precastDuration = precastDuration,
       }
@@ -3052,6 +3109,9 @@ buildTab2_SpellSounds = function(ctx)
           elseif cfg.trigger == "precast_and_cast" then
             indicators = indicators .. (indicators ~= "" and ", " or "") .. "precast+cast"
           end
+          if cfg.channel then
+            indicators = indicators .. (indicators ~= "" and ", " or "") .. cfg.channel
+          end
           if indicators ~= "" then
             local cur = row.soundText:GetText() or ""
             row.soundText:SetText(cur .. " |cffaaaaaa(" .. indicators .. ")|r")
@@ -3060,9 +3120,14 @@ buildTab2_SpellSounds = function(ctx)
             openEditor(entry.spellID)
           end)
           row.delBtn:SetScript("OnClick", function()
+            local prof = Resonance.db.profile
             Resonance.removeAutoMutesForSpell(entry.spellID)
-            Resonance.db.profile.spell_config[entry.spellID] = nil
-            Resonance.db.profile.preset_spells[entry.spellID] = nil
+            if prof.preset_spells[entry.spellID] then
+              if not prof.removed_template_spells then prof.removed_template_spells = {} end
+              prof.removed_template_spells[entry.spellID] = true
+            end
+            prof.spell_config[entry.spellID] = nil
+            prof.preset_spells[entry.spellID] = nil
             Resonance.invalidateSpellNameIndex()
             closeEditor()
             refreshList()
@@ -6029,6 +6094,26 @@ function Resonance:SetupOptions()
         errLabel:SetText(L["Resonance options failed to load:\n\n"] .. errStr)
         Resonance.msg("|cffff4444" .. L["Options UI error: "] .. errStr .. "|r")
         Resonance.msg("|cffff4444" .. L["Type /res diag for library diagnostics."] .. "|r")
+      else
+        -- Custom panels need a deferred refresh after the first frame render
+        -- so that layout calculations (content height, scroll range) are correct.
+        C_Timer.After(0, function()
+          if name == "Spell Sounds" then
+            invalidateSpellCache()
+            startBuildPlayerSpellCache()
+            if ctx.refreshList then ctx.refreshList() end
+          elseif name == "Sound Browser" then
+            if ctx.refreshMuteList then ctx.refreshMuteList() end
+          elseif name == "Ambient" then
+            if ctx.refreshAmbientTab then ctx.refreshAmbientTab() end
+          elseif name == "Presets" then
+            if ctx.refreshPresetList then ctx.refreshPresetList() end
+          elseif name == "Alerts" then
+            if ctx.refreshAlertList then ctx.refreshAlertList() end
+          elseif name == "Custom Sounds" then
+            if ctx.refreshCustomSounds then ctx.refreshCustomSounds() end
+          end
+        end)
       end
     end)
   end
