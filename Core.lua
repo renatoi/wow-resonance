@@ -3168,8 +3168,12 @@ function Resonance:OnEnable()
   -- Full rebuild deferred to when Resonance_Data loads.
   if Resonance.SpellMuteData then
     rebuildAutoMutes() -- Data already loaded (e.g. after /reload with Options open)
-  else
+  elseif db._lastAutoMutedFIDs then
     reapplyAutoMutesFromSnapshot()
+  else
+    -- No snapshot available (first install, or lost due to prior error).
+    -- Eagerly load Resonance_Data so auto-mutes can be built immediately.
+    loadDataAddon()
   end
   if db.enabled then
     applyMutes()
