@@ -36,7 +36,7 @@ Resonance_ClassTemplates = {
     { spellID = 1160,   name = "Demoralizing Shout", sound = 568028 }, -- BattleShoutTarget.ogg
     { spellID = 2565,   name = "Shield Block",      sound = 569473, muteFIDs = {569473} },  -- ShieldWallTarget.ogg
     { spellID = 167105, name = "Colossus Smash",    sound = 568664, muteFIDs = {568278, 569244, 569635, 1668195, 1668196, 1668197, 1668198, 1668199, 1668200} },  -- colossussmash_impact_01.ogg
-    { spellID = 46924,  name = "Bladestorm",         sound = 568202 },  -- warrior_bladestorm.ogg
+    { spellID = 46924,  name = "Bladestorm",         sound = {598691, 635069} },  -- warrior_heroicthrowmissile.ogg + FX_Lightning_Impact_Heavy03
     { spellID = 20243,  name = "Devastate",          sound = 568983 },  -- warrior_devastate1.ogg
     { spellID = 23881,  name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg
     { spellID = 335096, name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg (talent variant)
@@ -46,7 +46,7 @@ Resonance_ClassTemplates = {
     { spellID = 1715,   name = "Hamstring",          sound = 568003 },  -- RendTarget.ogg
     { spellID = 46968,  name = "Shockwave",          sound = 569193 },  -- warrior_shockwave_area.ogg
     -- Ravager talent (replaces Bladestorm, may proc from Revenge)
-    { spellID = 384110, name = "Ravager",            sound = nil },  -- mute-only
+    { spellID = 384110, name = "Ravager",            sound = nil, muteFIDs = {568073, 568278, 568664, 569244, 569635, 598691, 1302596, 1302597, 1302598, 1302599, 1362400} },  -- mute-only
     -- Buffs / Defensives
     { spellID = 23920,  name = "Spell Reflection",     sound = 568951 },  -- spellreflection_state_shield.ogg
     { spellID = 871,    name = "Shield Wall",           sound = 568510 },  -- defensivestance.ogg
@@ -84,7 +84,7 @@ Resonance_ClassTemplates = {
     { spellID = 45438,  name = "Ice Block",         sound = 568316 },  -- icebarrirerstate.ogg
     { spellID = 11426,  name = "Ice Barrier",       sound = 569018 },  -- icebarrirerimpact.ogg
     { spellID = 1953,   name = "Blink",             sound = 569735 },  -- teleport.ogg
-    { spellID = 212653, name = "Shimmer",           sound = 569735 },  -- teleport.ogg (Blink talent variant)
+    { spellID = 212653, name = "Shimmer",           sound = 569735, muteFIDs = {569735, 569766} },  -- teleport.ogg (Blink talent variant)
     { spellID = 44425,  name = "Arcane Barrage",    sound = 568149 },  -- arcanebarrage_impact1.ogg
     { spellID = 44457,  name = "Living Bomb",       sound = 569435 },  -- livingbomb_area.ogg
     -- Buffs / Cooldowns
@@ -94,7 +94,7 @@ Resonance_ClassTemplates = {
     { spellID = 12042,  name = "Arcane Power",      sound = 569084 },  -- lightningshieldimpact.ogg
     { spellID = 235219, name = "Cold Snap",         sound = 568083 },  -- frostwardtarget.ogg
     { spellID = 30449,  name = "Spellsteal",        sound = 569658 },  -- unstableaffliction_impact_chest.ogg
-    { spellID = 110959, name = "Greater Invisibility", sound = 569698 },  -- invisibility_impact_chest.ogg
+    { spellID = 110959, name = "Greater Invisibility", sound = 569698, muteFIDs = {569698, 1668198, 1668199} },  -- invisibility_impact_chest.ogg
     -- Frostfire hero talent variant
     { spellID = 431044, name = "Frostfire Bolt",    sound = 569765, muteExclusions = {4626795, 4626797, 4626799, 4626801, 4626803, 4626805, 4626807, 4626809, 4626927, 4626929, 4626931, 4626951, 4626953, 4626955, 4626963, 4626965, 4626967} },  -- frostcast.ogg; keep modern impact (+cast-start)
   },
@@ -254,7 +254,7 @@ Resonance_ClassTemplates = {
     -- Projectile: classic cast sound + keep modern impact
     { spellID = 188196, name = "Lightning Bolt",    sound = 569767, muteExclusions = {568188, 568516, 568529, 569513, 569544, 1100346, 1100347, 1100348, 4544016, 4544018, 4544020, 4544022, 4544024, 4544026, 4544028, 4544030, 4544032, 4544034, 4544040, 4544042, 4544044, 4544050, 4544052, 4544056, 4544058, 4544060, 4544062, 4544064, 4544066, 4544070, 4544072, 4544076, 4544080, 4544082, 4544086, 4544088, 4544092} },  -- naturecast.ogg (+cast-start)
     -- Instant impact (Lava Burst: no retail impact FIDs in mute data to preserve)
-    { spellID = 188443, name = "Chain Lightning",   sound = 566684 },  -- BlastedLandsLightningBolt01Stand-Bolt3.ogg
+    { spellID = 188443, name = "Chain Lightning",   sound = 566684, muteFIDs = {568188, 568516, 568529, 569513, 569544, 1100346, 1100347, 1100348} },  -- BlastedLandsLightningBolt01Stand-Bolt3.ogg
     { spellID = 51505,  name = "Lava Burst",        sound = 569666 },  -- shaman_lavaburstimpact1.ogg
     { spellID = 77472,  name = "Healing Wave",      sound = 568917 },  -- RestorationImpact.ogg
     { spellID = 370,    name = "Purge",             sound = 568736 },  -- purge.ogg
@@ -274,14 +274,14 @@ Resonance_ClassTemplates = {
     -- Buffs / Cooldowns
     { spellID = 32182,  name = "Heroism",           sound = 569013 },  -- heroism_cast.ogg
     { spellID = 2825,   name = "Bloodlust",         sound = 568812 },  -- bloodlust_player_cast_head.ogg
-    { spellID = 114051, name = "Ascendance",        sound = 568735 },  -- burningspirit.ogg
+    { spellID = 114051, name = "Ascendance",        sound = 568735, muteFIDs = {568188, 568516, 568529, 569513, 569544, 635075, 635077, 635079, 635081, 635083, 635085, 635087, 1369104, 1369105, 1369106, 4544016, 4544018, 4544020, 4544022, 4544024, 4544026, 4544028, 4544030, 4552675, 4552677, 4552679, 4552681, 4552683} },  -- burningspirit.ogg
   },
   HUNTER = {
     -- Hunter shots: arrows/bullets travel fast, no classic cast sounds exist, keep impact sounds
     { spellID = 5116,   name = "Concussive Shot",   sound = 569554 },  -- ArcaneMissileImpact1c.ogg
     { spellID = 34026,  name = "Kill Command",      sound = 568075 },  -- killcommand.ogg
     { spellID = 212431, name = "Explosive Shot",    sound = 569082 },  -- hunter_explosiveshotimpact1.ogg
-    { spellID = 257044, name = "Rapid Fire",        sound = 568637 },  -- hunter_rapidfire.ogg
+    { spellID = 257044, name = "Rapid Fire",        sound = 568637, muteFIDs = {921248, 921250, 921252, 921254, 921256, 921258, 922086, 922088, 922090, 922092, 922094} },  -- hunter_rapidfire.ogg
     { spellID = 34477,  name = "Misdirection",      sound = 569634 },  -- misdirection_impact_head.ogg
     { spellID = 186270, name = "Raptor Strike",     sound = 569098 },  -- DecisiveStrike.ogg
     { spellID = 19434,  name = "Aimed Shot",        sound = 569554 },  -- ArcaneMissileImpact1c.ogg
@@ -342,7 +342,7 @@ Resonance_ClassTemplates = {
     { spellID = 123986, name = "Chi Burst",          sound = 626309 },  -- spell_mk_chiburst_cast01.ogg
     -- Brewmaster
     { spellID = 121253, name = "Keg Smash",          sound = 612300 },  -- spell_mk_kegsmash_01.ogg
-    { spellID = 115181, name = "Breath of Fire",     sound = 613886 },  -- spell_mk_breathfire_03.ogg
+    { spellID = 115181, name = "Breath of Fire",     sound = 613886, muteFIDs = {613886, 2066584, 2066585, 2066586} },  -- spell_mk_breathfire_03.ogg
     { spellID = 119582, name = "Purifying Brew",     sound = 612294 },  -- spell_mk_brew_drink01.ogg
     { spellID = 115203, name = "Fortifying Brew",    sound = 630452 },  -- spell_mk_fortifyingbrew_stone.ogg
     -- Mistweaver
