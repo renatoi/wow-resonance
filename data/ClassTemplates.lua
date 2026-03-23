@@ -24,18 +24,18 @@ Resonance_ClassTemplates = {
     { spellID = 1464,   name = "Slam",              sound = 569828, muteFIDs = {1302598, 1302599, 1302600} },  -- SwingWeaponSpecialWarriorA.ogg
     { spellID = 1269383, name = "Slam",             sound = 569828, muteFIDs = {1324858, 1324859, 1324860, 1324861, 1324862} },  -- SwingWeaponSpecialWarriorA.ogg (Midnight variant)
     { spellID = 7384,   name = "Overpower",         sound = {569828, 569098}, muteFIDs = {1258146, 1258147, 1258148, 1258149} },  -- SwingWeaponSpecialWarriorA.ogg + DecisiveStrike.ogg
-    { spellID = 772,    name = "Rend",              sound = 568003 },  -- RendTarget.ogg
+    { spellID = 772,    name = "Rend",              sound = 568003, muteFIDs = {569827, 569828, 569829, 569830, 569831} },  -- RendTarget.ogg
     { spellID = 845,    name = "Cleave",            sound = 568227 },  -- CleaveTarget.ogg
     { spellID = 12294,  name = "Mortal Strike",     sound = 569098 },  -- DecisiveStrike.ogg
-    { spellID = 23922,  name = "Shield Slam",       sound = 567879 },  -- m1hSwordHitMetalShieldCrit.ogg
+    { spellID = 23922,  name = "Shield Slam",       sound = 567879, muteFIDs = {1318269, 1318270, 1318271, 1318272, 1318273} },  -- m1hSwordHitMetalShieldCrit.ogg
     { spellID = 6572,   name = "Revenge",           sound = {random = {569120, 569726, 569247, 569186}} },  -- warrior_revenge 1-4.ogg
     -- Heroic Leap removed: sound plays on cast, not on landing (WoW API limitation)
     { spellID = 34428,  name = "Victory Rush",      sound = 568003 },  -- RendTarget.ogg
-    { spellID = 6552,   name = "Pummel",            sound = 567944 },  -- mWooshMediumCrit.ogg
+    { spellID = 6552,   name = "Pummel",            sound = 567944, muteFIDs = {1258146, 1258147, 1258148, 1258149} },  -- mWooshMediumCrit.ogg
     { spellID = 5246,   name = "Intimidating Shout", sound = 568028 }, -- BattleShoutTarget.ogg
     { spellID = 1160,   name = "Demoralizing Shout", sound = 568028 }, -- BattleShoutTarget.ogg
-    { spellID = 2565,   name = "Shield Block",      sound = 569473 },  -- ShieldWallTarget.ogg
-    { spellID = 167105, name = "Colossus Smash",    sound = 568664 },  -- colossussmash_impact_01.ogg
+    { spellID = 2565,   name = "Shield Block",      sound = 569473, muteFIDs = {569473} },  -- ShieldWallTarget.ogg
+    { spellID = 167105, name = "Colossus Smash",    sound = 568664, muteFIDs = {568278, 569244, 569635, 1668195, 1668196, 1668197, 1668198, 1668199, 1668200} },  -- colossussmash_impact_01.ogg
     { spellID = 46924,  name = "Bladestorm",         sound = 568202 },  -- warrior_bladestorm.ogg
     { spellID = 20243,  name = "Devastate",          sound = 568983 },  -- warrior_devastate1.ogg
     { spellID = 23881,  name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg

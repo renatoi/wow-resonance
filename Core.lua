@@ -3166,12 +3166,13 @@ function Resonance:OnEnable()
   refreshPresetsFromTemplates()
   -- Use snapshot at login (fast, no SpellMuteData needed).
   -- Full rebuild deferred to when Resonance_Data loads.
+  local hasSnapshot = db._lastAutoMutedFIDs and next(db._lastAutoMutedFIDs) ~= nil
   if Resonance.SpellMuteData then
-    rebuildAutoMutes() -- Data already loaded (e.g. after /reload with Options open)
-  elseif db._lastAutoMutedFIDs then
+    rebuildAutoMutes()
+  elseif hasSnapshot then
     reapplyAutoMutesFromSnapshot()
   else
-    -- No snapshot available (first install, or lost due to prior error).
+    -- No snapshot or empty snapshot (first install, or lost due to prior error).
     -- Eagerly load Resonance_Data so auto-mutes can be built immediately.
     loadDataAddon()
   end
