@@ -159,6 +159,7 @@ local UnitRace = UnitRace
 local UnitSex = UnitSex
 local UnitClass = UnitClass
 local StopSound = StopSound
+local GetTime = GetTime
 local C_Timer = C_Timer
 
 local lastVoxRaceGender -- cached to detect actual race/gender changes
@@ -190,6 +191,8 @@ local alertHandles = {} -- { [alertKey] = soundHandle } for debouncing alert sou
 local lastLoCInterrupt = nil -- timestamp set by LOSS_OF_CONTROL_ADDED on SCHOOL_INTERRUPT
 local pendingInterrupt = nil -- { time, spellID } set by UNIT_SPELLCAST_INTERRUPTED awaiting LoC confirmation
 local ambientMutedFIDs = {} -- runtime-only: FIDs muted by ambient sound toggles
+local lastCastSoundTime = {} -- { [spellID] = GetTime() } for debouncing channel ticks
+local CAST_SOUND_DEBOUNCE = 0.5 -- seconds; min GCD is 0.75s so legitimate recasts are unaffected
 
 -- Alert event metadata: drives the Alerts UI dropdown and event handler registration
 Resonance.ALERT_EVENTS = {
@@ -3400,6 +3403,19 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
     return
   end
 
+  -- Debounce: channeled spells (e.g. Tranquility) fire UNIT_SPELLCAST_SUCCEEDED
+  -- per tick; without this guard the replacement sound stacks on every tick.
+  -- The 0.5 s window is well below the minimum GCD (0.75 s) so legitimate
+  -- rapid recasts of the same spell are unaffected.
+  local now = GetTime()
+  local lastPlayed = lastCastSoundTime[spellID]
+  if lastPlayed and (now - lastPlayed) < CAST_SOUND_DEBOUNCE then
+    if db.debug then
+      msg(("  Debounced: spellID %d (%.2fs ago)"):format(spellID, now - lastPlayed))
+    end
+    return
+  end
+
   -- Defer GetSpellName: for the common case (configured sound), the name
   -- is never used, so skip the C API call entirely unless debug is on or
   -- we fall through to the vanilla-file / FID-mapping fallback paths.
@@ -3410,7 +3426,9 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
     msg(("Cast: %s (spellID %d)"):format(spellName ~= "" and spellName or "<?>", spellID))
   end
 
-  playResolvedSound(spellID, spellName, cfg, dbg, "cast")
+  if playResolvedSound(spellID, spellName, cfg, dbg, "cast") then
+    lastCastSoundTime[spellID] = now
+  end
 end
 
 ---------------------------------------------------------------------------

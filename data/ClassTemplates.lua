@@ -188,7 +188,7 @@ Resonance_ClassTemplates = {
     { spellID = 1253799, name = "Sundering Roar",      sound = 544959 },  -- mBearAggroA.ogg
     { spellID = 5217,   name = "Tiger's Fury",      sound = 568524 },  -- cower.ogg
     { spellID = 1850,   name = "Dash",              sound = 568146 },  -- bullrush.ogg
-    { spellID = 1126,   name = "Mark of the Wild",  sound = 568735 },  -- burningspirit.ogg
+    { spellID = 1126,   name = "Mark of the Wild",  sound = 568735, muteFIDs = {568735, 568917} },  -- burningspirit.ogg
   },
   WARLOCK = {
     -- Projectile: classic cast sound + keep modern impact
