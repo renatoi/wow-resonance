@@ -192,6 +192,7 @@ local lastLoCInterrupt = nil -- timestamp set by LOSS_OF_CONTROL_ADDED on SCHOOL
 local pendingInterrupt = nil -- { time, spellID } set by UNIT_SPELLCAST_INTERRUPTED awaiting LoC confirmation
 local ambientMutedFIDs = {} -- runtime-only: FIDs muted by ambient sound toggles
 local lastCastSoundTime = {} -- { [spellID] = GetTime() } for debouncing rapid duplicates
+local lastCastSoundCfgTime = {} -- { [cfg] = GetTime() } for debouncing multi-hit spells (same cfg, different spellIDs)
 local CAST_SOUND_DEBOUNCE = 0.5 -- seconds; min GCD is 0.75s so legitimate recasts are unaffected
 local activeChannelSpellID = nil -- spellID of the spell currently being channeled
 local activeChannelCfg = nil -- resolved spell_config for the channeled spell
@@ -349,6 +350,7 @@ local defaults = {
     muteCreatureVox = {}, -- { ["Beast"] = true, ["Demon"] = true, ... }
     muteProfessionSounds = {}, -- { ["Blacksmithing"] = true, ... }
     muteAmbientSounds = {}, -- { ["Midnight|Silvermoon City"] = true, ... }
+    multiHitWindow = 1.5, -- seconds; suppress duplicate sounds from multi-hit spells
     classicAutoShot = false,
     mutedNPCs = {}, -- { [npcID] = true } NPCs whose sounds are muted
     alerts = {},
@@ -2066,6 +2068,9 @@ function Resonance:ExportConfig(name)
     if cfg.precastDuration then
       entry.precastDuration = cfg.precastDuration
     end
+    if cfg.multiHitWindow then
+      entry.multiHitWindow = cfg.multiHitWindow
+    end
     spells[sid] = entry
   end
   local mutes = {}
@@ -2100,6 +2105,7 @@ function Resonance:ImportConfig(str)
         trigger = cfg.trigger,
         precastSound = cfg.precastSound,
         precastDuration = cfg.precastDuration,
+        multiHitWindow = cfg.multiHitWindow,
       }
       applyAutoMutesForSpell(sid)
       added = added + 1
@@ -2438,6 +2444,7 @@ local function refreshPresetsFromTemplates()
             else
               cfg.muteFIDs = nil
             end
+            cfg.multiHitWindow = entry.multiHitWindow
             updated = updated + 1
           end
           break
@@ -2477,6 +2484,9 @@ local function refreshPresetsFromTemplates()
           end
           if entry.precastDuration then
             cfg.precastDuration = entry.precastDuration
+          end
+          if entry.multiHitWindow then
+            cfg.multiHitWindow = entry.multiHitWindow
           end
           db.spell_config[sid] = cfg
           db.preset_spells[sid] = classKey
@@ -2629,11 +2639,29 @@ local function getGeneralOptions()
           Resonance.toggleMinimapButton(v)
         end,
       },
+      multiHitWindow = {
+        type = "range",
+        name = L["Multi-hit sound window"],
+        desc = L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."],
+        order = 4,
+        min = 0,
+        max = 5,
+        step = 0.1,
+        disabled = function()
+          return not db.enabled
+        end,
+        get = function()
+          return db.multiHitWindow
+        end,
+        set = function(_, v)
+          db.multiHitWindow = v
+        end,
+      },
       soundChannel = {
         type = "select",
         name = L["Replacement sound channel"],
         desc = L["Which audio channel to play replacement spell sounds on. Use 'Master' to always hear them regardless of other volume sliders."],
-        order = 4,
+        order = 5,
         disabled = function()
           return not db.enabled
         end,
@@ -3461,6 +3489,9 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   -- Debounce: brief guard against rapid duplicate events for the same spell.
   -- The 0.5 s window is well below the minimum GCD (0.75 s) so legitimate
   -- rapid recasts of the same spell are unaffected.
+  -- Check both by exact spellID (same spell fired twice) and by resolved cfg
+  -- identity (multi-hit spells like Rampage use different sub-spell IDs that
+  -- all resolve to the same config via name fallback).
   local now = GetTime()
   local lastPlayed = lastCastSoundTime[spellID]
   if lastPlayed and (now - lastPlayed) < CAST_SOUND_DEBOUNCE then
@@ -3468,6 +3499,18 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
       msg(("  Debounced: spellID %d (%.2fs ago)"):format(spellID, now - lastPlayed))
     end
     return
+  end
+  if cfg then
+    local window = cfg.multiHitWindow or db.multiHitWindow
+    if window and window > 0 then
+      local lastCfgPlayed = lastCastSoundCfgTime[cfg]
+      if lastCfgPlayed and (now - lastCfgPlayed) < window then
+        if db.debug then
+          msg(("  Debounced (multi-hit): spellID %d, same config played %.2fs ago (window %.1fs)"):format(spellID, now - lastCfgPlayed, window))
+        end
+        return
+      end
+    end
   end
 
   -- Defer GetSpellName: for the common case (configured sound), the name
@@ -3482,6 +3525,9 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
 
   if playResolvedSound(spellID, spellName, cfg, dbg, "cast") then
     lastCastSoundTime[spellID] = now
+    if cfg then
+      lastCastSoundCfgTime[cfg] = now
+    end
   end
 end
 

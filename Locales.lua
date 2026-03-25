@@ -42,6 +42,13 @@ if locale == "enUS" or locale == "enGB" then
   L["Default"] = "Default"
   L["Override the sound channel for this spell. Default uses the global channel from the General tab."] =
     "Override the sound channel for this spell. Default uses the global channel from the General tab."
+  L["Multi-hit window (seconds):"] = "Multi-hit window (seconds):"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."
+  L["Multi-hit sound window"] =
+    "Multi-hit sound window"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."
   L["Precast Sound"] = "Precast Sound"
   L["Cast Complete Sound"] = "Cast Complete Sound"
   L["Loading spell data..."] = "Loading spell data..."
@@ -416,6 +423,12 @@ if locale == "ptBR" then
   L["Loop"] = "Repetir"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "Repetir o som até a próxima conjuração. Requer uma duração definida."
+  L["Multi-hit window (seconds):"] = "Janela multi-hit (segundos):"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "Sobrescrever a janela de som multi-hit para esta magia. Deixe vazio para usar o padrão global da aba Geral."
+  L["Multi-hit sound window"] = "Janela de som multi-hit"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "Janela de tempo (em segundos) durante a qual uma magia multi-hit não repetirá seu som substituto. Evita que habilidades como Rampage toquem o som em cada golpe. Defina como 0 para desativar. Configurações por magia têm prioridade."
   L["Precast Sound"] = "Som de Pré-conjuração"
   L["Cast Complete Sound"] = "Som de Conjuração Completa"
   L["Loading spell data..."] = "Carregando dados de magias..."
@@ -773,6 +786,12 @@ elseif locale == "deDE" then
   L["Loop"] = "Wiederholen"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "Den Klang bis zum nächsten Wirken wiederholen. Erfordert eine eingestellte Dauer."
+  L["Multi-hit window (seconds):"] = "Multi-Hit-Fenster (Sekunden):"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "Überschreibt das Multi-Hit-Klangfenster für diesen Zauber. Leer lassen, um den globalen Standard aus dem Allgemein-Tab zu verwenden."
+  L["Multi-hit sound window"] = "Multi-Hit-Klangfenster"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "Zeitfenster (in Sekunden), in dem ein Multi-Hit-Zauber seinen Ersatzklang nicht erneut abspielt. Verhindert, dass Fähigkeiten wie Amoklauf bei jedem Treffer den Klang abspielen. Auf 0 setzen zum Deaktivieren. Zauber-spezifische Einstellungen haben Vorrang."
   L["Precast Sound"] = "Vor-Zauber-Klang"
   L["Cast Complete Sound"] = "Zauber-Abschluss-Klang"
   L["Loading spell data..."] = "Lade Zauberdaten..."
@@ -1130,6 +1149,12 @@ elseif locale == "frFR" then
   L["Loop"] = "Boucle"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "Répéter le son jusqu'à la prochaine incantation. Nécessite une durée définie."
+  L["Multi-hit window (seconds):"] = "Fenêtre multi-coup (secondes) :"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "Remplacer la fenêtre sonore multi-coup pour ce sort. Laisser vide pour utiliser la valeur par défaut de l'onglet Général."
+  L["Multi-hit sound window"] = "Fenêtre sonore multi-coup"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "Fenêtre de temps (en secondes) pendant laquelle un sort multi-coup ne rejouera pas son son de remplacement. Empêche les capacités comme Carnage de jouer le son à chaque coup. Mettre à 0 pour désactiver. Les réglages par sort sont prioritaires."
   L["Precast Sound"] = "Son de pré-incantation"
   L["Cast Complete Sound"] = "Son d'incantation terminée"
   L["Loading spell data..."] = "Chargement des données de sorts..."
@@ -1487,6 +1512,12 @@ elseif locale == "esES" or locale == "esMX" then
   L["Loop"] = "Repetir"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "Repetir el sonido hasta el próximo lanzamiento. Requiere una duración establecida."
+  L["Multi-hit window (seconds):"] = "Ventana multi-golpe (segundos):"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "Sobrescribir la ventana de sonido multi-golpe para este hechizo. Dejar vacío para usar el valor predeterminado global de la pestaña General."
+  L["Multi-hit sound window"] = "Ventana de sonido multi-golpe"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "Ventana de tiempo (en segundos) durante la cual un hechizo multi-golpe no reproducirá su sonido de reemplazo. Evita que habilidades como Embestida reproduzcan el sonido en cada golpe. Establecer en 0 para desactivar. Las configuraciones por hechizo tienen prioridad."
   L["Precast Sound"] = "Sonido de pre-lanzamiento"
   L["Cast Complete Sound"] = "Sonido de lanzamiento completo"
   L["Loading spell data..."] = "Cargando datos de hechizos..."
@@ -1841,6 +1872,12 @@ elseif locale == "itIT" then
   L["Loop"] = "Ripeti"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "Ripete il suono fino al prossimo lancio. Richiede una durata impostata."
+  L["Multi-hit window (seconds):"] = "Finestra multi-colpo (secondi):"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "Sovrascrivere la finestra sonora multi-colpo per questo incantesimo. Lasciare vuoto per usare il valore predefinito dalla scheda Generale."
+  L["Multi-hit sound window"] = "Finestra sonora multi-colpo"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "Finestra temporale (in secondi) durante la quale un incantesimo multi-colpo non riprodurrà il suo suono sostitutivo. Impedisce ad abilità come Furia di riprodurre il suono ad ogni colpo. Impostare a 0 per disattivare. Le impostazioni per incantesimo hanno priorità."
   L["Precast Sound"] = "Suono pre-lancio"
   L["Cast Complete Sound"] = "Suono lancio completato"
   L["Loading spell data..."] = "Caricamento dati incantesimi..."
@@ -2211,6 +2248,12 @@ elseif locale == "ruRU" then
   L["Loop"] = "Повтор"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "Повторять звук до следующего каста. Требуется установленная длительность."
+  L["Multi-hit window (seconds):"] = "Окно мульти-удара (секунд):"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "Переопределить окно звука мульти-удара для этого заклинания. Оставьте пустым для использования глобального значения из вкладки Общие."
+  L["Multi-hit sound window"] = "Окно звука мульти-удара"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "Временное окно (в секундах), в течение которого мульти-ударное заклинание не будет повторно воспроизводить заменяющий звук. Предотвращает воспроизведение звука при каждом ударе таких способностей, как Буйство. Установите 0 для отключения. Настройки для отдельных заклинаний приоритетнее."
   L["Precast Sound"] = "Звук начала каста"
   L["Cast Complete Sound"] = "Звук завершения каста"
   L["Loading spell data..."] = "Загрузка данных заклинаний..."
@@ -2568,6 +2611,12 @@ elseif locale == "koKR" then
   L["Loop"] = "반복"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "다음 시전까지 소리를 반복합니다. 지속 시간을 설정해야 합니다."
+  L["Multi-hit window (seconds):"] = "다중 타격 창 (초):"
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "이 주문의 다중 타격 소리 창을 재정의합니다. 일반 탭의 글로벌 기본값을 사용하려면 비워 두세요."
+  L["Multi-hit sound window"] = "다중 타격 소리 창"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "다중 타격 주문이 대체 소리를 다시 재생하지 않는 시간 창(초). 난폭 같은 기술이 매 타격마다 소리를 재생하는 것을 방지합니다. 0으로 설정하면 비활성화됩니다. 주문별 설정이 우선합니다."
   L["Precast Sound"] = "시전 시작 소리"
   L["Cast Complete Sound"] = "시전 완료 소리"
   L["Loading spell data..."] = "주문 데이터 로드 중..."
@@ -2918,6 +2967,12 @@ elseif locale == "zhCN" then
   L["Loop"] = "循环"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "重复播放声音直到下次施法。需要设置持续时间。"
+  L["Multi-hit window (seconds):"] = "多段命中窗口（秒）："
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "覆盖此法术的多段命中音效窗口。留空则使用常规选项卡中的全局默认值。"
+  L["Multi-hit sound window"] = "多段命中音效窗口"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "在此时间窗口（秒）内，多段命中法术不会重复播放替代音效。防止狂暴等技能每次命中都播放音效。设为0可禁用。每个法术的单独设置优先。"
   L["Precast Sound"] = "预施法声音"
   L["Cast Complete Sound"] = "施法完成声音"
   L["Loading spell data..."] = "正在加载法术数据..."
@@ -3268,6 +3323,12 @@ elseif locale == "zhTW" then
   L["Loop"] = "循環"
   L["Repeat the sound until the next cast. Requires a duration to be set."] =
     "重複播放聲音直到下次施法。需要設定持續時間。"
+  L["Multi-hit window (seconds):"] = "多段命中視窗（秒）："
+  L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."] =
+    "覆蓋此法術的多段命中音效視窗。留空則使用一般選項卡中的全域預設值。"
+  L["Multi-hit sound window"] = "多段命中音效視窗"
+  L["Time window (in seconds) during which a multi-hit spell won't replay its replacement sound. Prevents abilities like Rampage from playing the sound on every hit. Set to 0 to disable. Per-spell overrides take priority."] =
+    "在此時間視窗（秒）內，多段命中法術不會重複播放替代音效。防止狂暴等技能每次命中都播放音效。設為0可停用。每個法術的個別設定優先。"
   L["Precast Sound"] = "預施法聲音"
   L["Cast Complete Sound"] = "施法完成聲音"
   L["Loading spell data..."] = "正在載入法術資料..."

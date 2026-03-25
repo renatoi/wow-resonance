@@ -1659,6 +1659,7 @@ buildTab2_SpellSounds = function(ctx)
   local editorLoop = nil -- optional: loop sound (true or number of iterations)
   local editorTrigger = "cast" -- "cast", "precast", or "precast_and_cast"
   local editorChannel = nil -- per-spell channel override (nil = use global)
+  local editorMultiHitWindow = nil -- per-spell multi-hit window override (nil = use global)
   local editorPrecastSound = nil
   local editorPrecastDuration = nil
   local editorExclusions = {} -- local copy of muteExclusions during editing
@@ -2436,6 +2437,54 @@ buildTab2_SpellSounds = function(ctx)
     GameTooltip:Hide()
   end)
 
+  ---------------------------------------------------------------------------
+  -- Multi-hit window override row (below channel)
+  ---------------------------------------------------------------------------
+  local edMultiHitFrame = CreateFrame("Frame", nil, editorFrame)
+  edMultiHitFrame:SetSize(CONTENT_WIDTH - 20, 24)
+  edMultiHitFrame:SetPoint("TOPLEFT", edChannelFrame, "BOTTOMLEFT", 0, -4)
+
+  local edMultiHitLabel = edMultiHitFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  edMultiHitLabel:SetPoint("LEFT", edMultiHitFrame, "LEFT", 0, 0)
+  edMultiHitLabel:SetText(L["Multi-hit window (seconds):"])
+
+  local edMultiHitBox = CreateFrame("EditBox", nil, edMultiHitFrame, "InputBoxTemplate")
+  edMultiHitBox:SetSize(60, 22)
+  edMultiHitBox:SetPoint("LEFT", edMultiHitLabel, "RIGHT", 6, 0)
+  edMultiHitBox:SetAutoFocus(false)
+  do
+    edMultiHitBox.placeholder = edMultiHitBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    edMultiHitBox.placeholder:SetPoint("LEFT", 4, 0)
+    edMultiHitBox.placeholder:SetText("e.g. 1.5")
+    local function upd(self)
+      self.placeholder:SetShown(self:GetText() == "" and not self:HasFocus())
+    end
+    edMultiHitBox:SetScript("OnEditFocusGained", function(self)
+      self.placeholder:Hide()
+    end)
+    edMultiHitBox:SetScript("OnEditFocusLost", upd)
+    edMultiHitBox:SetScript("OnTextChanged", upd)
+    edMultiHitBox:SetScript("OnShow", upd)
+  end
+  wireNumericEditBox(edMultiHitBox, function(val)
+    editorMultiHitWindow = val
+  end)
+
+  local edMultiHitClearBtn = makeButton(edMultiHitFrame, L["Clear"], 42, function()
+    edMultiHitBox:SetText("")
+    editorMultiHitWindow = nil
+  end)
+  edMultiHitClearBtn:SetPoint("LEFT", edMultiHitBox, "RIGHT", 4, 0)
+
+  edMultiHitFrame:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:AddLine(L["Override the multi-hit sound window for this spell. Leave empty to use the global default from the General tab."], 1, 1, 1, true)
+    GameTooltip:Show()
+  end)
+  edMultiHitFrame:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
   local function edSetMuteOnly(muteOnly)
     edMuteOnlyCheck:SetChecked(muteOnly)
     -- Hide/show the trigger and replacement sound sections
@@ -2457,6 +2506,7 @@ buildTab2_SpellSounds = function(ctx)
     edFileFrame:SetShown(not muteOnly and not edBrowseRadio:GetChecked())
     edDurationFrame:SetShown(not muteOnly)
     edChannelFrame:SetShown(not muteOnly)
+    edMultiHitFrame:SetShown(not muteOnly)
     if muteOnly then
       edBrowseDD:Hide()
     end
@@ -2465,7 +2515,7 @@ buildTab2_SpellSounds = function(ctx)
     if muteOnly then
       autoMuteAnchor:SetPoint("TOPLEFT", edMuteOnlyCheck, "BOTTOMLEFT", 0, -12)
     else
-      autoMuteAnchor:SetPoint("TOPLEFT", edChannelFrame, "BOTTOMLEFT", 0, -8)
+      autoMuteAnchor:SetPoint("TOPLEFT", edMultiHitFrame, "BOTTOMLEFT", 0, -8)
     end
     if edResizeEditor and editorFrame:IsShown() then
       edResizeEditor()
@@ -2686,6 +2736,7 @@ buildTab2_SpellSounds = function(ctx)
     editorLoop = nil
     editorTrigger = "cast"
     editorChannel = nil
+    editorMultiHitWindow = nil
     editorPrecastSound = nil
     editorPrecastDuration = nil
     wipe(editorExclusions)
@@ -2695,6 +2746,7 @@ buildTab2_SpellSounds = function(ctx)
     edSpellSearchDD:Hide()
     edFileBox:SetText("")
     edDurationBox:SetText("")
+    edMultiHitBox:SetText("")
     edLoopCheck:SetChecked(false)
     edPrecastFileBox:SetText("")
     edPrecastDurBox:SetText("")
@@ -2738,6 +2790,10 @@ buildTab2_SpellSounds = function(ctx)
         end
         if cfg.channel then
           editorChannel = cfg.channel
+        end
+        if cfg.multiHitWindow then
+          editorMultiHitWindow = cfg.multiHitWindow
+          edMultiHitBox:SetText(tostring(cfg.multiHitWindow))
         end
         if cfg.precastSound then
           editorPrecastSound = cfg.precastSound
@@ -2821,6 +2877,7 @@ buildTab2_SpellSounds = function(ctx)
         channel = editorChannel,
         precastSound = precastSound,
         precastDuration = precastDuration,
+        multiHitWindow = editorMultiHitWindow,
       }
       Resonance.applyAutoMutesForSpell(sid)
     else
@@ -2835,6 +2892,7 @@ buildTab2_SpellSounds = function(ctx)
         channel = editorChannel,
         precastSound = precastSound,
         precastDuration = precastDuration,
+        multiHitWindow = editorMultiHitWindow,
       }
       Resonance.applyAutoMutesForSpell(sid)
     end
@@ -3111,6 +3169,9 @@ buildTab2_SpellSounds = function(ctx)
           end
           if cfg.channel then
             indicators = indicators .. (indicators ~= "" and ", " or "") .. cfg.channel
+          end
+          if cfg.multiHitWindow then
+            indicators = indicators .. (indicators ~= "" and ", " or "") .. ("%.1fs window"):format(cfg.multiHitWindow)
           end
           if indicators ~= "" then
             local cur = row.soundText:GetText() or ""

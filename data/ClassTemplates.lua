@@ -18,8 +18,8 @@ Resonance_ClassTemplates = {
     { spellID = 163201, name = "Execute",           sound = 568274 },  -- SealOfMight.ogg (DB2-verified classic Execute)
     { spellID = 5308,   name = "Execute",           sound = 568274 },  -- SealOfMight.ogg (classic base ID)
     { spellID = 280735, name = "Execute",           sound = 568274 },  -- SealOfMight.ogg (Fury variant)
-    { spellID = 1680,   name = "Whirlwind",         sound = 568519 },  -- WhirlwindShort.ogg
-    { spellID = 190411, name = "Whirlwind",         sound = 568519 },  -- WhirlwindShort.ogg (Fury variant)
+    { spellID = 1680,   name = "Whirlwind",         sound = 568519, muteFIDs = {1093788, 1093789, 1093790, 1093791, 1093792} },  -- WhirlwindShort.ogg
+    { spellID = 190411, name = "Whirlwind",         sound = 568519, muteFIDs = {1093788, 1093789, 1093790, 1093791, 1093792} },  -- WhirlwindShort.ogg (Fury variant)
     { spellID = 6343,   name = "Thunder Clap",      sound = 569222, muteFIDs = {1362397, 1362398, 1362399, 1362400} },  -- ThunderClap.ogg
     { spellID = 1464,   name = "Slam",              sound = 569828, muteFIDs = {1302598, 1302599, 1302600} },  -- SwingWeaponSpecialWarriorA.ogg
     { spellID = 1269383, name = "Slam",             sound = 569828, muteFIDs = {1324858, 1324859, 1324860, 1324861, 1324862} },  -- SwingWeaponSpecialWarriorA.ogg (Midnight variant)
@@ -36,7 +36,7 @@ Resonance_ClassTemplates = {
     { spellID = 1160,   name = "Demoralizing Shout", sound = 568028 }, -- BattleShoutTarget.ogg
     { spellID = 2565,   name = "Shield Block",      sound = 569473, muteFIDs = {569473} },  -- ShieldWallTarget.ogg
     { spellID = 167105, name = "Colossus Smash",    sound = 568664, muteFIDs = {568278, 569244, 569635, 1668195, 1668196, 1668197, 1668198, 1668199, 1668200} },  -- colossussmash_impact_01.ogg
-    { spellID = 46924,  name = "Bladestorm",         sound = {598691, 635069} },  -- warrior_heroicthrowmissile.ogg + FX_Lightning_Impact_Heavy03
+    { spellID = 46924,  name = "Bladestorm",         sound = {598691, 635069}, multiHitWindow = 5 },  -- warrior_heroicthrowmissile.ogg + FX_Lightning_Impact_Heavy03
     { spellID = 20243,  name = "Devastate",          sound = 568983 },  -- warrior_devastate1.ogg
     { spellID = 23881,  name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg
     { spellID = 335096, name = "Bloodthirst",        sound = 568003 },  -- RendTarget.ogg (talent variant)

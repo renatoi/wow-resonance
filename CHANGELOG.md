@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.5
+
+### New Features
+- **Multi-hit sound window:** Configurable time window that prevents multi-hit spells (e.g. Rampage, Raging Blow) from playing their replacement sound on every hit. Defaults to 1.5 seconds globally, adjustable per spell in the spell editor or globally in the General tab. Resolves the behavior change from v1.2.0 where name-based config fallback caused all sub-hits to trigger sounds.
+
+### Bug Fixes
+- Fix Whirlwind not muting its modern cast sounds. The 5 caster-side FIDs (whoosh sounds) were in ExcludedFIDs as over-shared; added explicit `muteFIDs` to both Whirlwind templates (1680, 190411).
+- Set Bladestorm template to a 5-second multi-hit window (non-channeled spell that fires repeated hits over ~4s).
+
 ## v1.3.4
 
 ### Bug Fixes
