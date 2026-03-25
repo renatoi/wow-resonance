@@ -3,7 +3,7 @@
 ## v1.3.4
 
 ### Bug Fixes
-- Fix channeled spells (e.g. Tranquility) playing replacement sounds on every tick — `UNIT_SPELLCAST_SUCCEEDED` fires per tick for channels, so a 0.5s per-spell debounce now ensures only the initial cast triggers playback.
+- Fix channeled spells (e.g. Tranquility) playing replacement sounds on every tick. Channeled spells now play on `UNIT_SPELLCAST_CHANNEL_START` and suppress all subsequent `UNIT_SPELLCAST_SUCCEEDED` tick events — including sub-spells with different IDs that resolve to the same config via name matching.
 - Fix Mark of the Wild echo caused by unmuted original retail sounds playing alongside the replacement. Added `muteFIDs` for the two excluded FIDs (568735, 568917).
 - Fix auto-mutes silently inactive on first install or after the Resonance_Data folder restructure — eagerly load Resonance_Data during `OnEnable` when no auto-mute snapshot exists, instead of waiting for Options to be opened.
 - Fix multiple template spells across 6 classes whose original sounds were never muted because their FIDs were in ExcludedFIDs (over-shared) with no explicit `muteFIDs`. Affected spells: Shield Slam, Pummel, Rend, Shield Block, Colossus Smash (Warrior), Rapid Fire (Hunter), Greater Invisibility, Shimmer (Mage), Chain Lightning, Ascendance (Shaman), Breath of Fire (Monk), Ravager (Warrior).

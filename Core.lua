@@ -191,8 +191,10 @@ local alertHandles = {} -- { [alertKey] = soundHandle } for debouncing alert sou
 local lastLoCInterrupt = nil -- timestamp set by LOSS_OF_CONTROL_ADDED on SCHOOL_INTERRUPT
 local pendingInterrupt = nil -- { time, spellID } set by UNIT_SPELLCAST_INTERRUPTED awaiting LoC confirmation
 local ambientMutedFIDs = {} -- runtime-only: FIDs muted by ambient sound toggles
-local lastCastSoundTime = {} -- { [spellID] = GetTime() } for debouncing channel ticks
+local lastCastSoundTime = {} -- { [spellID] = GetTime() } for debouncing rapid duplicates
 local CAST_SOUND_DEBOUNCE = 0.5 -- seconds; min GCD is 0.75s so legitimate recasts are unaffected
+local activeChannelSpellID = nil -- spellID of the spell currently being channeled
+local activeChannelCfg = nil -- resolved spell_config for the channeled spell
 
 -- Alert event metadata: drives the Alerts UI dropdown and event handler registration
 Resonance.ALERT_EVENTS = {
@@ -3164,6 +3166,8 @@ end
 function Resonance:OnEnable()
   self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
   self:RegisterEvent("UNIT_SPELLCAST_START")
+  self:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
+  self:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
   self:RegisterEvent("UNIT_MODEL_CHANGED")
   refreshAlertEvents()
   refreshPresetsFromTemplates()
@@ -3376,6 +3380,40 @@ function Resonance:UNIT_SPELLCAST_START(_, unit, _, spellID)
   playResolvedSound(spellID, spellName, cfg, dbg, "precast")
 end
 
+function Resonance:UNIT_SPELLCAST_CHANNEL_START(_, unit, _, spellID)
+  if unit ~= "player" then
+    return
+  end
+  if not db.enabled or not spellID then
+    return
+  end
+
+  local cfg = resolveSpellConfig(spellID)
+  activeChannelSpellID = spellID
+  activeChannelCfg = cfg -- may be nil; used to suppress name-matched sub-spells
+
+  if not cfg and not IsPlayerSpell(spellID) then
+    return
+  end
+
+  local dbg = db.debug
+  local spellName
+  if dbg then
+    spellName = _GetSpellName(spellID) or ""
+    msg(("Channel: %s (spellID %d)"):format(spellName ~= "" and spellName or "<?>", spellID))
+  end
+
+  playResolvedSound(spellID, spellName, cfg, dbg, "cast")
+end
+
+function Resonance:UNIT_SPELLCAST_CHANNEL_STOP(_, unit)
+  if unit ~= "player" then
+    return
+  end
+  activeChannelSpellID = nil
+  activeChannelCfg = nil
+end
+
 function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   if unit ~= "player" then
     return
@@ -3403,8 +3441,24 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
     return
   end
 
-  -- Debounce: channeled spells (e.g. Tranquility) fire UNIT_SPELLCAST_SUCCEEDED
-  -- per tick; without this guard the replacement sound stacks on every tick.
+  -- Suppress channel ticks: channeled spells (e.g. Tranquility) fire
+  -- UNIT_SPELLCAST_SUCCEEDED per tick.  The sound was already played by
+  -- UNIT_SPELLCAST_CHANNEL_START.  Check both exact spell ID and resolved
+  -- config identity — tick sub-spells often use a different ID but match
+  -- the same spell_config via name fallback (e.g., Tranquility tick 157982
+  -- matching configured Tranquility 740 by name).
+  if activeChannelSpellID then
+    if spellID == activeChannelSpellID
+      or (activeChannelCfg and cfg == activeChannelCfg)
+    then
+      if db.debug then
+        msg(("  Suppressed channel tick: spellID %d"):format(spellID))
+      end
+      return
+    end
+  end
+
+  -- Debounce: brief guard against rapid duplicate events for the same spell.
   -- The 0.5 s window is well below the minimum GCD (0.75 s) so legitimate
   -- rapid recasts of the same spell are unaffected.
   local now = GetTime()
