@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.4.0
+
+### New Features
+- **Sequence sound mode:** Configure a list of sounds that play one per hit for multi-hit spells like Rampage. Each successive hit advances through the sound list, creating a combo-style strike sequence. Works with any number of sounds and wraps around when the list is exhausted. Select "Sequence (1 per hit)" in the spell editor's sound mode radio to enable.
+- For single-hit spells, sequence mode cycles through sounds across casts (each cast plays the next sound in the list).
+
+### Bug Fixes
+- Fix `refreshPresetsFromTemplates` overwriting user-customized sounds on every login/reload. Template refresh now only updates mute data (muteExclusions, muteFIDs) and preserves user sound and multiHitWindow settings.
+
 ## v1.3.5
 
 ### New Features

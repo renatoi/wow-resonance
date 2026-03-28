@@ -194,6 +194,7 @@ local ambientMutedFIDs = {} -- runtime-only: FIDs muted by ambient sound toggles
 local lastCastSoundTime = {} -- { [spellID] = GetTime() } for debouncing rapid duplicates
 local lastCastSoundCfgTime = {} -- { [cfg] = GetTime() } for debouncing multi-hit spells (same cfg, different spellIDs)
 local CAST_SOUND_DEBOUNCE = 0.5 -- seconds; min GCD is 0.75s so legitimate recasts are unaffected
+local sequenceState = {} -- { [sequenceTable] = { idx = <number> } } for sequence sound mode
 local activeChannelSpellID = nil -- spellID of the spell currently being channeled
 local activeChannelCfg = nil -- resolved spell_config for the channeled spell
 
@@ -610,6 +611,7 @@ local function playOneSoundWithUnmute(snd, dbg, duration)
     _, handle = previewSound(snd)
   end
   scheduleStopSound(handle, duration)
+  return handle
 end
 
 -- Active sound loop state: cancelled on next cast or when iterations exhausted.
@@ -629,8 +631,32 @@ local function playSoundCollection(soundData, dbg, duration)
     return
   end
   if type(soundData) == "table" then
+    -- Sequence mode: play one sound per hit, advancing through the list.
+    -- Format: {snd1, snd2, ..., sequence = true}
+    -- Stop the previous sound so hits produce distinct sounds even when
+    -- they fire simultaneously (e.g. Rampage's 5 hits in <1 second).
+    if soundData.sequence and #soundData > 0 then
+      local count = #soundData
+      local state = sequenceState[soundData]
+      if not state then
+        state = { idx = 0 }
+        sequenceState[soundData] = state
+      end
+      state.idx = (state.idx % count) + 1
+      local pick = soundData[state.idx]
+      if dbg then
+        msg(("  Sequence [%d/%d]: picked %s, channel: %s"):format(state.idx, count, tostring(pick), getChannel()))
+      end
+      playOneSoundWithUnmute(pick, dbg, duration)
+      return
+    end
     if dbg then
-      msg(("  spell_config: %d sound(s), channel: %s"):format(#soundData, getChannel()))
+      msg(("  spell_config: %d fixed sound(s)%s%s, channel: %s"):format(
+        #soundData,
+        soundData.random and (", random pool: " .. #soundData.random) or "",
+        soundData.sequence and " (sequence EMPTY)" or "",
+        getChannel()
+      ))
     end
     for _, snd in ipairs(soundData) do
       playOneSoundWithUnmute(snd, dbg, duration)
@@ -1827,6 +1853,9 @@ local function encodeSoundValue(sound)
       end
       parts[#parts + 1] = "R" .. table.concat(rParts, "|")
     end
+    if sound.sequence then
+      parts[#parts + 1] = "SEQ"
+    end
     return table.concat(parts, ",")
   elseif type(sound) == "number" then
     return tostring(sound)
@@ -1846,26 +1875,30 @@ local function decodeSoundValue(val)
   if val:find(",") then
     local sound = {}
     for part in val:gmatch("[^,]+") do
-      local rPool = part:match("^R(.+)$")
-      if rPool then
-        sound.random = {}
-        for fidStr in rPool:gmatch("(%d+)") do
-          sound.random[#sound.random + 1] = tonumber(fidStr)
-        end
+      if part == "SEQ" then
+        sound.sequence = true
       else
-        local n = tonumber(part)
-        if n then
-          sound[#sound + 1] = n
+        local rPool = part:match("^R(.+)$")
+        if rPool then
+          sound.random = {}
+          for fidStr in rPool:gmatch("(%d+)") do
+            sound.random[#sound.random + 1] = tonumber(fidStr)
+          end
+        else
+          local n = tonumber(part)
+          if n then
+            sound[#sound + 1] = n
+          end
         end
       end
     end
     if sound.random and #sound.random == 0 then
       sound.random = nil
     end
-    if #sound == 1 and not sound.random then
+    if #sound == 1 and not sound.random and not sound.sequence then
       sound = sound[1]
     end
-    if #sound == 0 and not sound.random then
+    if #sound == 0 and not sound.random and not sound.sequence then
       sound = nil
     end
     return sound
@@ -2429,8 +2462,8 @@ local function refreshPresetsFromTemplates()
         if entry.spellID == sid then
           local cfg = db.spell_config[sid]
           if cfg then
-            -- Update sound, muteExclusions, and muteFIDs from template (template is source of truth)
-            cfg.sound = entry.sound
+            -- Update mute data from template (template is source of truth),
+            -- but preserve user-customized sound (the user may have changed it).
             if entry.muteExclusions then
               cfg.muteExclusions = {}
               for _, fid in ipairs(entry.muteExclusions) do
@@ -2444,7 +2477,10 @@ local function refreshPresetsFromTemplates()
             else
               cfg.muteFIDs = nil
             end
-            cfg.multiHitWindow = entry.multiHitWindow
+            -- Only set multiHitWindow from template if user hasn't customized it
+            if cfg.multiHitWindow == nil then
+              cfg.multiHitWindow = entry.multiHitWindow
+            end
             updated = updated + 1
           end
           break
@@ -3134,6 +3170,7 @@ function Resonance:OnInitialize()
     if not db.customSounds then db.customSounds = {} end
     if not db.removed_template_spells then db.removed_template_spells = {} end
     wipe(autoMutedFIDs)
+    wipe(sequenceState)
     if Resonance.SpellMuteData then
       rebuildAutoMutes()
     else
@@ -3492,23 +3529,34 @@ function Resonance:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellID)
   -- Check both by exact spellID (same spell fired twice) and by resolved cfg
   -- identity (multi-hit spells like Rampage use different sub-spell IDs that
   -- all resolve to the same config via name fallback).
+  -- Sequence sounds bypass both debounce layers so each hit advances the index.
   local now = GetTime()
-  local lastPlayed = lastCastSoundTime[spellID]
-  if lastPlayed and (now - lastPlayed) < CAST_SOUND_DEBOUNCE then
-    if db.debug then
-      msg(("  Debounced: spellID %d (%.2fs ago)"):format(spellID, now - lastPlayed))
+  local isSequence = cfg and type(cfg.sound) == "table" and cfg.sound.sequence and #cfg.sound > 0
+  if not isSequence then
+    local lastPlayed = lastCastSoundTime[spellID]
+    if lastPlayed and (now - lastPlayed) < CAST_SOUND_DEBOUNCE then
+      if db.debug then
+        msg(("  Debounced: spellID %d (%.2fs ago)"):format(spellID, now - lastPlayed))
+      end
+      return
     end
-    return
   end
   if cfg then
     local window = cfg.multiHitWindow or db.multiHitWindow
     if window and window > 0 then
       local lastCfgPlayed = lastCastSoundCfgTime[cfg]
       if lastCfgPlayed and (now - lastCfgPlayed) < window then
-        if db.debug then
-          msg(("  Debounced (multi-hit): spellID %d, same config played %.2fs ago (window %.1fs)"):format(spellID, now - lastCfgPlayed, window))
+        if isSequence then
+          -- Sequence: allow through, playSoundCollection will advance the index
+          if db.debug then
+            msg(("  Sequence hit: spellID %d, same config %.2fs ago (window %.1fs)"):format(spellID, now - lastCfgPlayed, window))
+          end
+        else
+          if db.debug then
+            msg(("  Debounced (multi-hit): spellID %d, same config played %.2fs ago (window %.1fs)"):format(spellID, now - lastCfgPlayed, window))
+          end
+          return
         end
-        return
       end
     end
   end
@@ -3714,6 +3762,35 @@ function Resonance:ChatCommand(input)
     local name = getSpellName(sid) or ""
     msg(L["Testing sound for: %s (spellID %d)"]:format(name ~= "" and name or "<?>", sid))
     playResolvedSound(sid, name)
+  elseif cmd == "dump" then
+    local sid = tonumber(rest)
+    if not sid then
+      msg("Usage: /res dump <spellID>")
+      return
+    end
+    local cfg = db.spell_config and db.spell_config[sid]
+    if not cfg then
+      msg(("No spell_config for spellID %d"):format(sid))
+      return
+    end
+    local snd = cfg.sound
+    if snd == false then
+      msg(("  sound = false (mute only)"))
+    elseif type(snd) == "table" then
+      local mode = snd.sequence and "sequence" or (snd.random and "fixed+random" or "fixed")
+      msg(("  sound = table (%s): %d entries%s"):format(mode, #snd, snd.random and (", " .. #snd.random .. " random") or ""))
+      for i, s in ipairs(snd) do
+        msg(("    [%d] = %s"):format(i, tostring(s)))
+      end
+      if snd.random then
+        for i, s in ipairs(snd.random) do
+          msg(("    random[%d] = %s"):format(i, tostring(s)))
+        end
+      end
+    else
+      msg(("  sound = %s (%s)"):format(tostring(snd), type(snd)))
+    end
+    msg(("  multiHitWindow = %s"):format(tostring(cfg.multiHitWindow)))
   elseif cmd == "checkfid" then
     local fid = tonumber(rest)
     if not fid then

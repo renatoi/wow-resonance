@@ -1928,23 +1928,50 @@ buildTab2_SpellSounds = function(ctx)
   end
 
   ---------------------------------------------------------------------------
-  -- Sound list helpers (manage editorSound table)
+  -- Sound mode & list helpers (manage editorSound table)
   ---------------------------------------------------------------------------
   local edRefreshSoundList -- forward declaration
   local edBrowseRadio -- forward declaration (used by edRefreshSoundList)
+  local edFileRndBtn -- forward declaration (show/hide based on sound mode)
+  local edSoundModeStandard, edSoundModeSequence -- forward declaration for radios
+  local editorSoundMode = "standard" -- "standard" or "sequence"
+
+  local function edIsSequenceMode()
+    return editorSoundMode == "sequence"
+  end
 
   local function edSetSound(snd)
-    editorSound = snd
+    if edIsSequenceMode() then
+      if snd == nil then
+        editorSound = nil
+      else
+        editorSound = { sequence = { snd } }
+      end
+    else
+      editorSound = snd
+    end
     edRefreshSoundList()
   end
 
-  local function edAddFixedSound(snd)
-    if editorSound == nil then
-      editorSound = snd
-    elseif type(editorSound) ~= "table" then
-      editorSound = { editorSound, snd }
+  -- Add a sound respecting the current mode
+  local function edAddSound(snd)
+    if edIsSequenceMode() then
+      if editorSound == nil then
+        editorSound = { snd, sequence = true }
+      elseif type(editorSound) ~= "table" then
+        editorSound = { editorSound, snd, sequence = true }
+      else
+        editorSound[#editorSound + 1] = snd
+        editorSound.sequence = true
+      end
     else
-      editorSound[#editorSound + 1] = snd
+      if editorSound == nil then
+        editorSound = snd
+      elseif type(editorSound) ~= "table" then
+        editorSound = { editorSound, snd }
+      else
+        editorSound[#editorSound + 1] = snd
+      end
     end
     edRefreshSoundList()
   end
@@ -1995,11 +2022,86 @@ buildTab2_SpellSounds = function(ctx)
     edRefreshSoundList()
   end
 
+  local function edRemoveSequenceSound(idx)
+    if type(editorSound) ~= "table" or not editorSound.sequence then
+      return
+    end
+    table.remove(editorSound, idx)
+    if #editorSound == 1 then
+      editorSound = editorSound[1]
+    elseif #editorSound == 0 then
+      editorSound = nil
+    end
+    edRefreshSoundList()
+  end
+
+  -- Switch between standard and sequence mode, converting existing sounds
+  local function edSetSoundModeValue(mode)
+    if mode == editorSoundMode then
+      return
+    end
+    if mode == "sequence" then
+      -- Convert existing sounds to sequence: merge random pool into array, set flag
+      if type(editorSound) == "table" and not editorSound.sequence then
+        if editorSound.random then
+          for _, s in ipairs(editorSound.random) do
+            editorSound[#editorSound + 1] = s
+          end
+          editorSound.random = nil
+        end
+        if #editorSound > 0 then
+          editorSound.sequence = true
+        end
+      elseif type(editorSound) ~= "table" and editorSound ~= nil then
+        editorSound = { editorSound, sequence = true }
+      end
+    else
+      -- Convert sequence to standard fixed array: just remove the flag
+      if type(editorSound) == "table" and editorSound.sequence then
+        editorSound.sequence = nil
+        if #editorSound == 1 then
+          editorSound = editorSound[1]
+        elseif #editorSound == 0 then
+          editorSound = nil
+        end
+      end
+    end
+    editorSoundMode = mode
+    if edSoundModeStandard then
+      edSoundModeStandard:SetChecked(mode == "standard")
+      edSoundModeSequence:SetChecked(mode == "sequence")
+    end
+    edRefreshSoundList()
+  end
+
+  ---------------------------------------------------------------------------
+  -- Sound mode radio buttons (Standard vs Sequence)
+  ---------------------------------------------------------------------------
+  local edSoundModeLabel = editorFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  edSoundModeLabel:SetPoint("TOPLEFT", repHeader, "BOTTOMLEFT", 0, -4)
+  edSoundModeLabel:SetText(L["Sound mode:"])
+
+  edSoundModeStandard = makeRadio(editorFrame)
+  edSoundModeStandard:SetPoint("LEFT", edSoundModeLabel, "RIGHT", 6, 0)
+  edSoundModeStandard.label:SetText(L["Standard"])
+  edSoundModeStandard:SetChecked(true)
+
+  edSoundModeSequence = makeRadio(editorFrame)
+  edSoundModeSequence:SetPoint("LEFT", edSoundModeStandard.label, "RIGHT", 12, 0)
+  edSoundModeSequence.label:SetText(L["Sequence (1 per hit)"])
+
+  edSoundModeStandard:SetScript("OnClick", function()
+    edSetSoundModeValue("standard")
+  end)
+  edSoundModeSequence:SetScript("OnClick", function()
+    edSetSoundModeValue("sequence")
+  end)
+
   ---------------------------------------------------------------------------
   -- Sound list display (individual sound rows with play/remove)
   ---------------------------------------------------------------------------
   local edSoundListFrame = CreateFrame("Frame", nil, editorFrame)
-  edSoundListFrame:SetPoint("TOPLEFT", repHeader, "BOTTOMLEFT", 0, -4)
+  edSoundListFrame:SetPoint("TOPLEFT", edSoundModeLabel, "BOTTOMLEFT", 0, -4)
   edSoundListFrame:SetWidth(CONTENT_WIDTH - 20)
   edSoundListFrame:SetHeight(ROW_HEIGHT)
 
@@ -2035,13 +2137,20 @@ buildTab2_SpellSounds = function(ctx)
     local entries = {}
     if editorSound then
       if type(editorSound) == "table" then
-        for i, s in ipairs(editorSound) do
-          entries[#entries + 1] = { kind = "fixed", sound = s, idx = i }
-        end
-        if editorSound.random and #editorSound.random > 0 then
-          entries[#entries + 1] = { kind = "header", text = L["Random pool (1 picked per cast):"] }
-          for i, s in ipairs(editorSound.random) do
-            entries[#entries + 1] = { kind = "random", sound = s, idx = i }
+        if editorSound.sequence then
+          entries[#entries + 1] = { kind = "header", text = L["Sequence (1 per hit, in order):"] }
+          for i, s in ipairs(editorSound) do
+            entries[#entries + 1] = { kind = "sequence", sound = s, idx = i }
+          end
+        else
+          for i, s in ipairs(editorSound) do
+            entries[#entries + 1] = { kind = "fixed", sound = s, idx = i }
+          end
+          if editorSound.random and #editorSound.random > 0 then
+            entries[#entries + 1] = { kind = "header", text = L["Random pool (1 picked per cast):"] }
+            for i, s in ipairs(editorSound.random) do
+              entries[#entries + 1] = { kind = "random", sound = s, idx = i }
+            end
           end
         end
       else
@@ -2092,6 +2201,8 @@ buildTab2_SpellSounds = function(ctx)
         local display = formatSoundBrief(entry.sound)
         if entry.kind == "random" then
           display = "  " .. display
+        elseif entry.kind == "sequence" then
+          display = "  " .. entry.idx .. ". " .. display
         end
         row.text:SetText("|cff00ff00" .. display .. "|r")
         row.text:SetPoint("RIGHT", row.playBtn, "LEFT", -4, 0)
@@ -2105,6 +2216,8 @@ buildTab2_SpellSounds = function(ctx)
         row.removeBtn:SetScript("OnClick", function()
           if eKind == "fixed" then
             edRemoveFixedSound(eIdx)
+          elseif eKind == "sequence" then
+            edRemoveSequenceSound(eIdx)
           else
             edRemoveRandomSound(eIdx)
           end
@@ -2117,6 +2230,16 @@ buildTab2_SpellSounds = function(ctx)
 
     local listH = math.max(ROW_HEIGHT, yOff)
     edSoundListFrame:SetHeight(listH)
+
+    -- Sync mode radios with data
+    local isSeq = edIsSequenceMode()
+    edSoundModeStandard:SetChecked(not isSeq)
+    edSoundModeSequence:SetChecked(isSeq)
+
+    -- Show/hide +Rnd button based on mode (file input area)
+    if edFileRndBtn then
+      edFileRndBtn:SetShown(not isSeq)
+    end
 
     -- Re-anchor browse section below the sound list
     edBrowseRadio:ClearAllPoints()
@@ -2157,9 +2280,9 @@ buildTab2_SpellSounds = function(ctx)
       {
         label = L["Add"],
         width = 36,
-        tooltip = L["Add as an additional fixed sound (always plays)"],
+        tooltip = L["Add sound"],
         onClick = function(e)
-          edAddFixedSound(e.fileDataID)
+          edAddSound(e.fileDataID)
           edBrowseDD:Hide()
         end,
       },
@@ -2168,6 +2291,10 @@ buildTab2_SpellSounds = function(ctx)
         width = 38,
         tooltip = L["Add to the random pool (1 picked at random per cast)"],
         onClick = function(e)
+          if edIsSequenceMode() then
+            Resonance.msg(L["Switch to Standard mode to add random sounds."])
+            return
+          end
           edAddRandomSound(e.fileDataID)
           edBrowseDD:Hide()
         end,
@@ -2278,13 +2405,13 @@ buildTab2_SpellSounds = function(ctx)
   local edFileAddBtn = makeButton(edFileFrame, L["Add"], 36, function()
     local v = edGetFileValue()
     if v then
-      edAddFixedSound(v)
+      edAddSound(v)
     end
   end)
   edFileAddBtn:SetPoint("LEFT", edFileReplaceBtn, "RIGHT", 2, 0)
-  addButtonTooltip(edFileAddBtn, L["Add as an additional fixed sound (always plays)"])
+  addButtonTooltip(edFileAddBtn, L["Add sound"])
 
-  local edFileRndBtn = makeButton(edFileFrame, L["+Rnd"], 40, function()
+  edFileRndBtn = makeButton(edFileFrame, L["+Rnd"], 40, function()
     local v = edGetFileValue()
     if v then
       edAddRandomSound(v)
@@ -2494,6 +2621,11 @@ buildTab2_SpellSounds = function(ctx)
     edTriggerBoth:SetShown(not muteOnly)
     edPrecastSection:SetShown(not muteOnly and editorTrigger == "precast_and_cast")
     repHeader:SetShown(not muteOnly)
+    edSoundModeLabel:SetShown(not muteOnly)
+    edSoundModeStandard:SetShown(not muteOnly)
+    edSoundModeStandard.label:SetShown(not muteOnly)
+    edSoundModeSequence:SetShown(not muteOnly)
+    edSoundModeSequence.label:SetShown(not muteOnly)
     edSoundListFrame:SetShown(not muteOnly)
     edPlayAllBtn:SetShown(not muteOnly)
     edClearAllBtn:SetShown(not muteOnly)
@@ -2732,6 +2864,7 @@ buildTab2_SpellSounds = function(ctx)
   local function openEditor(spellID)
     profile = Resonance.db.profile
     editorSound = nil
+    editorSoundMode = "standard"
     editorDuration = nil
     editorLoop = nil
     editorTrigger = "cast"
@@ -2763,7 +2896,10 @@ buildTab2_SpellSounds = function(ctx)
           for i, s in ipairs(cfg.sound) do
             editorSound[i] = s
           end
-          if cfg.sound.random then
+          if cfg.sound.sequence then
+            editorSound.sequence = true
+            editorSoundMode = "sequence"
+          elseif cfg.sound.random then
             editorSound.random = {}
             for i, s in ipairs(cfg.sound.random) do
               editorSound.random[i] = s
@@ -3121,11 +3257,15 @@ buildTab2_SpellSounds = function(ctx)
             row.playBtn:SetEnabled(false)
           elseif type(sound) == "table" then
             local parts = {}
-            for _, s in ipairs(sound) do
-              parts[#parts + 1] = formatSoundBrief(s)
-            end
-            if sound.random then
-              parts[#parts + 1] = L["+1 random from %d"]:format(#sound.random)
+            if sound.sequence then
+              parts[#parts + 1] = L["sequence: %d sounds"]:format(#sound)
+            else
+              for _, s in ipairs(sound) do
+                parts[#parts + 1] = formatSoundBrief(s)
+              end
+              if sound.random then
+                parts[#parts + 1] = L["+1 random from %d"]:format(#sound.random)
+              end
             end
             row.soundText:SetText("|cff00ff00" .. table.concat(parts, ", ") .. "|r")
             row.playBtn:SetEnabled(true)
